@@ -1,18 +1,18 @@
-# Usa imagem base do Python
-FROM python:3.11-slim
+# Usa imagem oficial Python
+FROM python:3.10-slim
 
 # Define diretório de trabalho
 WORKDIR /app
 
-# Copia os arquivos do projeto
-COPY . /app
+# Copia tudo
+COPY . .
 
 # Instala dependências
-RUN pip install --upgrade pip \
-    && pip install -r requirements.txt
+RUN pip install --upgrade pip
+RUN pip install -r requirements.txt
 
-# Expõe a porta que o Fly.io usa
+# Expõe porta usada pelo Gunicorn
 EXPOSE 8080
 
-# Comando para rodar o app com Gunicorn
-CMD ["gunicorn", "-b", "0.0.0.0:8080", "run:create_app"]
+# Comando de inicialização
+CMD ["gunicorn", "run:app", "--bind", "0.0.0.0:8080"]
