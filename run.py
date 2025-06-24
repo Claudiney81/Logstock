@@ -1,14 +1,11 @@
+from flask import Flask
 import os
-from app import create_app
 
-app = create_app()
+app = Flask(__name__)
 
-# Cria as tabelas automaticamente no Railway
-with app.app_context():
-    from app.extensions import db
-    db.create_all()
+@app.route("/")
+def index():
+    return "✅ Sistema LogiStock rodando no Railway!"
 
-if __name__ == '__main__':
-    port = int(os.environ.get("PORT", 8000))
-    app.run(host="0.0.0.0", port=port)
-
+if __name__ == "__main__":
+    app.run(debug=False, host="0.0.0.0", port=int(os.environ.get("PORT", 8080)))
