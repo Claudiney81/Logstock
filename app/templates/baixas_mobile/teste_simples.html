@@ -1,0 +1,126 @@
+{% extends "base.html" %} 
+{% block content %}
+<div class="container mt-4">
+  <h4 class="text-primary">
+    <i class="bi bi-phone"></i> Baixa Técnica - Versão Teste (Admin)
+  </h4>
+
+  <!-- Selecionar Técnico -->
+  <form method="GET" action="{{ url_for('baixa_tecnico.formulario_teste') }}">
+    <div class="mb-3">
+      <label for="tecnico_id" class="form-label">Selecione o Técnico</label>
+      <select class="form-select" id="tecnico_id" name="tecnico_id" required onchange="this.form.submit()">
+        <option value="">Escolha...</option>
+        {% for t in tecnicos %}
+        <option value="{{ t.id }}" {% if tecnico_id == t.id %}selected{% endif %}>{{ t.nome }}</option>
+        {% endfor %}
+      </select>
+    </div>
+  </form>
+
+  {% if tecnico_id %}
+  <!-- Formulário de Baixa -->
+  <form method="POST" action="{{ url_for('baixa_tecnico.registrar_teste_admin') }}">
+    <input type="hidden" name="tecnico_id" value="{{ tecnico_id }}">
+
+    <!-- Selecionar Endereço -->
+    <div class="mb-3">
+      <label for="endereco" class="form-label">Selecione o Endereço</label>
+      <select class="form-control" name="endereco" id="endereco_select">
+  <option value="">Escolha...</option>
+  {% for e in enderecos %}
+    <option
+      value="{{ e.endereco }}"
+      data-bairro="{{ e.bairro }}"
+      data-codigo="{{ e.codigo_imovel }}"
+      data-servico="{{ e.tipo_servico.nome }}"
+    >
+      {{ e.endereco }}
+    </option>
+  {% endfor %}
+</select>
+
+    </div>
+
+    <!-- Cabeçalho -->
+    <div class="row mb-3">
+      <div class="col-md-4">
+        <label class="form-label">Bairro</label>
+        <input type="text" class="form-control" id="bairro" readonly />
+      </div>
+      <div class="col-md-4">
+        <label class="form-label">Código do Imóvel</label>
+        <input type="text" class="form-control" id="codigo_imovel" readonly />
+      </div>
+      <div class="col-md-4">
+        <label class="form-label">Tipo de Serviço</label>
+        <input type="text" class="form-control" id="tipo_servico" readonly />
+      </div>
+    </div>
+
+    <!-- Tabela de Itens -->
+    <div class="table-responsive">
+      <table class="table table-bordered table-striped table-sm">
+        <thead class="table-secondary">
+          <tr>
+            <th>Código</th>
+            <th>Descrição</th>
+            <th>Unidade</th>
+            <th>Saldo</th>
+            <th>Qtd Baixa</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for item in itens %}
+          <tr data-endereco="{{ item.endereco }}">
+            <td>{{ item.item.codigo }}</td>
+            <td>{{ item.item.descricao }}</td>
+            <td>{{ item.item.unidade }}</td>
+            <td>{{ item.quantidade }}</td>
+            <td>
+              <input
+                type="number"
+                min="0"
+                max="{{ item.quantidade }}"
+                class="form-control form-control-sm"
+                name="itens[{{ loop.index0 }}][quantidade]"
+              />
+              <input type="hidden" name="itens[{{ loop.index0 }}][item_id]" value="{{ item.item_id }}" />
+              <input type="hidden" name="itens[{{ loop.index0 }}][endereco]" value="{{ item.endereco }}" />
+            </td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+
+    <div class="text-center mt-3">
+      <button type="submit" class="btn btn-success">
+        <i class="bi bi-check2-square"></i> Enviar Baixa
+      </button>
+    </div>
+  </form>
+  {% endif %}
+</div>
+
+<script>
+  // Preencher cabeçalho automaticamente ao selecionar endereço
+  document.getElementById("endereco_select")?.addEventListener("change", function () {
+    const selected = this.options[this.selectedIndex];
+    document.getElementById("bairro").value = selected.getAttribute("data-bairro");
+    document.getElementById("codigo_imovel").value = selected.getAttribute("data-codigo");
+    document.getElementById("tipo_servico").value = selected.getAttribute("data-servico");
+
+    const enderecoSelecionado = selected.value;
+    document.querySelectorAll("tbody tr").forEach(function (row) {
+      row.style.display = row.getAttribute("data-endereco") === enderecoSelecionado ? "" : "none";
+    });
+  });
+
+  // Ocultar todas as linhas inicialmente
+  window.onload = () => {
+    document.querySelectorAll("tbody tr").forEach(row => row.style.display = "none");
+  };
+</script>
+
+{% endblock %}

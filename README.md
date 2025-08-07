@@ -37,7 +37,6 @@ Este é um sistema web responsivo para controle de materiais desenvolvido em Pyt
 
    ```
 
-   python run.py
    ```
 
 2. Acesse o sistema no navegador: http://localhost:5000
@@ -71,3 +70,5 @@ nome='Admin',
 ... senha_hash=generate_password_hash('senha123'),
 
 # LogiStock atualizado
+
+python run.py

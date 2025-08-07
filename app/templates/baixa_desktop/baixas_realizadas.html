@@ -1,0 +1,91 @@
+{% extends 'base.html' %}
+{% block content %}
+<div class="container mt-4">
+  <h4 class="text-primary"><i class="bi bi-check2-circle"></i> Baixas Realizadas</h4>
+
+  <!-- Filtro por Técnico e Período -->
+  <form method="GET" class="row g-3 mb-3">
+    <div class="col-md-4">
+      <label class="form-label">Técnico</label>
+      <select name="tecnico_id" class="form-select">
+        <option value="">Todos</option>
+        {% for t in tecnicos %}
+        <option value="{{ t.id }}" {% if tecnico_id == t.id %}selected{% endif %}>{{ t.nome }}</option>
+        {% endfor %}
+      </select>
+    </div>
+    <div class="col-md-4">
+      <label class="form-label">Período</label>
+      <input type="date" name="data_inicio" class="form-control" value="{{ data_inicio }}">
+      <input type="date" name="data_fim" class="form-control mt-1" value="{{ data_fim }}">
+    </div>
+    <div class="col-md-4 align-self-end">
+      <button type="submit" class="btn btn-primary w-100">
+        <i class="bi bi-search"></i> Filtrar
+      </button>
+    </div>
+  </form>
+
+  <!-- Tabela com cabeçalho fixo e sem barra externa -->
+  <style>
+    .tableFixHead {
+      border-collapse: collapse;
+      width: 100%;
+    }
+    .tableFixHead thead th {
+      position: sticky;
+      top: 0;
+      z-index: 2;
+      background: #002b55;
+      color: #fff;
+      text-align: center;
+    }
+    .tableFixHead tbody {
+      display: block;
+      max-height: 65vh;
+      overflow-y: auto;
+      width: 100%;
+    }
+    .tableFixHead thead,
+    .tableFixHead tbody tr {
+      display: table;
+      width: 100%;
+      table-layout: fixed;
+    }
+  </style>
+
+  <table class="table table-hover table-striped align-middle tableFixHead">
+    <thead>
+      <tr>
+        <th>ID</th>
+        <th>Data</th>
+        <th>Responsável</th>
+        <th>Técnico</th>
+        <th>Status</th>
+        <th>Ações</th>
+      </tr>
+    </thead>
+    <tbody>
+      {% for baixa in baixas %}
+      <tr>
+        <td class="text-center">{{ baixa.id }}</td>
+        <td class="text-center">{{ baixa.data_hora.strftime('%d/%m/%Y %H:%M') if baixa.data_hora else '' }}</td>
+        <td>{{ baixa.responsavel }}</td>
+        <td>{{ baixa.tecnico.nome }}</td>
+        <td class="text-center"><span class="badge bg-success">Confirmado</span></td>
+        <td class="text-center">
+          <a href="{{ url_for('baixa_desktop.detalhe_baixa', baixa_id=baixa.id) }}"
+             class="btn btn-sm btn-primary" target="_blank">
+            Detalhes
+          </a>
+        </td>
+      </tr>
+      {% else %}
+      <tr>
+        <td colspan="6" class="text-center">Nenhuma baixa realizada.</td>
+      </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+</div>
+{% endblock %}

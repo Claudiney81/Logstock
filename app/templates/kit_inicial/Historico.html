@@ -1,61 +1,82 @@
 {% extends 'base.html' %}
 {% block content %}
 <div class="container mt-4">
-  <h2>Histórico de Kits Iniciais</h2>
-  <form method="get" class="row g-3 mb-3">
-    <div class="col-md-4">
-      <label for="tecnico_id" class="form-label">Técnico</label>
-      <select id="tecnico_id" name="tecnico_id" class="form-select">
-        <option value="">Todos</option>
-        {% for tecnico in tecnicos %}
-          <option value="{{ tecnico.id }}" {% if tecnico_id|int == tecnico.id %}selected{% endif %}>
-            {{ tecnico.nome }}
-          </option>
-        {% endfor %}
-      </select>
-    </div>
-    <div class="col-md-4">
-      <label for="tipo_servico_id" class="form-label">Tipo de Serviço</label>
-      <select id="tipo_servico_id" name="tipo_servico_id" class="form-select">
-        <option value="">Todos</option>
-        {% for ts in tipos_servico %}
-          <option value="{{ ts.id }}" {% if tipo_servico_id|int == ts.id %}selected{% endif %}>
-            {{ ts.nome }}
-          </option>
-        {% endfor %}
-      </select>
-    </div>
-    <div class="col-md-4 d-flex align-items-end">
-      <button type="submit" class="btn btn-primary">Filtrar</button>
-      <a href="{{ url_for('kit_inicial.historico_kits') }}" class="btn btn-secondary ms-2">Limpar</a>
-    </div>
-  </form>
+  <h2 class="mb-4">Histórico de Kits Iniciais</h2>
 
-  <table class="table table-bordered">
-    <thead>
-      <tr>
-        <th>Nome do Kit</th>
-        <th>Técnico</th>
-        <th>Tipo de Serviço</th>
-        <th>Data/Hora</th>
-        <th>Observação</th>
-        <th>Ações</th>
-      </tr>
-    </thead>
-    <tbody>
-      {% for kit in kits %}
-      <tr>
-        <td>{{ kit.nome_kit }}</td>
-        <td>{{ kit.tecnico_rel.nome if kit.tecnico_rel else '' }}</td>
-        <td>{{ kit.tipo_servico_rel.nome if kit.tipo_servico_rel else '' }}</td>
-        <td>{{ kit.data_hora.strftime('%d/%m/%Y %H:%M') }}</td>
-        <td>{{ kit.observacao }}</td>
-        <td>
-          <a href="{{ url_for('kit_inicial.detalhes_kit', id=kit.id) }}" class="btn btn-info btn-sm">Detalhes</a>
-        </td>
-      </tr>
-      {% endfor %}
-    </tbody>
-  </table>
+  <div class="card mb-4">
+    <div class="card-body">
+      <form method="get" class="row g-3">
+        <div class="col-md-4">
+          <label for="tecnico_id" class="form-label">Técnico</label>
+          <select id="tecnico_id" name="tecnico_id" class="form-select">
+            <option value="">Todos</option>
+            {% for tecnico in tecnicos %}
+            <option value="{{ tecnico.id }}" {% if tecnico_id == tecnico.id %}selected{% endif %}>
+              {{ tecnico.nome }}
+            </option>
+            {% endfor %}
+          </select>
+        </div>
+        <div class="col-md-4">
+          <label for="tipo_servico_id" class="form-label">Tipo de Serviço</label>
+          <select id="tipo_servico_id" name="tipo_servico_id" class="form-select">
+            <option value="">Todos</option>
+            {% for ts in tipos_servico %}
+            <option value="{{ ts.id }}" {% if tipo_servico_id == ts.id %}selected{% endif %}>
+              {{ ts.nome }}
+            </option>
+            {% endfor %}
+          </select>
+        </div>
+        <div class="col-md-4 d-flex align-items-end">
+          <button type="submit" class="btn btn-primary me-2">
+            <i class="bi bi-funnel"></i> Filtrar
+          </button>
+          <a href="{{ url_for('kit_inicial.historico_kits') }}" class="btn btn-secondary">
+            <i class="bi bi-x-circle"></i> Limpar
+          </a>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <div class="table-responsive">
+    <table class="table table-bordered table-hover align-middle">
+      <thead class="table-light">
+        <tr>
+          <th>Nome do Kit</th>
+          <th>Técnico</th>
+          <th>Tipo de Serviço</th>
+          <th>Data/Hora</th>
+          <th>Observação</th>
+          <th style="width: 100px;">Ações</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% if kits %}
+        {% for kit in kits %}
+        <tr>
+          <td>{{ kit.nome_kit }}</td>
+          <td>{{ kit.tecnico.nome }}</td>
+          <td>{{ kit.tipo_servico.nome }}</td>
+          <td>{{ kit.data_hora.strftime('%d/%m/%Y %H:%M') }}</td>
+          <td>{{ kit.observacao or '-' }}</td>
+          <td class="text-center">
+            <a href="{{ url_for('kit_inicial.detalhes_kit', id=kit.id) }}" class="btn btn-info btn-sm">
+              <i class="bi bi-eye"></i> Detalhes
+            </a>
+          </td>
+        </tr>
+        {% endfor %}
+        {% else %}
+        <tr>
+          <td colspan="6" class="text-center text-muted">
+            Nenhum kit encontrado para os filtros selecionados.
+          </td>
+        </tr>
+        {% endif %}
+      </tbody>
+    </table>
+  </div>
 </div>
 {% endblock %}

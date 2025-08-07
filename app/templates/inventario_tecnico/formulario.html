@@ -1,0 +1,56 @@
+{% extends 'base.html' %}
+{% block content %}
+<div class="container mt-4" id="formulario-inventario">
+  <div class="text-center mb-3">
+    <h4>Formulário de Contagem de Inventário Técnico</h4>
+  </div>
+
+  <div class="mb-4 border p-3 rounded bg-light">
+    <p><strong>Técnico:</strong> {{ inventario.tecnico.nome }}</p>
+    <p><strong>Tipo de Serviço:</strong> {{ inventario.tipo_servico.nome }}</p>
+    <p><strong>Data:</strong> {{ inventario.data.strftime('%d/%m/%Y %H:%M') }}</p>
+    <p><strong>Responsável:</strong> {{ inventario.responsavel or '---' }}</p>
+  </div>
+
+  <h5>Itens do Inventário</h5>
+  <div class="table-responsive">
+    <table class="table table-bordered mt-4" style="table-layout: fixed; width: 100%">
+      <thead class="table-light">
+        <tr>
+          <th style="width: 15%">Código</th>
+          <th style="width: 45%">Descrição</th>
+          <th style="width: 10%">Unidade</th>
+          <th style="width: 15%">Quantidade Contada</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for item in inventario.itens %}
+        <tr>
+          <td>{{ item.item.codigo }}</td>
+          <td>{{ item.item.descricao }}</td>
+          <td>{{ item.item.unidade }}</td>
+          <td>{{ item.quantidade_contada }}</td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+
+  <div class="mt-5">
+    <p><strong>Responsável / Técnico:</strong> _______________________________</p>
+    <p><strong>Data:</strong> ____/____/________</p>
+    <p><strong>Assinatura:</strong> _______________________________</p>
+  </div>
+
+  <a href="{{ url_for('inventario_tecnico.historico_inventarios') }}" class="btn btn-secondary mt-4">Voltar</a>
+</div>
+
+<style>
+  @media print {
+    body * { visibility: hidden; }
+    #formulario-inventario, #formulario-inventario * { visibility: visible; }
+    #formulario-inventario { position: absolute; left: 0; top: 0; width: 100%; }
+    #formulario-inventario .btn-print { display: none !important; }
+  }
+</style>
+{% endblock %}

@@ -1,0 +1,38 @@
+{% extends 'base_mobile.html' %} {% block title %}Histórico de Baixas{% endblock
+%} {% block content %}
+<div class="container py-3">
+  <h5 class="text-center mb-3">📋 Histórico de Baixas Técnicas</h5>
+  <p><strong>Técnico:</strong> {{ tecnico.nome }}</p>
+
+  <div class="table-responsive">
+    <table class="table table-bordered table-sm mt-3">
+      <thead class="table-light">
+        <tr>
+          <th>Data</th>
+          <th>Endereço</th>
+          <th>Itens</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for baixa in baixas %}
+        <tr>
+          <td>{{ baixa.data.strftime('%d/%m/%Y %H:%M') }}</td>
+          <td>{{ baixa.endereco }}</td>
+          <td>
+            <ul class="mb-0">
+              {% for item in baixa.itens %}
+              <li>{{ item.codigo }} - {{ item.quantidade }} un.</li>
+              {% endfor %}
+            </ul>
+          </td>
+        </tr>
+        {% else %}
+        <tr>
+          <td colspan="3" class="text-center">Nenhuma baixa registrada.</td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</div>
+{% endblock %}

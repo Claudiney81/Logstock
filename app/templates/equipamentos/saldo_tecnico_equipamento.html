@@ -1,0 +1,119 @@
+{% extends 'base.html' %} {% block content %}
+<div class="container mt-4">
+  <h2 class="mb-4 text-primary">
+    <i class="bi bi-person-bounding-box me-2"></i> Saldo de Ferramentas por
+    Técnico
+  </h2>
+
+  {% for tecnico, itens in resultados %}
+  <div class="card mb-3 shadow-sm">
+    <div class="card-header bg-primary text-white">
+      <strong>{{ tecnico.nome }}</strong>
+    </div>
+    <div class="card-body p-0">
+      <div class="table-responsive" style="max-height: 300px; overflow-y: auto">
+        <table class="table table-sm table-striped mb-0 align-middle">
+          <thead
+            class="table-light"
+            style="position: sticky; top: 0; z-index: 1"
+          >
+            <tr>
+              <th>Código</th>
+              <th>Descrição</th>
+              <th>Status Atual</th>
+              <th>Local</th>
+              <th>Data/Hora</th>
+              <th style="width: 100px">Qtd Devolver</th>
+              <th style="width: 100px"></th>
+            </tr>
+          </thead>
+          <tbody>
+            {% for item in itens %}
+            <tr>
+              <td>{{ item.item.codigo }}</td>
+              <td>{{ item.item.descricao }}</td>
+              <td>{{ item.status }}</td>
+              <td>{{ item.local }}</td>
+              <td>{{ item.data_hora.strftime('%d/%m/%Y %H:%M') }}</td>
+              <td>
+                <input
+                  type="number"
+                  min="1"
+                  max="99"
+                  value="1"
+                  class="form-control form-control-sm quantidade-devolver"
+                />
+              </td>
+              <td>
+                <button
+                  class="btn btn-sm btn-danger btn-devolver"
+                  data-tecnico-id="{{ tecnico.id }}"
+                  data-item-id="{{ item.item.id }}"
+                  data-status="{{ item.status }}"
+                  data-local="{{ item.local }}"
+                >
+                  Devolver
+                </button>
+              </td>
+            </tr>
+            {% else %}
+            <tr>
+              <td colspan="7" class="text-center text-muted">
+                Nenhum item registrado.
+              </td>
+            </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+  {% else %}
+  <p class="text-center text-muted">
+    Nenhum técnico possui ferramentas registradas.
+  </p>
+  {% endfor %}
+</div>
+
+<script>
+  document.querySelectorAll(".btn-devolver").forEach((btn) => {
+    btn.addEventListener("click", function () {
+      const tecnicoId = this.dataset.tecnicoId;
+      const itemId = this.dataset.itemId;
+      const local = this.dataset.local;
+      const status = this.dataset.status;
+      const quantidade = this.closest("tr").querySelector(
+        ".quantidade-devolver"
+      ).value;
+
+      if (!quantidade || quantidade < 1) {
+        alert("Insira uma quantidade válida para devolver.");
+        return;
+      }
+
+      fetch("/equipamentos/devolver", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          tecnico_id: tecnicoId,
+          item_id: itemId,
+          local: local,
+          status: status,
+          quantidade: quantidade,
+        }),
+      })
+        .then((response) => response.json())
+        .then((data) => {
+          if (data.success) {
+            alert("Devolução registrada com sucesso!");
+            location.reload();
+          } else {
+            alert("Erro: " + data.message);
+          }
+        });
+    });
+  });
+</script>
+{% endblock %}

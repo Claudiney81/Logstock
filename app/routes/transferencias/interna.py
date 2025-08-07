@@ -1,9 +1,10 @@
 from flask import Blueprint, render_template, request, redirect, url_for, flash, jsonify
 from app.extensions import db
-from app.models import TransferenciaInterna, TransferenciaInternaItem, Tecnico, TipoServico, Item, Estoque, EstoqueTecnico
+from app.models import TransferenciaInterna, TransferenciaInternaItem, Tecnico, TipoServico, Item, Estoque, SaldoTecnico
 from datetime import datetime
 
 bp_interna = Blueprint('transferencias_interna', __name__, url_prefix='/transferencias/interna')
+
 
 @bp_interna.route('/nova', methods=['GET', 'POST'])
 def nova_transferencia_interna():
@@ -16,7 +17,6 @@ def nova_transferencia_interna():
         tipo_servico_id = request.form.get('tipo_servico_id')
 
         codigos = request.form.getlist('codigo[]')
-        descricoes = request.form.getlist('descricao[]')
         unidades = request.form.getlist('unidade[]')
         quantidades = request.form.getlist('quantidade[]')
         valores = request.form.getlist('valor_unitario[]')
@@ -34,30 +34,33 @@ def nova_transferencia_interna():
         db.session.add(nova_transf)
         db.session.flush()
 
-        sucesso = False  # Para saber se pelo menos um item foi transferido
+        sucesso = False
 
         for i in range(len(codigos)):
             if not codigos[i] or not quantidades[i] or int(quantidades[i]) <= 0:
                 continue
 
-            item_obj = Item.query.filter_by(codigo=codigos[i], tipo_servico_id=tipo_servico_id).first()
+            # Buscar item apenas pelo código
+            item_obj = Item.query.filter_by(codigo=codigos[i]).first()
             if not item_obj:
+                flash(f"Item {codigos[i]} não encontrado no cadastro!", "danger")
                 continue
 
-            estoque = Estoque.query.filter_by(item_id=item_obj.id).first()
+            # Estoque por tipo de serviço
+            estoque = Estoque.query.filter_by(item_id=item_obj.id, tipo_servico_id=tipo_servico_id).first()
             if not estoque:
-                flash(f"Item {codigos[i]} não possui saldo cadastrado!", "danger")
+                flash(f"Item {codigos[i]} não possui saldo para este tipo de serviço!", "danger")
                 continue
 
             quantidade_transferida = int(quantidades[i])
-
             if estoque.quantidade < quantidade_transferida:
                 flash(f"Saldo insuficiente para o item {codigos[i]}! Saldo disponível: {estoque.quantidade}", "danger")
                 continue
 
-            # Faz a baixa no saldo!
+            # Baixa no estoque central
             estoque.quantidade -= quantidade_transferida
 
+            # Registro do item na transferência
             item_transf = TransferenciaInternaItem(
                 transferencia_interna_id=nova_transf.id,
                 item_id=item_obj.id,
@@ -66,23 +69,26 @@ def nova_transferencia_interna():
             )
             db.session.add(item_transf)
 
-            # Atualiza o saldo no EstoqueTecnico
-            estoque_tec = EstoqueTecnico.query.filter_by(
+            # Atualiza saldo técnico (apenas quantidade)
+            saldo_tec = SaldoTecnico.query.filter_by(
                 tecnico_id=tecnico_id,
                 item_id=item_obj.id,
-                tipo_servico_id=tipo_servico_id
+                tipo_servico_id=tipo_servico_id,
+                endereco=area_tecnica
             ).first()
-
-            if estoque_tec:
-                estoque_tec.quantidade += quantidade_transferida
+            if saldo_tec:
+                saldo_tec.quantidade += quantidade_transferida
             else:
-                estoque_tec = EstoqueTecnico(
+                saldo_tec = SaldoTecnico(
                     tecnico_id=tecnico_id,
                     item_id=item_obj.id,
                     tipo_servico_id=tipo_servico_id,
-                    quantidade=quantidade_transferida
+                    quantidade=quantidade_transferida,
+                    endereco=area_tecnica,
+                    bairro='',
+                    codigo_imovel=''
                 )
-                db.session.add(estoque_tec)
+                db.session.add(saldo_tec)
 
             sucesso = True
 
@@ -101,17 +107,19 @@ def nova_transferencia_interna():
         tipos_servico=tipos_servico
     )
 
+
 @bp_interna.route('/historico')
 def historico_transferencia_interna():
     transferencias = TransferenciaInterna.query.order_by(TransferenciaInterna.data_hora.desc()).all()
     return render_template('transferencias/interna/historico_transferencia_interna.html', transferencias=transferencias)
+
 
 @bp_interna.route('/detalhes/<int:id>')
 def detalhes_transferencia_interna(id):
     transferencia = TransferenciaInterna.query.get_or_404(id)
     return render_template('transferencias/interna/detalhes.html', transferencia=transferencia)
 
-# --- NOVA ROTA PARA CONSULTA DE ITEM + SALDO ---
+
 @bp_interna.route('/api/item_saldo')
 def api_item_saldo():
     codigo = request.args.get('codigo')
@@ -119,11 +127,11 @@ def api_item_saldo():
     if not codigo or not tipo_servico_id:
         return jsonify({'error': 'Código e Tipo de Serviço obrigatórios'}), 400
 
-    item = Item.query.filter_by(codigo=codigo, tipo_servico_id=tipo_servico_id).first()
+    item = Item.query.filter_by(codigo=codigo).first()
     if not item:
         return jsonify({'error': 'Item não encontrado'}), 404
 
-    estoque = Estoque.query.filter_by(item_id=item.id).first()
+    estoque = Estoque.query.filter_by(item_id=item.id, tipo_servico_id=tipo_servico_id).first()
     saldo = estoque.quantidade if estoque else 0
 
     return jsonify({
@@ -133,3 +141,29 @@ def api_item_saldo():
         'valor': item.valor,
         'saldo': saldo
     })
+
+
+@bp_interna.route('/api/itens_disponiveis')
+def api_itens_disponiveis():
+    tipo_servico_id = request.args.get('tipo_servico_id')
+    if not tipo_servico_id:
+        return jsonify([])
+
+    itens = (
+        db.session.query(Item, Estoque)
+        .join(Estoque, Item.id == Estoque.item_id)
+        .filter(Estoque.tipo_servico_id == tipo_servico_id, Estoque.quantidade > 0)
+        .order_by(Item.descricao)
+        .all()
+    )
+
+    return jsonify([
+        {
+            'codigo': item.codigo,
+            'descricao': item.descricao,
+            'unidade': item.unidade,
+            'valor': item.valor,
+            'saldo': estoque.quantidade
+        }
+        for item, estoque in itens
+    ])

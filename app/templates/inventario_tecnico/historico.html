@@ -1,0 +1,52 @@
+{% extends 'base.html' %}
+{% block content %}
+<div class="container mt-4">
+  <h2>Histórico de Inventários Técnicos</h2>
+
+  <div class="text-end mb-3">
+    <a href="{{ url_for('inventario_tecnico.registrar_inventario') }}" class="btn btn-primary">
+      + Novo Inventário
+    </a>
+  </div>
+
+  {% if inventarios %}
+  <table class="table table-bordered table-hover mt-3">
+    <thead class="table-light">
+      <tr>
+        <th>#</th>
+        <th>Técnico</th>
+        <th>Tipo de Serviço</th>
+        <th>Data</th>
+        <th>Responsável</th>
+        <th>Local</th>
+        <th>Ações</th>
+      </tr>
+    </thead>
+    <tbody>
+      {% for inv in inventarios %}
+      <tr>
+        <td>{{ inv.id }}</td>
+        <td>{{ inv.tecnico.nome }}</td>
+        <td>{{ inv.tipo_servico.nome }}</td>
+        <td>{{ inv.data.strftime('%d/%m/%Y %H:%M') }}</td>
+        <td>{{ inv.responsavel or '---' }}</td>
+        <td>{{ inv.local or '---' }}</td>
+        <td>
+          <a href="{{ url_for('inventario_tecnico.detalhes_inventario', id=inv.id) }}" class="btn btn-sm btn-outline-primary">
+            Detalhes
+          </a>
+          <a href="{{ url_for('inventario_tecnico.exportar_inventario', id=inv.id) }}" class="btn btn-sm btn-success">
+            Exportar
+          </a>
+        </td>
+      </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+  {% else %}
+  <div class="alert alert-info mt-3">
+    Nenhum inventário registrado até o momento.
+  </div>
+  {% endif %}
+</div>
+{% endblock %}

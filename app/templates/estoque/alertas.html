@@ -1,35 +1,78 @@
-{% extends 'base.html' %} {% block content %}
-<div class="container mt-4">
-  <h2>Alertas de Estoque Baixo</h2>
-  <table class="table table-bordered table-hover">
-    <thead class="table-dark">
-      <tr>
-        <th>Código</th>
-        <th>Descrição</th>
-        <th>Tipo de Serviço</th>
-        <th>Unidade</th>
-        <th>Valor (R$)</th>
-        <th>Estoque Atual</th>
-        <th>Mínimo</th>
-      </tr>
-    </thead>
-    <tbody>
-      {% if resultados %} {% for estoque, item, tipo_servico in resultados %}
-      <tr>
-        <td>{{ item.codigo }}</td>
-        <td>{{ item.descricao }}</td>
-        <td>{{ tipo_servico.nome }}</td>
-        <td>{{ item.unidade }}</td>
-        <td>{{ "%.2f"|format(item.valor) }}</td>
-        <td class="text-danger fw-bold">{{ estoque.quantidade }}</td>
-        <td>{{ estoque.quantidade_minima }}</td>
-      </tr>
-      {% endfor %} {% else %}
-      <tr>
-        <td colspan="7" class="text-center">Nenhum item crítico no estoque.</td>
-      </tr>
-      {% endif %}
-    </tbody>
-  </table>
+{% extends 'base.html' %}
+{% block content %}
+<div class="container-fluid mt-3">
+  <div class="row justify-content-center">
+    <div class="col-12 col-lg-11">
+      <div class="card shadow-sm">
+        <!-- TOPO AZUL -->
+        <div class="card-header" style="background-color: #002b55; color: white;">
+          <h5 class="fw-semibold mb-0">
+            <i class="bi bi-exclamation-triangle-fill text-warning me-2"></i>
+            Alertas de Estoque Baixo
+          </h5>
+        </div>
+
+        <div class="card-body py-3">
+          <div class="table-responsive">
+            <table class="table table-bordered table-hover table-sm align-middle">
+              <thead style="position: sticky; top: 0; z-index: 10; background-color: #002b55; color: white;">
+                <tr>
+                  <th>Código</th>
+                  <th>Descrição</th>
+                  <th>Tipo de Serviço</th>
+                  <th>Unidade</th>
+                  <th>Valor (R$)</th>
+                  <th class="text-danger">Estoque Atual</th>
+                  <th>Mínimo</th>
+                  <th>Endereço</th>
+                </tr>
+              </thead>
+              <tbody>
+                {% if resultados %}
+                  {% for estoque, item in resultados %}
+                  <tr>
+                    <td>{{ item.codigo }}</td>
+                    <td>{{ item.descricao }}</td>
+                    <td>{{ estoque.tipo_servico.nome if estoque.tipo_servico else '-' }}</td>
+                    <td>{{ item.unidade }}</td>
+                    <td>{{ "%.2f"|format(item.valor) }}</td>
+                    <td class="text-danger fw-bold">{{ estoque.quantidade }}</td>
+                    <td>
+                      {{ estoque.quantidade_minima }}
+                      {% if estoque.quantidade > 0 %}
+                        {% set percentual_calc = (estoque.quantidade_minima / estoque.quantidade * 100) %}
+                        <span class="text-muted small">(≈ {{ percentual_calc|round(0) }}%)</span>
+                      {% endif %}
+                    </td>
+                    <td>{{ estoque.endereco or '-' }}</td>
+                  </tr>
+                  {% endfor %}
+                {% else %}
+                  <tr>
+                    <td colspan="8" class="text-center text-muted">
+                      Nenhum item crítico no estoque.
+                    </td>
+                  </tr>
+                {% endif %}
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
 </div>
+
+<style>
+  .card {
+    margin-top: 10px;
+    margin-bottom: 16px;
+  }
+
+  @media (min-width: 1200px) {
+    .col-lg-11 {
+      max-width: 95%;
+    }
+  }
+</style>
 {% endblock %}

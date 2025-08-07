@@ -1,0 +1,179 @@
+{% extends 'base.html' %} {% block content %}
+<div class="container mt-4">
+  <h4 class="mb-4">
+    <i class="bi bi-tools"></i> Nova Movimentação de Ferramentas
+  </h4>
+
+  <form method="POST">
+    <div class="row mb-3">
+      <div class="col-md-4">
+        <label for="tecnico_id" class="form-label">Técnico</label>
+        <select class="form-select" name="tecnico_id" id="tecnico_id" required>
+          <option value="">Selecione</option>
+          {% for tecnico in tecnicos %}
+          <option value="{{ tecnico.id }}">{{ tecnico.nome }}</option>
+          {% endfor %}
+        </select>
+      </div>
+      <div class="col-md-4">
+        <label for="tipo_servico_id" class="form-label">Tipo de Serviço</label>
+        <select
+          class="form-select"
+          name="tipo_servico_id"
+          id="tipo_servico_id"
+          required
+        >
+          <option value="">Selecione</option>
+          {% for tipo in tipos_servico %}
+          <option value="{{ tipo.id }}">{{ tipo.nome }}</option>
+          {% endfor %}
+        </select>
+      </div>
+      <div class="col-md-4">
+        <label for="local" class="form-label">Local</label>
+        <input
+          type="text"
+          class="form-control"
+          name="local"
+          id="local"
+          required
+        />
+      </div>
+    </div>
+
+    <div class="mb-3">
+      <label for="observacao" class="form-label">Observação</label>
+      <input
+        type="text"
+        class="form-control"
+        name="observacao"
+        id="observacao"
+      />
+    </div>
+
+    <table class="table table-bordered" id="tabela-itens">
+      <thead class="table-light">
+        <tr>
+          <th style="width: 15%">Código</th>
+          <th>Descrição</th>
+          <th style="width: 10%">Qtd</th>
+          <th style="width: 20%">Status</th>
+          <th style="width: 5%"></th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td>
+            <input
+              type="text"
+              name="codigo[]"
+              class="form-control codigo"
+              readonly
+            />
+          </td>
+          <td>
+            <select class="form-select descricao" name="descricao[]">
+              <option value="">Clique para selecionar</option>
+            </select>
+          </td>
+          <td>
+            <input
+              type="number"
+              name="quantidade[]"
+              value="1"
+              min="1"
+              class="form-control"
+              required
+            />
+          </td>
+          <td>
+            <select name="status[]" class="form-select" required>
+              <option value="tecnico">Técnico</option>
+              <option value="almoxarifado">Almoxarifado</option>
+            </select>
+          </td>
+          <td>
+            <button type="button" class="btn btn-danger btn-sm remover-linha">
+              <i class="bi bi-trash"></i>
+            </button>
+          </td>
+        </tr>
+      </tbody>
+    </table>
+
+    <button type="button" class="btn btn-secondary" id="adicionar-item">
+      + Adicionar Item
+    </button>
+    <button type="submit" class="btn btn-primary">Registrar</button>
+  </form>
+</div>
+
+<script>
+  let dadosItens = [];
+
+  // Carrega os itens de equipamento com base no tipo de serviço
+  document
+    .getElementById("tipo_servico_id")
+    .addEventListener("change", function () {
+      const tipoServicoId = this.value;
+      fetch(`/equipamentos/api/itens_equipamentos/${tipoServicoId}`)
+        .then((res) => res.json())
+        .then((data) => {
+          dadosItens = data;
+          atualizarDescricoes();
+        });
+    });
+
+  // Atualiza as opções de descrição em todas as linhas
+  function atualizarDescricoes() {
+    document.querySelectorAll(".descricao").forEach(function (select) {
+      const valorAtual = select.value;
+      select.innerHTML = '<option value="">Clique para selecionar</option>';
+      dadosItens.forEach((item) => {
+        const option = document.createElement("option");
+        option.value = item.descricao;
+        option.textContent = item.descricao;
+        if (item.descricao === valorAtual) option.selected = true;
+        select.appendChild(option);
+      });
+    });
+  }
+
+  // Preenche automaticamente o código quando muda a descrição
+  document.addEventListener("change", function (e) {
+    if (e.target.classList.contains("descricao")) {
+      const descricaoSelecionada = e.target.value;
+      const linha = e.target.closest("tr");
+      const inputCodigo = linha.querySelector(".codigo");
+      const itemSelecionado = dadosItens.find(
+        (item) => item.descricao === descricaoSelecionada
+      );
+      if (itemSelecionado) {
+        inputCodigo.value = itemSelecionado.codigo;
+      }
+    }
+  });
+
+  // Adiciona nova linha
+  document
+    .getElementById("adicionar-item")
+    .addEventListener("click", function () {
+      const tabela = document.querySelector("#tabela-itens tbody");
+      const novaLinha = tabela.rows[0].cloneNode(true);
+      novaLinha.querySelectorAll("input, select").forEach((el) => {
+        if (el.tagName === "SELECT") el.selectedIndex = 0;
+        else el.value = el.name.includes("quantidade") ? 1 : "";
+      });
+      tabela.appendChild(novaLinha);
+      atualizarDescricoes();
+    });
+
+  // Remove uma linha (se houver mais de uma)
+  document.addEventListener("click", function (e) {
+    if (e.target.closest(".remover-linha")) {
+      const linhas = document.querySelectorAll("#tabela-itens tbody tr");
+      if (linhas.length > 1) e.target.closest("tr").remove();
+    }
+  });
+</script>
+{% endblock %}

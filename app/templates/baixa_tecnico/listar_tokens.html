@@ -1,0 +1,141 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+  <head>
+    <meta charset="UTF-8" />
+    <title>Gerar Token de Acesso Técnico | LogiStock</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <link
+      href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css"
+      rel="stylesheet"
+    />
+    <style>
+      .text-truncate {
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+      }
+    </style>
+  </head>
+  <body class="bg-light">
+    <div class="container py-4">
+      <h4 class="mb-4">🔗 Links de Acesso Técnico</h4>
+
+      <!-- Campo de filtro -->
+      <div class="mb-3">
+        <input
+          type="text"
+          id="filtroTecnico"
+          class="form-control"
+          placeholder="🔍 Buscar técnico pelo nome..."
+        />
+      </div>
+
+      <!-- Mensagens flash -->
+      {% with messages = get_flashed_messages(with_categories=true) %} {% if
+      messages %} {% for category, message in messages %}
+      <div
+        class="alert alert-{{ category }} alert-dismissible fade show"
+        role="alert"
+      >
+        {{ message }}
+        <button
+          type="button"
+          class="btn-close"
+          data-bs-dismiss="alert"
+        ></button>
+      </div>
+      {% endfor %} {% endif %} {% endwith %}
+
+      <!-- Tabela -->
+      <table
+        class="table table-bordered bg-white shadow-sm"
+        id="tabelaTecnicos"
+      >
+        <thead class="table-light">
+          <tr>
+            <th>Nome</th>
+            <th>Área</th>
+            <th>Token</th>
+            <th>Link</th>
+            <th>Ações</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for tecnico in tecnicos %}
+          <tr>
+            <td>{{ tecnico.nome }}</td>
+            <td>{{ tecnico.area }}</td>
+            <td>
+              {{ tokens[tecnico.id].token if tecnico.id in tokens else '---' }}
+            </td>
+            <td>
+              {% if tecnico.id in tokens %}
+              <div class="input-group">
+                <input
+                  type="text"
+                  class="form-control form-control-sm text-truncate"
+                  style="max-width: 320px"
+                  id="link_{{ tecnico.id }}"
+                  readonly
+                  value="{{ base_url }}/baixa-mobile/token/{{ tokens[tecnico.id].token }}"
+                />
+                <button
+                  class="btn btn-outline-secondary btn-sm"
+                  type="button"
+                  onclick="copiarLink('{{ tecnico.id }}')"
+                >
+                  📋
+                </button>
+                <a
+                  class="btn btn-outline-success btn-sm"
+                  target="_blank"
+                  href="https://wa.me/?text={{ base_url }}/baixa-mobile/token/{{ tokens[tecnico.id].token }}"
+                  title="Enviar pelo WhatsApp"
+                  >📱</a
+                >
+              </div>
+              {% else %}
+              <span class="text-muted">Não gerado</span>
+              {% endif %}
+            </td>
+            <td>
+              <a
+                href="{{ url_for('baixa_tecnico.gerar_token_tecnico', tecnico_id=tecnico.id) }}"
+                class="btn btn-sm btn-primary"
+              >
+                {% if tecnico.id in tokens %}🔁 Regenerar{% else %}➕ Gerar{%
+                endif %}
+              </a>
+            </td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+
+    <script>
+      // Copiar link do input
+      function copiarLink(id) {
+        const input = document.getElementById("link_" + id);
+        input.select();
+        input.setSelectionRange(0, 99999); // Mobile
+        document.execCommand("copy");
+        alert("Link copiado!");
+      }
+
+      // Filtro de técnicos
+      document
+        .getElementById("filtroTecnico")
+        .addEventListener("keyup", function () {
+          let filtro = this.value.toLowerCase();
+          let linhas = document.querySelectorAll("#tabelaTecnicos tbody tr");
+          linhas.forEach(function (linha) {
+            let nome = linha.cells[0].textContent.toLowerCase();
+            linha.style.display = nome.includes(filtro) ? "" : "none";
+          });
+        });
+    </script>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+  </body>
+</html>

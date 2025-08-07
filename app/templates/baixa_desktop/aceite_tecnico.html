@@ -1,0 +1,70 @@
+{% extends 'base.html' %} {% block content %}
+<div class="container mt-4">
+  <h3 class="mb-4">📋 Aceite de Baixa Técnica</h3>
+
+  {% for baixa in baixas %}
+  <div class="card mb-4 shadow-sm">
+    <div class="card-header bg-primary text-white">
+      <strong>Técnico:</strong> {{ baixa.tecnico.nome }} |
+      <strong>Tipo de Serviço:</strong> {{ baixa.tipo_servico.nome if
+      baixa.tipo_servico else '-' }} | <strong>Data:</strong> {{
+      baixa.data_hora.strftime('%d/%m/%Y %H:%M') }}
+    </div>
+    <div class="card-body">
+      <p><strong>Endereço:</strong> {{ baixa.local_servico or '-' }}</p>
+      <p><strong>Bairro:</strong> {{ baixa.bairro or '-' }}</p>
+      <p><strong>Código do Imóvel:</strong> {{ baixa.codigo_imovel or '-' }}</p>
+      <p><strong>Responsável:</strong> {{ baixa.responsavel or '-' }}</p>
+      <p><strong>Observações:</strong> {{ baixa.observacao or '-' }}</p>
+
+      <div class="table-responsive mt-3">
+        <table class="table table-bordered table-sm">
+          <thead class="table-light">
+            <tr>
+              <th>Código</th>
+              <th>Descrição</th>
+              <th>Quantidade</th>
+              <th>Valor Unitário</th>
+            </tr>
+          </thead>
+          <tbody>
+            {% for item in baixa.itens %}
+            <tr>
+              <td>{{ item.item.codigo }}</td>
+              <td>{{ item.item.descricao }}</td>
+              <td>{{ item.quantidade }}</td>
+              <td>R$ {{ '%.2f' | format(item.valor_unitario or 0) }}</td>
+            </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+
+      <form method="POST" class="mt-3 d-flex justify-content-end gap-2">
+        <input type="hidden" name="baixa_id" value="{{ baixa.id }}" />
+        <button
+          type="submit"
+          name="acao"
+          value="aprovar"
+          class="btn btn-success"
+        >
+          ✅ Aprovar
+        </button>
+        <button
+          type="submit"
+          name="acao"
+          value="recusar"
+          class="btn btn-danger"
+        >
+          ❌ Recusar
+        </button>
+      </form>
+    </div>
+  </div>
+  {% else %}
+  <div class="alert alert-info">
+    Nenhuma baixa técnica pendente de aprovação.
+  </div>
+  {% endfor %}
+</div>
+{% endblock %}

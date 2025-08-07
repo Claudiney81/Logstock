@@ -1,0 +1,90 @@
+{% extends 'base.html' %}
+{% block content %}
+<div class="container mt-4">
+  <h4 class="text-primary">
+    <i class="bi bi-clock-history"></i> Histórico de Baixas
+  </h4>
+
+  <!-- Filtro por Técnico e Período -->
+  <form method="GET" class="row g-3 mb-3">
+    <div class="col-md-4">
+      <label class="form-label">Técnico</label>
+      <select name="tecnico_id" class="form-select">
+        <option value="">Todos</option>
+        {% for t in tecnicos %}
+        <option value="{{ t.id }}" {% if tecnico_id == t.id %}selected{% endif %}>{{ t.nome }}</option>
+        {% endfor %}
+      </select>
+    </div>
+    <div class="col-md-4">
+      <label class="form-label">Período</label>
+      <input type="date" name="data_inicio" class="form-control" value="{{ data_inicio }}">
+      <input type="date" name="data_fim" class="form-control mt-1" value="{{ data_fim }}">
+    </div>
+    <div class="col-md-4 align-self-end">
+      <button type="submit" class="btn btn-primary w-100">
+        <i class="bi bi-search"></i> Filtrar
+      </button>
+    </div>
+  </form>
+
+  <!-- Tabela com cabeçalho fixo -->
+  <style>
+    .tabela-container {
+      max-height: 65vh;
+      overflow-y: auto;
+    }
+    .tabela-container table thead th {
+      position: sticky;
+      top: 0;
+      z-index: 1000;
+      background: #002b55;  /* Azul padrão do sistema */
+      color: white;
+    }
+  </style>
+
+  <div class="tabela-container shadow-sm rounded">
+    <table class="table table-hover align-middle mb-0">
+      <thead>
+        <tr class="text-center">
+          <th>ID</th>
+          <th>Data</th>
+          <th>Técnico</th>
+          <th>Responsável</th>
+          <th>Status</th>
+          <th>Ações</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for baixa in historico %}
+        <tr>
+          <td class="text-center">{{ baixa.id }}</td>
+          <td class="text-center">{{ baixa.data_hora.strftime('%d/%m/%Y %H:%M') if baixa.data_hora else '' }}</td>
+          <td>{{ baixa.tecnico.nome }}</td>
+          <td>{{ baixa.responsavel }}</td>
+          <td class="text-center">
+            {% if baixa.status == 'confirmado' %}
+              <span class="badge bg-success">Confirmado</span>
+            {% elif baixa.status == 'pendente' %}
+              <span class="badge bg-warning text-dark">Pendente</span>
+            {% else %}
+              <span class="badge bg-danger">Recusado</span>
+            {% endif %}
+          </td>
+          <td class="text-center">
+            <a href="{{ url_for('baixa_desktop.detalhe_baixa', baixa_id=baixa.id) }}" 
+               class="btn btn-sm btn-primary" target="_blank">
+              Detalhes
+            </a>
+          </td>
+        </tr>
+        {% else %}
+        <tr>
+          <td colspan="6" class="text-center">Nenhuma baixa encontrada.</td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</div>
+{% endblock %}

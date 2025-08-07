@@ -1,41 +1,111 @@
-/* === Estilo moderno azul da World Telecom === */
+/* ==== MENUS PRINCIPAIS (apenas texto colorido) ==== */
+.menu-header {
+  background: none !important;
+  /* remove qualquer fundo */
+  color: #64798b !important;
+  /* azul ciano suave */
+  font-size: 0.95rem;
+  /* um pouco maior que os submenus */
+  font-weight: bold;
+  text-transform: uppercase;
+  letter-spacing: 1px;
+  padding: 4px 16px;
+  /* alinhamento com submenus */
+  margin: 10px 0 5px 0;
+}
+
+/* ==== SUBMENUS ==== */
+#sidebar .nav-link {
+  background: none !important;
+  color: #ffffff !important;
+  font-size: 0.85rem;
+  font-weight: 500;
+  padding: 6px 16px;
+  margin-bottom: 2px;
+  border-radius: 4px;
+  transition: all 0.3s ease-in-out;
+}
+
+#sidebar .nav-link:hover {
+  background-color: rgba(255, 255, 255, 0.15) !important;
+  color: #ffffff !important;
+  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.25);
+  transform: translateY(-2px);
+}
+
+#sidebar .nav-link.active {
+  background-color: #2563EB !important;
+  color: #ffffff !important;
+  font-weight: bold;
+  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.25);
+}
+
+/* ==== LAYOUT PRINCIPAL ==== */
+html,
+body {
+  height: 100%;
+  margin: 0;
+  padding: 0;
+}
 
 body {
-  background-color: #f4f9ff;
-  font-family: 'Segoe UI', sans-serif;
+  display: flex;
+  flex-direction: column;
+  background: #f1f5f9;
+  /* cor clara do fundo */
 }
 
-#sidebar {
-  background-color: #002b55 !important;
+/* Área principal cresce empurrando o rodapé */
+#main-content {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
 }
 
-#sidebar .nav-link,
-#sidebar .dropdown-item {
-  color: #dce7f7;
+.content-wrapper {
+  flex: 1;
 }
 
-#sidebar .nav-link:hover,
-#sidebar .dropdown-item:hover {
-  background-color: #004080;
+/* ==== RODAPÉ MAIS FINO ==== */
+footer.footer {
+  margin-top: auto;
+  padding: 4px 0;
+  /* Reduzido de 30px para 20px */
+  background-color: #1E3A8A !important;
   color: white;
+  text-align: center;
+  width: 100%;
 }
 
-.navbar {
-  background-color: #004080 !important;
-  color: white;
+/* ==== ÁREA DE BOAS-VINDAS ==== */
+.welcome-container {
+  flex: 1;
+  min-height: calc(100vh - 120px);
+  /* considera navbar + rodapé */
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  text-align: center;
 }
 
-.navbar .navbar-brand,
-.navbar .nav-link,
-.navbar span {
-  color: white;
-  font-weight: 500;
+.welcome-container i {
+  font-size: 3rem;
+  color: #1E3A8A;
 }
 
-/* Nome da empresa */
-#logo-nome {
-  font-size: 1.25rem;
-  font-weight: bold;
-  padding: 10px 20px;
-  color: #ffffff;
+.welcome-container h1 {
+  margin-top: 1rem;
+  font-weight: 700;
+}
+
+.welcome-container p {
+  color: #6b7280;
+  /* cinza suave */
+}
+
+.welcome-container .btn {
+  font-size: 1rem;
+  border-radius: 8px;
+  margin-top: 1rem;
 }

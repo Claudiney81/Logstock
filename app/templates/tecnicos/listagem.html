@@ -1,47 +1,92 @@
-{% extends 'base.html' %} {% block content %}
+{% extends 'base.html' %}
+{% block content %}
 <div class="container mt-4">
-  <h2>Técnicos Cadastrados</h2>
+  <h3 class="mb-4">👨‍🔧 Técnicos Cadastrados</h3>
 
-  {% with messages = get_flashed_messages(with_categories=true) %} {% if
-  messages %}
-  <div>
-    {% for category, message in messages %}
-    <div class="alert alert-{{ category }} mt-2">{{ message }}</div>
-    {% endfor %}
-  </div>
-  {% endif %} {% endwith %}
+  <!-- Filtro por status -->
+  <form method="GET" class="row g-3 mb-3">
+    <div class="col-md-4">
+      <label for="status" class="form-label">Filtrar por Status</label>
+      <select class="form-select" name="status" id="status" onchange="this.form.submit()">
+        <option value="">Todos</option>
+        <option value="Ativo" {% if filtro_status == 'Ativo' %}selected{% endif %}>Ativo</option>
+        <option value="Inativo" {% if filtro_status == 'Inativo' %}selected{% endif %}>Inativo</option>
+      </select>
+    </div>
+  </form>
 
-  <table class="table table-striped">
-    <thead>
-      <tr>
-        <th>Nome</th>
-        <th>Matrícula/Login</th>
-        <th>CPF</th>
-        <th>Telefone</th>
-        <th>Email</th>
-        <th>Área Técnica</th>
-        <th>Status</th>
-      </tr>
-    </thead>
-    <tbody>
-      {% for tecnico in tecnicos %}
-      <tr>
-        <td>{{ tecnico.nome }}</td>
-        <td>{{ tecnico.matricula }}</td>
-        <td>{{ tecnico.cpf }}</td>
-        <td>{{ tecnico.telefone or '-' }}</td>
-        <td>{{ tecnico.email or '-' }}</td>
-        <td>{{ tecnico.area_tecnica or '-' }}</td>
-        <td>{{ tecnico.status }}</td>
-      </tr>
-      {% else %}
-      <tr>
-        <td colspan="7" class="text-center text-muted">
-          Nenhum técnico cadastrado.
-        </td>
-      </tr>
+  <!-- Mensagens de alerta -->
+  {% with messages = get_flashed_messages(with_categories=true) %}
+    {% if messages %}
+      {% for category, message in messages %}
+        <div class="alert alert-{{ category }} alert-dismissible fade show" role="alert">
+          {{ message }}
+          <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+        </div>
       {% endfor %}
-    </tbody>
-  </table>
+    {% endif %}
+  {% endwith %}
+
+  <!-- Tabela de técnicos -->
+  <div class="table-responsive">
+    <table class="table table-hover table-bordered align-middle">
+      <thead class="table-light">
+        <tr class="text-center">
+          <th>Nome</th>
+          <th>Matrícula/Login</th>
+          <th>CPF</th>
+          <th>Telefone</th>
+          <th>Email</th>
+          <th>Área Técnica</th>
+          <th>Status</th>
+          <th>Acesso</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for tecnico in tecnicos %}
+        <tr>
+          <td>{{ tecnico.nome }}</td>
+          <td>{{ tecnico.matricula }}</td>
+          <td>{{ tecnico.cpf }}</td>
+          <td>{{ tecnico.telefone or '-' }}</td>
+          <td>{{ tecnico.email or '-' }}</td>
+          <td>{{ tecnico.area_tecnica or '-' }}</td>
+          <td>
+            <form method="POST" action="{{ url_for('tecnicos.alterar_status', tecnico_id=tecnico.id) }}">
+              <select name="status" class="form-select form-select-sm" onchange="this.form.submit()">
+                <option value="Ativo" {% if tecnico.status == 'Ativo' %}selected{% endif %}>Ativo</option>
+                <option value="Inativo" {% if tecnico.status == 'Inativo' %}selected{% endif %}>Inativo</option>
+              </select>
+            </form>
+          </td>
+          <td class="text-center">
+            <!-- Link direto para o formulário -->
+            <a href="{{ url_for('baixa_tecnico.formulario_mobile_dedicado', tecnico_id=tecnico.id) }}" 
+               target="_blank"
+               class="btn btn-sm btn-outline-primary">
+               🔗 Ver Link
+            </a>
+
+            <!-- WhatsApp -->
+            {% if tecnico.telefone %}
+            {% set telefone_formatado = tecnico.telefone | replace('(', '') | replace(')', '') | replace('-', '') | replace(' ', '') %}
+            {% set mensagem = 'Olá ' ~ tecnico.nome ~ '! Aqui está o link do formulário de baixa: ' ~ url_for('baixa_tecnico.formulario_mobile_dedicado', tecnico_id=tecnico.id, _external=True) %}
+            <a href="https://wa.me/55{{ telefone_formatado }}?text={{ mensagem|urlencode }}"
+               target="_blank" class="btn btn-sm btn-success">
+              📲 WhatsApp
+            </a>
+            {% endif %}
+          </td>
+        </tr>
+        {% else %}
+        <tr>
+          <td colspan="8" class="text-center text-muted">
+            Nenhum técnico cadastrado.
+          </td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
 </div>
 {% endblock %}

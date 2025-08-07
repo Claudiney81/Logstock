@@ -1,49 +1,79 @@
-{% extends "base.html" %}
-{% block content %}
+{% extends "base.html" %} {% block content %}
 <div class="container-fluid mt-2">
   <div class="row justify-content-center">
-    <div class="col-lg-6 col-md-8 col-sm-12">
+    <div class="col-12 col-md-10 col-lg-8 col-xl-7">
       <div class="card shadow-sm">
-        <div class="card-body py-3">
-          <h5 class="mb-3" style="font-weight: 600; font-size: 1.15rem;">
-            {% if empresa %} Editar Empresa Parceira {% else %} Cadastro de Empresa Parceira {% endif %}
+        <div class="card-body py-4 px-4">
+          <h5 class="mb-4 fw-semibold" style="font-size: 1.2rem">
+            {% if empresa %} Editar Empresa Parceira {% else %} Cadastro de
+            Empresa Parceira {% endif %}
           </h5>
           <form method="post">
-            <div class="row mb-2 g-2">
+            <div class="row mb-3 g-3">
               <div class="col-md-7">
                 <label class="form-label mb-1">Razão Social *</label>
-                <input name="razao_social" class="form-control form-control-sm" required value="{{ empresa.razao_social if empresa else '' }}" />
+                <input
+                  name="razao_social"
+                  class="form-control form-control-sm"
+                  required
+                  value="{{ empresa.razao_social if empresa else '' }}"
+                />
               </div>
               <div class="col-md-5">
                 <label class="form-label mb-1">CNPJ *</label>
-                <input name="cnpj" class="form-control form-control-sm" required value="{{ empresa.cnpj if empresa else '' }}" />
+                <input
+                  name="cnpj"
+                  class="form-control form-control-sm"
+                  required
+                  value="{{ empresa.cnpj if empresa else '' }}"
+                />
               </div>
             </div>
-            <div class="row mb-2 g-2">
+            <div class="row mb-3 g-3">
               <div class="col-md-7">
                 <label class="form-label mb-1">Endereço</label>
-                <input name="endereco" class="form-control form-control-sm" value="{{ empresa.endereco if empresa else '' }}" />
+                <input
+                  name="endereco"
+                  class="form-control form-control-sm"
+                  value="{{ empresa.endereco if empresa else '' }}"
+                />
               </div>
               <div class="col-md-5">
                 <label class="form-label mb-1">Contato</label>
-                <input name="contato" class="form-control form-control-sm" value="{{ empresa.contato if empresa else '' }}" />
+                <input
+                  name="contato"
+                  class="form-control form-control-sm"
+                  value="{{ empresa.contato if empresa else '' }}"
+                />
               </div>
             </div>
-            <div class="row mb-2 g-2">
+            <div class="row mb-3 g-3">
               <div class="col-md-6">
                 <label class="form-label mb-1">Tipo de Serviço Prestado</label>
-                <input name="tipo_servico" class="form-control form-control-sm" value="{{ empresa.tipo_servico if empresa else '' }}" />
+                <input
+                  name="tipo_servico"
+                  class="form-control form-control-sm"
+                  value="{{ empresa.tipo_servico if empresa else '' }}"
+                />
               </div>
               <div class="col-md-6">
                 <label class="form-label mb-1">Observações</label>
-                <input name="observacoes" class="form-control form-control-sm" value="{{ empresa.observacoes if empresa else '' }}" />
+                <input
+                  name="observacoes"
+                  class="form-control form-control-sm"
+                  value="{{ empresa.observacoes if empresa else '' }}"
+                />
               </div>
             </div>
-            <div class="mt-2 d-flex justify-content-between">
+            <div class="mt-4 d-flex justify-content-between">
               <button type="submit" class="btn btn-success btn-sm px-4">
                 {% if empresa %} Salvar {% else %} Cadastrar Empresa {% endif %}
               </button>
-              <a href="{{ url_for('empresas.lista_empresas') }}" class="btn btn-secondary btn-sm px-3">Cancelar</a>
+              <a
+                href="{{ url_for('empresas.lista_empresas') }}"
+                class="btn btn-secondary btn-sm px-3"
+                >Cancelar</a
+              >
             </div>
           </form>
         </div>
@@ -51,18 +81,21 @@
     </div>
   </div>
 </div>
+
 <style>
-  .container-fluid, .container {
+  .container-fluid {
     padding-top: 0 !important;
     margin-top: 0 !important;
   }
+
   .card {
-    margin-top: 12px !important;
-    margin-bottom: 12px !important;
+    margin-top: 16px !important;
+    margin-bottom: 16px !important;
   }
+
   @media (min-width: 1200px) {
-    .col-lg-6 {
-      max-width: 650px !important; /* mais largo, fácil de usar */
+    .col-xl-7 {
+      max-width: 720px !important;
     }
   }
 </style>

@@ -1,0 +1,62 @@
+{% extends 'base.html' %}
+{% block content %}
+<div class="container mt-4">
+  <h4 class="mb-4">
+    <i class="bi bi-clipboard-check"></i>
+    Detalhes do Inventário
+  </h4>
+
+  <div class="card shadow-sm mb-4">
+    <div class="card-body">
+      <div class="row mb-2">
+        <div class="col-md-4">
+          <label class="fw-bold">Responsável</label>
+          <input type="text" class="form-control" value="{{ inventario.responsavel }}" readonly>
+        </div>
+        <div class="col-md-4">
+          <label class="fw-bold">Data/Hora</label>
+          <input type="text" class="form-control" value="{{ inventario.data_hora.strftime('%d/%m/%Y %H:%M') }}" readonly>
+        </div>
+        <div class="col-md-4">
+          <label class="fw-bold">Total de Itens Contados</label>
+          <input type="text" class="form-control" value="{{ itens|length }}" readonly>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <h5 class="mt-3"><i class="bi bi-box-seam"></i> Itens Contados</h5>
+  <div class="table-responsive shadow-sm">
+    <table class="table table-bordered table-hover table-sm align-middle">
+      <thead class="table-light">
+        <tr>
+          <th>Código</th>
+          <th>Descrição</th>
+          <th>Unidade</th>
+          <th>Quantidade Contada</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for item, codigo, descricao, unidade, quantidade in itens %}
+        <tr>
+          <td>{{ codigo }}</td>
+          <td>{{ descricao }}</td>
+          <td>{{ unidade }}</td>
+          <td>{{ quantidade }}</td>
+        </tr>
+        {% else %}
+        <tr>
+          <td colspan="4" class="text-center text-muted">Nenhum item contado.</td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+
+  <div class="mt-3">
+    <a href="{{ url_for('inventario_estoque.historico_inventarios') }}" class="btn btn-secondary">
+      Voltar ao Histórico
+    </a>
+  </div>
+</div>
+{% endblock %}

@@ -1,7 +1,6 @@
 {% extends 'base.html' %}
 {% block content %}
 <div class="container mt-4">
-
   {% with messages = get_flashed_messages(with_categories=true) %}
     {% if messages %}
       {% for category, message in messages %}
@@ -13,35 +12,72 @@
     {% endif %}
   {% endwith %}
 
-  <div class="d-flex justify-content-between align-items-center mb-3">
+  <div class="d-flex justify-content-between align-items-center mb-4">
     <div>
-      <h3 class="display-6 mb-0">Saldo Técnico: {{ tecnico.nome }}</h3>
-      <p class="mb-0"><strong>Área Técnica:</strong> {{ tecnico.area_tecnica }}</p>
+      <h3 class="fw-bold mb-0">
+        <i class="bi bi-person-badge"></i> Saldo Técnico: {{ tecnico.nome }}
+      </h3>
+      <p class="mb-0 text-muted">
+        <strong>Área Técnica:</strong> {{ tecnico.area_tecnica }}
+      </p>
     </div>
-    <a href="{{ url_for('saldo_tecnico.exportar_saldo_tecnico', id_tecnico=tecnico.id) }}" class="btn btn-success">
-      ⬇️ Exportar Saldo
+    <a href="{{ url_for('saldo_tecnico.exportar_saldo_tecnico', id_tecnico=tecnico.id, tipo_servico_id=tipo_servico_id) }}" 
+       class="btn btn-success">
+      <i class="bi bi-file-earmark-excel"></i> Exportar Saldo
     </a>
   </div>
 
-  <div class="table-responsive">
-    <table class="table table-bordered align-middle">
-      <thead class="table-light">
+  <!-- Filtro -->
+  <form method="GET" action="{{ url_for('saldo_tecnico.saldo_detalhado', id_tecnico=tecnico.id) }}" class="mb-3">
+    <div class="row">
+      <div class="col-md-4">
+        <label class="form-label">Tipo de Serviço</label>
+        <select name="tipo_servico_id" class="form-select" onchange="this.form.submit()">
+          <option value="">Todos</option>
+          {% for tipo in tipos_servico %}
+            <option value="{{ tipo.id }}" {% if tipo.id == tipo_servico_id %}selected{% endif %}>{{ tipo.nome }}</option>
+          {% endfor %}
+        </select>
+      </div>
+    </div>
+  </form>
+
+  <style>
+    .tabela-container {
+      max-height: 65vh;
+      overflow-y: auto;
+    }
+    .tabela-container table thead th {
+      position: sticky;
+      top: 0;
+      z-index: 1000;
+      background: #002b55;
+      color: white;
+    }
+  </style>
+
+  <!-- Tabela com rolagem interna -->
+  <div class="tabela-container shadow-sm rounded">
+    <table class="table table-hover align-middle mb-0">
+      <thead>
         <tr>
-          <th>Descrição</th>
           <th>Código</th>
+          <th class="text-start">Descrição</th>
           <th>Unidade</th>
-          <th>Tipo de Serviço</th>
           <th>Saldo Atual</th>
         </tr>
       </thead>
       <tbody>
         {% for saldo in saldos %}
         <tr>
-          <td>{{ saldo.item.descricao }}</td>
-          <td>{{ saldo.item.codigo }}</td>
-          <td>{{ saldo.item.unidade }}</td>
-          <td>{{ saldo.tipo_servico.nome }}</td>
-          <td>{{ saldo.quantidade }}</td>
+          <td>{{ saldo.codigo }}</td>
+          <td class="text-start">{{ saldo.descricao }}</td>
+          <td>{{ saldo.unidade }}</td>
+          <td class="saldo-valor">{{ saldo.quantidade }}</td>
+        </tr>
+        {% else %}
+        <tr>
+          <td colspan="4" class="text-center">Nenhum item encontrado.</td>
         </tr>
         {% endfor %}
       </tbody>
@@ -49,8 +85,9 @@
   </div>
 
   <div class="mt-3">
-    <a href="{{ url_for('saldo_tecnico.exibir_saldo') }}" class="btn btn-secondary">← Voltar</a>
+    <a href="{{ url_for('saldo_tecnico.exibir_saldo') }}" class="btn btn-secondary">
+      <i class="bi bi-arrow-left"></i> Voltar
+    </a>
   </div>
-
 </div>
 {% endblock %}

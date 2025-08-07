@@ -1,0 +1,113 @@
+{% extends 'base_mobile_tecnico.html' %}
+{% block title %}Baixa Técnica - {{ tecnico_nome }}{% endblock %}
+{% block content %}
+<div class="card mt-3 shadow-sm">
+  <div class="card-body">
+    <h5 class="card-title text-center mb-4">
+      <i class="bi bi-clipboard-check"></i> Baixa Técnica - {{ tecnico_nome }}
+    </h5>
+
+    <form id="form-baixa-mobile" action="{{ url_for('baixa_tecnico.registrar') }}" method="POST">
+      <input type="hidden" name="tecnico_id" value="{{ tecnico_id }}" />
+
+      <!-- Técnico -->
+      <div class="mb-3">
+        <label class="form-label">Técnico</label>
+        <input type="text" class="form-control" value="{{ tecnico_nome }}" readonly />
+      </div>
+
+      <!-- Tipo de Serviço -->
+      <div class="mb-3">
+        <label for="tipo_servico_id" class="form-label">Tipo de Serviço</label>
+        <select class="form-select" name="tipo_servico_id" id="tipo_servico_id" required>
+          <option value="">Selecione</option>
+          {% for ts in tipos_servico %}
+            <option value="{{ ts.id }}">{{ ts.nome }}</option>
+          {% endfor %}
+        </select>
+      </div>
+
+      <!-- Responsável -->
+      <div class="mb-3">
+        <label for="responsavel" class="form-label">Responsável pela Baixa</label>
+        <input type="text" class="form-control" name="responsavel" required />
+      </div>
+
+      <!-- Observação -->
+      <div class="mb-3">
+        <label for="observacao" class="form-label">Observações</label>
+        <textarea class="form-control" name="observacao" rows="2"></textarea>
+      </div>
+
+      <!-- Itens -->
+      <div id="itens-container" class="mt-4">
+        <div class="alert alert-info small">
+          Selecione um tipo de serviço para carregar os itens...
+        </div>
+      </div>
+
+      <button type="submit" class="btn btn-primary w-100 mt-4" id="btn-enviar" disabled>
+        <i class="bi bi-check-circle"></i> Enviar Baixa
+      </button>
+    </form>
+  </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+document.getElementById('tipo_servico_id').addEventListener('change', function() {
+    const tecnicoId = {{ tecnico_id }};
+    const tipoServicoId = this.value;
+    const container = document.getElementById('itens-container');
+    const btnEnviar = document.getElementById('btn-enviar');
+    btnEnviar.disabled = true;
+    container.innerHTML = '<p class="text-info">Carregando itens...</p>';
+
+    if (!tipoServicoId) return;
+
+    fetch(`/baixa_tecnico/api/itens/${tecnicoId}/${tipoServicoId}`)
+        .then(r => r.json())
+        .then(data => {
+            if (!data.itens.length) {
+                container.innerHTML = '<div class="alert alert-warning small">Nenhum item disponível para este serviço.</div>';
+                return;
+            }
+            let html = `
+                <table class="table table-bordered table-sm align-middle">
+                  <thead class="table-light text-center">
+                    <tr>
+                      <th>Código</th>
+                      <th>Descrição</th>
+                      <th>Unid.</th>
+                      <th>Saldo</th>
+                      <th>Qtd. Baixa</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+            `;
+            data.itens.forEach(i => {
+                html += `
+                  <tr>
+                    <td>${i.codigo}</td>
+                    <td>${i.descricao}</td>
+                    <td>${i.unidade}</td>
+                    <td class="text-center">${i.saldo}</td>
+                    <td class="text-center">
+                      <input type="number" name="quantidade[]" max="${i.saldo}" min="0" step="1"
+                             class="form-control form-control-sm">
+                      <input type="hidden" name="item_id[]" value="${i.item_id}">
+                    </td>
+                  </tr>
+                `;
+            });
+            html += '</tbody></table>';
+            container.innerHTML = html;
+            btnEnviar.disabled = false;
+        })
+        .catch(() => {
+            container.innerHTML = '<div class="alert alert-danger small">Erro ao carregar itens.</div>';
+        });
+});
+</script>
+{% endblock %}

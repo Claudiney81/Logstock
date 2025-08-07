@@ -1,103 +1,103 @@
 {% extends 'base.html' %}
 {% block content %}
-<div class="container mt-4">
-  <h2>Saldo de Estoque</h2>
+<div class="container-fluid mt-3">
+  <div class="card shadow-sm">
+    <!-- TOPO AZUL -->
+    <div class="card-header" style="background-color: #002b55; color: white;">
+      <h5 class="fw-semibold mb-0">
+        <i class="bi bi-box-seam me-2"></i>
+        Saldo de Estoque
+        {% if tipo_servico %}
+          <span class="fw-light">
+            - {{ tipos_servico|selectattr('id','equalto',tipo_servico|int)|map(attribute='nome')|first }}
+          </span>
+        {% endif %}
+      </h5>
+    </div>
 
-  <!-- Mensagens flash -->
-  {% with messages = get_flashed_messages(with_categories=true) %}
-    {% if messages %}
-      {% for category, message in messages %}
-        <div class="alert alert-{{ category }} flash-message">{{ message }}</div>
-      {% endfor %}
-    {% endif %}
-  {% endwith %}
+    <div class="card-body">
+      <!-- FILTRO -->
+      <form method="get" action="{{ url_for('estoque.saldo_estoque') }}" class="mb-3">
+        <div class="row g-3">
+          <div class="col-md-4">
+            <label for="tipo_servico" class="form-label">Tipo de Serviço</label>
+            <select id="tipo_servico" name="tipo_servico" class="form-select" onchange="this.form.submit()">
+              <option value="" {% if not tipo_servico %}selected{% endif %}>Todos</option>
+              {% for ts in tipos_servico %}
+                <option value="{{ ts.id }}" {% if tipo_servico|int == ts.id %}selected{% endif %}>{{ ts.nome }}</option>
+              {% endfor %}
+            </select>
+          </div>
+          <div class="col-md-4">
+            <label class="form-label">Responsável</label>
+            <input type="text" class="form-control" value="{{ responsavel or '-' }}" readonly>
+          </div>
+        </div>
+      </form>
 
-  <!-- Filtros -->
-  <form
-    method="GET"
-    action="{{ url_for('estoque.saldo_estoque') }}"
-    class="row g-3 mb-3"
-  >
-    <div class="col-md-3">
-      <input
-        type="text"
-        class="form-control"
-        name="codigo"
-        placeholder="Código"
-        value="{{ codigo }}"
-      />
-    </div>
-    <div class="col-md-4">
-      <input
-        type="text"
-        class="form-control"
-        name="descricao"
-        placeholder="Descrição"
-        value="{{ descricao }}"
-      />
-    </div>
-    <div class="col-md-3">
-      <input
-        type="text"
-        class="form-control"
-        name="tipo_servico"
-        placeholder="Tipo de Serviço"
-        value="{{ tipo_servico }}"
-      />
-    </div>
-    <div class="col-md-1">
-      <button type="submit" class="btn btn-primary w-100">Filtrar</button>
-    </div>
-    <div class="col-md-1">
-      <a
-        href="{{ url_for('estoque.saldo_estoque') }}"
-        class="btn btn-secondary w-100"
-        >Limpar</a
-      >
-    </div>
-  </form>
-
-  <!-- Tabela -->
-  <table class="table table-bordered table-hover">
-    <thead class="table-dark">
-      <tr>
-        <th>Código</th>
-        <th>Descrição</th>
-        <th>Unidade</th>
-        <th>Tipo de Serviço</th>
-        <th>Valor (R$)</th>
-        <th>Quantidade</th>
-      </tr>
-    </thead>
-    <tbody>
-      {% if resultados %}
-        {% for estoque, item, tipo_servico in resultados %}
-        <tr>
-          <td>{{ item.codigo }}</td>
-          <td>{{ item.descricao }}</td>
-          <td>{{ item.unidade }}</td>
-          <td>{{ tipo_servico.nome }}</td>
-          <td>{{ "%.2f"|format(item.valor) }}</td>
-          <td>{{ estoque.quantidade }}</td>
-        </tr>
-        {% endfor %}
-      {% else %}
-        <tr>
-          <td colspan="6" class="text-center">Nenhum registro encontrado.</td>
-        </tr>
+      {% if tipo_servico %}
+        <div class="alert alert-info py-2">
+          Exibindo saldo apenas para o tipo de serviço selecionado.
+        </div>
       {% endif %}
-    </tbody>
-  </table>
-</div>
 
-<!-- Adicione este script para esconder a mensagem flash após 5 segundos -->
-<script>
-  setTimeout(function() {
-    document.querySelectorAll('.flash-message').forEach(function(el) {
-      el.style.transition = 'opacity 0.5s';
-      el.style.opacity = '0';
-      setTimeout(() => el.remove(), 500);
-    });
-  }, 5000);
-</script>
+      <!-- TABELA -->
+      <form method="post" action="{{ url_for('estoque.atualizar_minimos') }}">
+        <div class="table-responsive" style="max-height: 70vh; overflow-y: auto;">
+          <table class="table table-bordered table-hover table-striped align-middle table-sm">
+            <thead style="position: sticky; top: 0; z-index: 10; background-color: #002b55; color: white;">
+              <tr>
+                <th style="width: 90px;">Código</th>
+                <th style="width: 280px;">Descrição</th>
+                <th style="width: 90px;">Unidade</th>
+                <th style="width: 110px;">Valor (R$)</th>
+                <th style="width: 100px;">Quantidade</th>
+                <th style="width: 130px;">Estoque Mínimo</th>
+                <th style="width: 150px;">Endereço</th>
+              </tr>
+            </thead>
+            <tbody>
+              {% if resultados %}
+                {% for estoque, item in resultados %}
+                <tr>
+                  <td>{{ item.codigo }}</td>
+                  <td class="text-truncate" style="max-width: 280px;">{{ item.descricao }}</td>
+                  <td>{{ item.unidade }}</td>
+                  <td>{{ "%.2f"|format(item.valor) }}</td>
+                  <td class="{% if estoque.quantidade <= (estoque.quantidade_minima or 0) %}table-danger fw-bold{% endif %}">
+                    {{ estoque.quantidade }}
+                  </td>
+                  <td>
+                    <input type="text"
+                           name="minimos[{{ estoque.id }}]"
+                           value="{{ estoque.quantidade_minima or '' }}"
+                           class="form-control form-control-sm"
+                           placeholder="Ex: 10 ou 30%">
+                  </td>
+                  <td>
+                    <input type="text"
+                           name="enderecos[{{ estoque.id }}]"
+                           value="{{ estoque.endereco or '' }}"
+                           class="form-control form-control-sm"
+                           placeholder="Ex: 1-A-23">
+                  </td>
+                </tr>
+                {% endfor %}
+              {% else %}
+                <tr>
+                  <td colspan="7" class="text-center text-muted">Nenhum registro encontrado.</td>
+                </tr>
+              {% endif %}
+            </tbody>
+          </table>
+        </div>
+        <div class="text-end mt-3">
+          <button type="submit" class="btn btn-primary">
+            <i class="bi bi-save me-1"></i>Salvar Alterações
+          </button>
+        </div>
+      </form>
+    </div>
+  </div>
+</div>
 {% endblock %}

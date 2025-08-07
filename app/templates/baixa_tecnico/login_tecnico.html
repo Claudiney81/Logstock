@@ -1,0 +1,61 @@
+{% extends 'baixas_mobile/base_mobile.html' %} {% block content %}
+<div
+  class="d-flex justify-content-center align-items-center"
+  style="min-height: 80vh"
+>
+  <div
+    class="card shadow-sm p-4 rounded-4"
+    style="width: 100%; max-width: 400px"
+  >
+    <div class="text-center mb-3">
+      <h4 class="fw-bold text-primary">🔧 Acesso do Técnico</h4>
+      <p class="text-muted mb-0" style="font-size: 0.9rem">
+        Informe suas credenciais abaixo
+      </p>
+    </div>
+
+    <!-- MENSAGENS FLASH -->
+    {% with messages = get_flashed_messages(with_categories=true) %} {% if
+    messages %} {% for category, message in messages %}
+    <div
+      class="alert alert-{{ category }} alert-dismissible fade show"
+      role="alert"
+    >
+      {{ message }}
+      <button
+        type="button"
+        class="btn-close"
+        data-bs-dismiss="alert"
+        aria-label="Fechar"
+      ></button>
+    </div>
+    {% endfor %} {% endif %} {% endwith %}
+
+    <!-- FORMULÁRIO DE LOGIN -->
+    <form
+      method="POST"
+      action="{{ url_for('login_tecnico', next=request.args.get('next')) }}"
+    >
+      <div class="mb-3">
+        <label for="login" class="form-label">Email</label>
+        <input
+          type="text"
+          class="form-control"
+          name="email"
+          required
+          autofocus
+        />
+      </div>
+
+      <div class="mb-3">
+        <label for="senha" class="form-label">Senha</label>
+        <input type="password" class="form-control" name="senha" required />
+      </div>
+
+      <button type="submit" class="btn btn-primary w-100 fw-semibold">
+        Entrar
+      </button>
+    </form>
+  </div>
+</div>
+{% endblock %}

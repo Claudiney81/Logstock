@@ -1,0 +1,106 @@
+{% extends 'base.html' %} {% block content %}
+<div class="container mt-4">
+  <h4 class="mb-4 text-primary">
+    <i class="bi bi-clock-history me-2"></i> Histórico de Movimentação de
+    Equipamentos
+  </h4>
+
+  {% if historico %}
+  <div class="table-responsive">
+    <table class="table table-bordered table-hover align-middle">
+      <thead class="table-light">
+        <tr>
+          <th>Data/Hora</th>
+          <th>Código</th>
+          <th>Descrição</th>
+          <th>Técnico</th>
+          <th>Status</th>
+          <th>Local</th>
+          <th>Observação</th>
+          <th>Ação</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for h in historico %}
+        <tr>
+          <td>{{ h.data_hora.strftime('%d/%m/%Y %H:%M') }}</td>
+          <td>{{ h.item.codigo }}</td>
+          <td>{{ h.item.descricao }}</td>
+          <td>{{ h.tecnico.nome if h.tecnico else '-' }}</td>
+          <td>
+            {% if h.status == 'tecnico' %}
+            <span class="badge bg-primary">Técnico</span>
+            {% elif h.status == 'almoxarifado' %}
+            <span class="badge bg-secondary">Almoxarifado</span>
+            {% elif h.status == 'devolvido' %}
+            <span class="badge bg-success">Devolvido</span>
+            {% else %}
+            <span class="badge bg-light text-dark">{{ h.status }}</span>
+            {% endif %}
+          </td>
+          <td>{{ h.local }}</td>
+          <td>{{ h.observacao or '-' }}</td>
+          <td>
+            {% if h.status == 'tecnico' and h.tecnico %}
+            <button
+              class="btn btn-sm btn-danger btn-devolver"
+              data-tecnico-id="{{ h.tecnico.id }}"
+              data-item-id="{{ h.item.id }}"
+              data-local="Devolvido via Histórico"
+              data-quantidade="1"
+            >
+              Devolver
+            </button>
+            {% else %}
+            <span class="text-muted">-</span>
+            {% endif %}
+          </td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+  {% else %}
+  <div class="alert alert-info">Nenhum registro encontrado.</div>
+  {% endif %}
+</div>
+
+<script>
+  document.querySelectorAll(".btn-devolver").forEach((btn) => {
+    btn.addEventListener("click", function () {
+      const tecnicoId = this.dataset.tecnicoId;
+      const itemId = this.dataset.itemId;
+      const local = this.dataset.local;
+      const quantidade = this.dataset.quantidade;
+
+      if (!quantidade || quantidade < 1) {
+        alert("Quantidade inválida.");
+        return;
+      }
+
+      fetch("/equipamentos/devolver", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          tecnico_id: tecnicoId,
+          item_id: itemId,
+          local: local,
+          quantidade: quantidade,
+          status: "tecnico",
+        }),
+      })
+        .then((res) => res.json())
+        .then((data) => {
+          if (data.success) {
+            alert("Devolução registrada com sucesso!");
+            location.reload();
+          } else {
+            alert("Erro: " + data.message);
+          }
+        });
+    });
+  });
+</script>
+{% endblock %}

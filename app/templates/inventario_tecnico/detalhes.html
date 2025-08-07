@@ -1,0 +1,65 @@
+{% extends 'base.html' %}
+{% block content %}
+<div class="container mt-4" id="formulario-inventario">
+  <div class="d-flex justify-content-between align-items-center mb-3">
+    <h4>Detalhes do Inventário Técnico</h4>
+    <button class="btn btn-outline-primary btn-print" onclick="window.print()">
+      🖨️ Imprimir
+    </button>
+  </div>
+
+  <div class="mb-4 border p-3 rounded bg-light small">
+    <p><strong>Técnico:</strong> {{ inventario.tecnico.nome }}</p>
+    <p><strong>Tipo de Serviço:</strong> {{ inventario.tipo_servico.nome }}</p>
+    <p><strong>Data:</strong> {{ inventario.data.strftime('%d/%m/%Y %H:%M') }}</p>
+    <p><strong>Responsável:</strong> {{ inventario.responsavel or '---' }}</p>
+  </div>
+
+  <h6>Itens do Inventário</h6>
+  <div class="table-responsive">
+    <table class="table table-bordered table-sm mt-3" style="font-size: 11px">
+      <thead class="table-light">
+        <tr>
+          <th style="width: 10%">Código</th>
+          <th style="width: 45%">Descrição</th>
+          <th style="width: 10%">Unid.</th>
+          <th style="width: 10%">Qtd Contada</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for item in inventario.itens %}
+        <tr>
+          <td>{{ item.item.codigo }}</td>
+          <td>{{ item.item.descricao }}</td>
+          <td>{{ item.item.unidade }}</td>
+          <td>{{ item.quantidade_contada }}</td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+
+  <div class="mt-4 small">
+    <p><strong>Responsável / Técnico:</strong> _______________________________</p>
+    <p><strong>Data:</strong> ____/____/________</p>
+    <p><strong>Assinatura:</strong> _______________________________</p>
+  </div>
+
+  <a href="{{ url_for('inventario_tecnico.historico_inventarios') }}"
+     class="btn btn-secondary mt-3 btn-print">Voltar</a>
+</div>
+
+<style>
+  td, th { padding: 3px 6px !important; vertical-align: middle; word-break: break-word; }
+  table.table tr { height: 24px; }
+
+  @media print {
+    body * { visibility: hidden; }
+    #formulario-inventario, #formulario-inventario * { visibility: visible; }
+    #formulario-inventario { position: absolute; left: 0; top: 0; width: 100%; }
+    .btn-print { display: none !important; }
+    table { table-layout: fixed !important; width: 100% !important; }
+    td, th { font-size: 10px !important; padding: 2px 4px !important; }
+  }
+</style>
+{% endblock %}

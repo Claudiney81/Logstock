@@ -1,0 +1,71 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Requisições Pendentes</title>
+    <link
+      rel="stylesheet"
+      href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css"
+    />
+    <style>
+      body {
+        background: #f8f9fa;
+      }
+      .card-requisicao {
+        margin-bottom: 1rem;
+        border-radius: 0.75rem;
+      }
+      .status-pendente {
+        color: #dc3545;
+        font-weight: bold;
+        font-size: 0.95rem;
+      }
+      .titulo-pagina {
+        font-weight: 700;
+        color: #0d6efd;
+      }
+      footer {
+        margin-top: 2rem;
+        font-size: 0.9rem;
+        text-align: center;
+        color: #6c757d;
+      }
+    </style>
+  </head>
+  <body>
+    <div class="container py-3">
+      <h4 class="mb-4 text-center titulo-pagina">📋 Requisições Pendentes</h4>
+
+      {% if requisicoes %} {% for req in requisicoes %}
+      <div class="card shadow-sm card-requisicao">
+        <div class="card-body">
+          <p class="mb-1">
+            <strong>Técnico:</strong> {{ req.solicitante_tecnico }}
+          </p>
+          <p class="mb-1">
+            <strong>Data:</strong> {{ req.data_hora.strftime('%d/%m/%Y %H:%M')
+            }}
+          </p>
+          <p class="status-pendente mb-3">
+            Status: {{ req.status|capitalize }}
+          </p>
+
+          <a
+            href="{{ url_for('requisicoes_tecnicos.mobile_detalhes', requisicao_id=req.id) }}"
+            class="btn btn-sm btn-primary w-100"
+          >
+            ➜ Atender Requisição
+          </a>
+        </div>
+      </div>
+      {% endfor %} {% else %}
+      <div class="alert alert-info text-center">
+        Nenhuma requisição pendente.
+      </div>
+      {% endif %}
+    </div>
+
+    <footer>© 2025 LogStock - Sistema Mobile</footer>
+  </body>
+</html>

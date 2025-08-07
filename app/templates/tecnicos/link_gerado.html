@@ -1,0 +1,64 @@
+{% extends 'base.html' %} {% block content %}
+<div class="container mt-4 text-center">
+  <h3>✅ QR Code e Link Gerado com Sucesso</h3>
+
+  <p class="mt-3"><strong>Nome do Técnico:</strong> {{ nome }}</p>
+  <p><strong>Senha de Acesso:</strong> {{ senha_gerada }}</p>
+
+  <img
+    src="{{ url_for('static', filename='qrcodes/' ~ qr_filename) }}"
+    alt="QR Code"
+    width="200"
+    class="my-3"
+  />
+
+  <div class="alert alert-info">
+    <strong>Link de Acesso ao Formulário:</strong>
+    <div class="mt-2">
+      <a
+        href="{{ url_for('baixa_tecnico.formulario_baixa', tecnico_id=tecnico_id, _external=True) }}"
+        target="_blank"
+        id="link-text"
+      >
+        {{ url_for('baixa_tecnico.formulario_baixa', tecnico_id=tecnico_id,
+        _external=True) }}
+      </a>
+    </div>
+  </div>
+
+  <!-- Botões -->
+  <div class="d-flex justify-content-center gap-3 mt-3">
+    <button class="btn btn-secondary" onclick="copiarLink()">
+      📋 Copiar Link
+    </button>
+
+    <a
+      class="btn btn-success"
+      href="https://wa.me/?text={{ 'Olá ' ~ nome ~ '! Aqui está o link do formulário de baixa: ' ~ url_for('baixa_tecnico.formulario_baixa', tecnico_id=tecnico_id, _external=True) | urlencode }}"
+      target="_blank"
+    >
+      📲 Enviar via WhatsApp
+    </a>
+  </div>
+
+  <a
+    href="{{ url_for('tecnicos.listar_tecnicos') }}"
+    class="btn btn-primary mt-4"
+    >⬅ Voltar à Listagem</a
+  >
+</div>
+
+<script>
+  function copiarLink() {
+    const link = document.getElementById("link-text").href;
+    navigator.clipboard.writeText(link).then(
+      function () {
+        alert("Link copiado com sucesso!");
+      },
+      function (err) {
+        alert("Erro ao copiar: " + err);
+      }
+    );
+  }
+</script>
+{% endblock %}

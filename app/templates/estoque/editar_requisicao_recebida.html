@@ -1,61 +1,80 @@
 {% extends 'base.html' %}
 {% block content %}
-<div class="container mt-4">
-  <h2>Editar Requisição Recebida - ID {{ requisicao.id }}</h2>
 
-  <form method="POST">
-    <div class="mb-3">
-      <label for="tecnico" class="form-label">Técnico</label>
-      <input type="text" class="form-control" id="tecnico" value="{{ requisicao.tecnico }}" readonly>
+<div class="container-fluid mt-3">
+  <div class="row justify-content-center">
+    <div class="col-xl-9 col-lg-10 col-md-12">
+      <div class="card shadow-sm">
+        <div class="card-body">
+          <h5 class="mb-4 fw-semibold" style="font-size: 1.15rem">
+            Editar Requisição Recebida — ID #{{ requisicao.id }}
+          </h5>
+
+          <form method="POST" class="row g-3">
+
+            <div class="col-md-6">
+              <label for="tecnico" class="form-label">Técnico</label>
+              <input type="text" class="form-control" id="tecnico" value="{{ requisicao.tecnico }}" readonly>
+            </div>
+
+            <div class="col-md-6">
+              <label for="data_hora" class="form-label">Data/Hora</label>
+              <input type="text" class="form-control" id="data_hora" 
+                     value="{{ requisicao.data_hora.strftime('%d/%m/%Y %H:%M') }}" readonly>
+            </div>
+
+            <div class="col-md-4">
+              <label for="status" class="form-label">Status</label>
+              <select name="status" id="status" class="form-select" required>
+                <option value="pendente" {% if requisicao.status == 'pendente' %}selected{% endif %}>Pendente</option>
+                <option value="separada" {% if requisicao.status == 'separada' %}selected{% endif %}>Separada</option>
+                <option value="atendida" {% if requisicao.status == 'atendida' %}selected{% endif %}>Atendida</option>
+              </select>
+            </div>
+
+            <div class="col-md-12">
+              <label for="observacao" class="form-label">Observação</label>
+              <textarea name="observacao" id="observacao" class="form-control" rows="3">{{ requisicao.observacao }}</textarea>
+            </div>
+
+            <div class="col-12 d-flex justify-content-between mt-3">
+              <button type="submit" class="btn btn-primary">Salvar Alterações</button>
+              <a href="{{ url_for('estoque.listar_requisicoes_recebidas') }}" class="btn btn-secondary">Cancelar</a>
+            </div>
+          </form>
+
+          <hr class="my-4" />
+
+          <h6 class="fw-semibold mb-3">Itens da Requisição</h6>
+          <div class="table-responsive">
+            <table class="table table-bordered table-hover">
+              <thead class="table-dark">
+                <tr>
+                  <th scope="col">Código</th>
+                  <th scope="col">Descrição</th>
+                  <th scope="col">Quantidade</th>
+                </tr>
+              </thead>
+              <tbody>
+                {% for item in requisicao.itens %}
+                <tr>
+                  <td>{{ item.item.codigo }}</td>
+                  <td>{{ item.item.descricao }}</td>
+                  <td>{{ item.quantidade }}</td>
+                </tr>
+                {% else %}
+                <tr>
+                  <td colspan="3" class="text-center">Nenhum item cadastrado nesta requisição.</td>
+                </tr>
+                {% endfor %}
+              </tbody>
+            </table>
+          </div>
+
+        </div>
+      </div>
     </div>
-
-    <div class="mb-3">
-      <label for="data_hora" class="form-label">Data/Hora</label>
-      <input type="text" class="form-control" id="data_hora" value="{{ requisicao.data_hora.strftime('%d/%m/%Y %H:%M') }}" readonly>
-    </div>
-
-    <div class="mb-3">
-      <label for="status" class="form-label">Status</label>
-      <select name="status" id="status" class="form-select" required>
-        <option value="pendente" {% if requisicao.status == 'pendente' %}selected{% endif %}>Pendente</option>
-        <option value="separada" {% if requisicao.status == 'separada' %}selected{% endif %}>Separada</option>
-        <option value="atendida" {% if requisicao.status == 'atendida' %}selected{% endif %}>Atendida</option>
-      </select>
-    </div>
-
-    <div class="mb-3">
-      <label for="observacao" class="form-label">Observação</label>
-      <textarea name="observacao" id="observacao" class="form-control" rows="3">{{ requisicao.observacao }}</textarea>
-    </div>
-
-    <button type="submit" class="btn btn-primary">Salvar Alterações</button>
-    <a href="{{ url_for('estoque.listar_requisicoes_recebidas') }}" class="btn btn-secondary">Cancelar</a>
-  </form>
-
-  <hr />
-
-  <h4>Itens da Requisição</h4>
-  <table class="table table-bordered">
-    <thead class="table-dark">
-      <tr>
-        <th>Código</th>
-        <th>Descrição</th>
-        <th>Quantidade</th>
-      </tr>
-    </thead>
-    <tbody>
-      {% for item in requisicao.itens %}
-      <tr>
-        <td>{{ item.item.codigo }}</td>
-        <td>{{ item.item.descricao }}</td>
-        <td>{{ item.quantidade }}</td>
-      </tr>
-      {% else %}
-      <tr>
-        <td colspan="3" class="text-center">Nenhum item cadastrado nesta requisição.</td>
-      </tr>
-      {% endfor %}
-    </tbody>
-  </table>
+  </div>
 </div>
+
 {% endblock %}

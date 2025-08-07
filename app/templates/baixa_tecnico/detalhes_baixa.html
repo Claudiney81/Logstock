@@ -1,0 +1,97 @@
+<!-- templates/baixa_tecnico/detalhes_baixa.html -->
+<!DOCTYPE html>
+<html lang="pt-br">
+  <head>
+    <meta charset="UTF-8" />
+    <title>Detalhes da Baixa</title>
+    <link
+      rel="stylesheet"
+      href="{{ url_for('static', filename='css/bootstrap.min.css') }}"
+    />
+    <style>
+      body {
+        padding: 20px;
+      }
+      h3 {
+        margin-bottom: 20px;
+      }
+      .btn {
+        margin-right: 10px;
+      }
+      .table th,
+      .table td {
+        vertical-align: middle !important;
+      }
+    </style>
+  </head>
+  <body>
+    <div class="container">
+      <h3>Detalhes da Baixa Técnica</h3>
+
+      <div class="mb-4">
+        <p><strong>Técnico:</strong> {{ baixa.tecnico.nome }}</p>
+        <p><strong>Endereço:</strong> {{ baixa.endereco }}</p>
+        <p><strong>Bairro:</strong> {{ baixa.bairro }}</p>
+        <p><strong>Código do Imóvel:</strong> {{ baixa.codigo_imovel }}</p>
+        <p>
+          <strong>Data:</strong> {{ baixa.data.strftime('%d/%m/%Y %H:%M') }}
+        </p>
+        <p><strong>Observações:</strong> {{ baixa.observacao or '---' }}</p>
+      </div>
+
+      <h5>Itens Utilizados</h5>
+      <table class="table table-bordered table-hover">
+        <thead class="table-light">
+          <tr>
+            <th>Código</th>
+            <th>Descrição</th>
+            <th>Quantidade</th>
+            <th>Unidade</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for item in baixa.itens %}
+          <tr>
+            <td>{{ item.item.codigo }}</td>
+            <td>{{ item.item.descricao }}</td>
+            <td>{{ item.quantidade }}</td>
+            <td>{{ item.item.unidade }}</td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+
+      <form
+        method="POST"
+        action="{{ url_for('baixa_tecnico.atualizar_status', baixa_id=baixa.id) }}"
+      >
+        <input type="hidden" name="status" value="aprovada" />
+        <button type="submit" class="btn btn-success">Aprovar Baixa</button>
+      </form>
+
+      <form
+        method="POST"
+        action="{{ url_for('baixa_tecnico.atualizar_status', baixa_id=baixa.id) }}"
+        class="mt-2"
+      >
+        <input type="hidden" name="status" value="recusada" />
+        <div class="mb-2">
+          <label for="observacao">Motivo da recusa:</label>
+          <textarea
+            name="observacao"
+            id="observacao"
+            class="form-control"
+            required
+          ></textarea>
+        </div>
+        <button type="submit" class="btn btn-danger">Recusar Baixa</button>
+      </form>
+
+      <a
+        href="{{ url_for('baixa_tecnico.pendentes') }}"
+        class="btn btn-secondary mt-3"
+        >Voltar</a
+      >
+    </div>
+  </body>
+</html>

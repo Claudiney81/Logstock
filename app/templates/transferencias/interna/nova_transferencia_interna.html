@@ -1,160 +1,248 @@
-{% extends 'base.html' %}
-{% block content %}
+{% extends 'base.html' %} {% block content %}
 <div class="container mt-4">
-  <h2>Nova Transferência Interna</h2>
-  <form method="POST" action="{{ url_for('transferencias_interna.nova_transferencia_interna') }}" autocomplete="off">
+  <h2 class="mb-4 text-primary">
+    <i class="bi bi-tools me-2"></i> Nova Movimentação de Ferramentas
+  </h2>
+
+  <form method="POST" autocomplete="off">
     <div class="row g-3 mb-3">
       <div class="col-md-4">
-        <label for="tecnico_id" class="form-label">Técnico</label>
-        <select id="tecnico_id" name="tecnico_id" class="form-select" required>
-          <option value="">Selecione o técnico</option>
+        <label class="form-label fw-semibold">Técnico</label>
+        <select name="tecnico_id" class="form-select shadow-sm" required>
+          <option value="">Selecione</option>
           {% for tecnico in tecnicos %}
-          <option value="{{ tecnico.id }}">{{ tecnico.nome }} ({{ tecnico.matricula }})</option>
+          <option value="{{ tecnico.id }}">{{ tecnico.nome }}</option>
           {% endfor %}
         </select>
       </div>
+
       <div class="col-md-4">
-        <label for="area_tecnica" class="form-label">Área Técnica</label>
-        <input type="text" id="area_tecnica" name="area_tecnica" class="form-control" required>
-      </div>
-      <div class="col-md-4">
-        <label for="tipo_servico_id" class="form-label">Tipo de Serviço</label>
-        <select id="tipo_servico_id" name="tipo_servico_id" class="form-select" required>
-          <option value="">Selecione o tipo de serviço</option>
-          {% for ts in tipos_servico %}
-          <option value="{{ ts.id }}">{{ ts.nome }}</option>
+        <label class="form-label fw-semibold">Tipo de Serviço</label>
+        <select
+          id="tipo-servico"
+          name="tipo_servico_id"
+          class="form-select shadow-sm"
+          required
+        >
+          <option value="">Selecione</option>
+          {% for tipo in tipos_servico %}
+          <option value="{{ tipo.id }}">{{ tipo.nome }}</option>
           {% endfor %}
         </select>
+      </div>
+
+      <div class="col-md-4">
+        <label class="form-label fw-semibold">Local</label>
+        <input
+          type="text"
+          name="local"
+          class="form-control shadow-sm"
+          required
+        />
+      </div>
+
+      <div class="col-md-12">
+        <label class="form-label fw-semibold">Observação</label>
+        <input type="text" name="observacao" class="form-control shadow-sm" />
       </div>
     </div>
 
-    <h5>Itens da Transferência</h5>
-    <div style="overflow-x:auto;">
-      <table class="table table-bordered align-middle mb-0" id="tabela-itens" style="min-width:950px;">
-        <thead>
+    <h5 class="fw-semibold mt-4 mb-2">
+      <i class="bi bi-box-seam me-2"></i> Itens da Movimentação
+    </h5>
+
+    <div class="table-responsive shadow-sm border rounded">
+      <table
+        class="table table-bordered table-sm align-middle mb-0"
+        id="tabela-itens"
+        style="min-width: 950px"
+      >
+        <thead class="table-light">
           <tr>
-            <th style="background:#f8f9fa;">Código</th>
-            <th style="background:#f8f9fa;">Descrição</th>
-            <th style="background:#f8f9fa;">Unidade</th>
-            <th style="background:#f8f9fa;">Quantidade</th>
-            <th style="background:#f8f9fa;">Valor Unitário</th>
-            <th style="background:#f8f9fa;">Saldo</th>
-            <th style="background:#f8f9fa;">Ações</th>
+            <th style="width: 15%">Código</th>
+            <th style="width: 40%">Descrição</th>
+            <th style="width: 10%">Un</th>
+            <th style="width: 10%">Qtd</th>
+            <th style="width: 10%">Valor Un (R$)</th>
+            <th style="width: 7%">Status</th>
+            <th style="width: 8%">Ações</th>
           </tr>
         </thead>
         <tbody>
           <tr>
-            <td class="py-1"><input type="text" name="codigo[]" class="form-control form-control-sm codigo-input" autocomplete="off" /></td>
-            <td class="py-1"><input type="text" name="descricao[]" class="form-control form-control-sm descricao-input" readonly /></td>
-            <td class="py-1"><input type="text" name="unidade[]" class="form-control form-control-sm unidade-input" readonly /></td>
-            <td class="py-1"><input type="number" name="quantidade[]" min="1" class="form-control form-control-sm" /></td>
-            <td class="py-1"><input type="number" name="valor_unitario[]" step="0.01" class="form-control form-control-sm valor-input" readonly /></td>
-            <td class="saldo-cell py-1"><span class="saldo-info"></span></td>
-            <td class="py-1">
-              <div class="d-flex gap-2">
-                <button type="button" class="btn btn-success btn-sm" onclick="inserirLinha()" title="Inserir nova linha"><i class="bi bi-plus"></i> Inserir</button>
-                <button type="button" class="btn btn-danger btn-sm excluir-btn" style="opacity:0.5; pointer-events:none;" onclick="removerLinha(this, true)" title="Excluir linha" tabindex="-1"><i class="bi bi-x"></i> Excluir</button>
+            <td>
+              <input
+                type="text"
+                name="codigo[]"
+                class="form-control form-control-sm codigo-input"
+                readonly
+              />
+            </td>
+            <td>
+              <select
+                name="descricao[]"
+                class="form-select form-select-sm descricao-select"
+                required
+              >
+                <option value="">Selecione</option>
+              </select>
+            </td>
+            <td>
+              <input
+                type="text"
+                name="unidade[]"
+                class="form-control form-control-sm unidade-input"
+                readonly
+              />
+            </td>
+            <td>
+              <input
+                type="number"
+                name="quantidade[]"
+                min="1"
+                value="1"
+                class="form-control form-control-sm text-end"
+              />
+            </td>
+            <td>
+              <input
+                type="number"
+                name="valor_unitario[]"
+                step="0.01"
+                class="form-control form-control-sm valor-input text-end"
+                readonly
+              />
+            </td>
+            <td>
+              <select name="status[]" class="form-select form-select-sm">
+                <option value="tecnico">Técnico</option>
+                <option value="almoxarifado">Almoxarifado</option>
+              </select>
+            </td>
+            <td class="text-center">
+              <div class="d-flex justify-content-center gap-1">
+                <button
+                  type="button"
+                  class="btn btn-success btn-sm"
+                  onclick="inserirLinha()"
+                  title="Adicionar linha"
+                >
+                  <i class="bi bi-plus"></i>
+                </button>
+                <button
+                  type="button"
+                  class="btn btn-danger btn-sm excluir-btn"
+                  style="opacity: 0.5; pointer-events: none"
+                  onclick="removerLinha(this, true)"
+                  title="Excluir linha"
+                >
+                  <i class="bi bi-x"></i>
+                </button>
               </div>
             </td>
           </tr>
         </tbody>
       </table>
     </div>
-    <button type="submit" class="btn btn-primary mt-3">Registrar Transferência</button>
+
+    <button type="submit" class="btn btn-primary mt-3 shadow-sm">
+      <i class="bi bi-save"></i> Registrar
+    </button>
   </form>
 </div>
 
 <script>
-  function buscarDadosItem(e) {
-    if (e.target.classList.contains('codigo-input')) {
-      const codigo = e.target.value.trim();
-      const tipo_servico_id = document.getElementById('tipo_servico_id').value;
-      const tr = e.target.closest('tr');
+  let itensDisponiveis = [];
 
-      // Evita requisições com menos de 4 caracteres
-      if (codigo.length < 4 || !tipo_servico_id) {
-        tr.querySelector('.descricao-input').value = '';
-        tr.querySelector('.unidade-input').value = '';
-        tr.querySelector('.valor-input').value = '';
-        tr.querySelector('.saldo-info').innerText = '';
-        return;
-      }
+  function atualizarListaDeItens() {
+    const tipoServicoId = document.getElementById("tipo-servico").value;
+    if (!tipoServicoId) return;
 
-      fetch(`/transferencias/interna/api/item_saldo?codigo=${codigo}&tipo_servico_id=${tipo_servico_id}`)
-        .then(res => res.json())
-        .then(data => {
-          if (data.error) {
-            tr.querySelector('.descricao-input').value = '';
-            tr.querySelector('.unidade-input').value = '';
-            tr.querySelector('.valor-input').value = '';
-            tr.querySelector('.saldo-info').innerText = '';
-            alert('Item não encontrado ou sem saldo para esse tipo de serviço.');
-            return;
-          }
-          tr.querySelector('.descricao-input').value = data.descricao;
-          tr.querySelector('.unidade-input').value = data.unidade;
-          tr.querySelector('.valor-input').value = parseFloat(data.valor).toFixed(2);
-          tr.querySelector('.saldo-info').innerText = data.saldo;
-        })
-        .catch(() => alert('Erro ao buscar item ou saldo.'));
-    }
+    fetch(`/equipamentos/api/itens_por_tipo/${tipoServicoId}`)
+      .then((res) => res.json())
+      .then((data) => {
+        itensDisponiveis = data;
+        const selects = document.querySelectorAll(".descricao-select");
+        selects.forEach((select) => {
+          const valorAtual = select.value;
+          select.innerHTML = '<option value="">Selecione</option>';
+          data.forEach((item) => {
+            const option = document.createElement("option");
+            option.value = item.codigo;
+            option.textContent = item.descricao;
+            select.appendChild(option);
+          });
+          select.value = valorAtual;
+        });
+      });
   }
 
-  document.querySelector('#tabela-itens tbody').addEventListener('change', buscarDadosItem);
+  document.getElementById("tipo-servico").addEventListener("change", () => {
+    atualizarListaDeItens();
+    document
+      .querySelectorAll(".codigo-input, .unidade-input, .valor-input")
+      .forEach((el) => (el.value = ""));
+  });
+
+  document
+    .querySelector("#tabela-itens tbody")
+    .addEventListener("change", function (e) {
+      if (e.target.classList.contains("descricao-select")) {
+        const codigo = e.target.value;
+        const tr = e.target.closest("tr");
+        const item = itensDisponiveis.find((i) => i.codigo === codigo);
+        if (item) {
+          tr.querySelector(".codigo-input").value = item.codigo;
+          tr.querySelector(".unidade-input").value = item.unidade || "";
+          tr.querySelector(".valor-input").value = parseFloat(
+            item.valor || 0
+          ).toFixed(2);
+        }
+      }
+    });
 
   function inserirLinha() {
-    const tbody = document.querySelector('#tabela-itens tbody');
-    const tr = document.createElement('tr');
+    const tbody = document.querySelector("#tabela-itens tbody");
+    const tr = document.createElement("tr");
     tr.innerHTML = `
-      <td class="py-1"><input type="text" name="codigo[]" class="form-control form-control-sm codigo-input" autocomplete="off" /></td>
-      <td class="py-1"><input type="text" name="descricao[]" class="form-control form-control-sm descricao-input" readonly /></td>
-      <td class="py-1"><input type="text" name="unidade[]" class="form-control form-control-sm unidade-input" readonly /></td>
-      <td class="py-1"><input type="number" name="quantidade[]" min="1" class="form-control form-control-sm" /></td>
-      <td class="py-1"><input type="number" name="valor_unitario[]" step="0.01" class="form-control form-control-sm valor-input" readonly /></td>
-      <td class="saldo-cell py-1"><span class="saldo-info"></span></td>
-      <td class="py-1">
-        <div class="d-flex gap-2">
-          <button type="button" class="btn btn-success btn-sm" onclick="inserirLinha()" title="Inserir nova linha"><i class="bi bi-plus"></i> Inserir</button>
-          <button type="button" class="btn btn-danger btn-sm excluir-btn" onclick="removerLinha(this, false)" title="Excluir linha"><i class="bi bi-x"></i> Excluir</button>
+      <td><input type="text" name="codigo[]" class="form-control form-control-sm codigo-input" readonly /></td>
+      <td>
+        <select name="descricao[]" class="form-select form-select-sm descricao-select" required>
+          <option value="">Selecione</option>
+        </select>
+      </td>
+      <td><input type="text" name="unidade[]" class="form-control form-control-sm unidade-input" readonly /></td>
+      <td><input type="number" name="quantidade[]" min="1" value="1" class="form-control form-control-sm text-end" /></td>
+      <td><input type="number" name="valor_unitario[]" step="0.01" class="form-control form-control-sm valor-input text-end" readonly /></td>
+      <td>
+        <select name="status[]" class="form-select form-select-sm">
+          <option value="tecnico">Técnico</option>
+          <option value="almoxarifado">Almoxarifado</option>
+        </select>
+      </td>
+      <td class="text-center">
+        <div class="d-flex justify-content-center gap-1">
+          <button type="button" class="btn btn-success btn-sm" onclick="inserirLinha()" title="Adicionar linha"><i class="bi bi-plus"></i></button>
+          <button type="button" class="btn btn-danger btn-sm excluir-btn" onclick="removerLinha(this, false)" title="Excluir linha"><i class="bi bi-x"></i></button>
         </div>
       </td>
     `;
-    tr.querySelector('.codigo-input').addEventListener('change', buscarDadosItem);
     tbody.appendChild(tr);
+    atualizarListaDeItens();
   }
 
   function removerLinha(btn, isFirstLine) {
-    const tr = btn.closest('tr');
+    const tr = btn.closest("tr");
     const tbody = tr.parentElement;
-    if (isFirstLine && tr.rowIndex === 1) {
-      tr.querySelectorAll('input').forEach(input => input.value = '');
-      tr.querySelectorAll('.saldo-info').forEach(span => span.innerText = '');
-      tr.querySelectorAll('input').forEach(input => input.classList.remove('is-invalid'));
+    if (isFirstLine && tbody.rows.length === 1) {
+      tr.querySelectorAll("input, select").forEach(
+        (input) => (input.value = "")
+      );
       return;
     }
-    if (tbody.rows.length > 1) {
-      tr.remove();
-    }
+    tr.remove();
   }
-</script>
 
-<style>
-  #tabela-itens thead th {
-    position: sticky;
-    top: 0;
-    z-index: 2;
-    background: #f8f9fa;
-  }
-  #tabela-itens td, #tabela-itens th {
-    padding-top: 2px !important;
-    padding-bottom: 2px !important;
-    vertical-align: middle;
-  }
-  .excluir-btn[style*="pointer-events:none"] {
-    opacity: 0.5 !important;
-  }
-  .d-flex.gap-2 > * {
-    margin-right: 0.25rem;
-  }
-</style>
+  document.addEventListener("DOMContentLoaded", atualizarListaDeItens);
+</script>
 {% endblock %}

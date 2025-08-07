@@ -1,40 +1,61 @@
-{% extends "base.html" %}
+{% extends "base.html" %} {% block content %}
+<style>
+  .tabela-container {
+    max-height: 70vh; /* altura ajustável */
+    overflow-y: auto;
+  }
+  .tabela-container table thead th {
+    position: sticky;
+    top: 0;
+    z-index: 1000;
+    background: #002b55;
+    color: white;
+  }
+</style>
 
-{% block content %}
-<div class="container">
+<div class="container mt-4">
   <h2 class="mb-4">Requisições Recebidas</h2>
 
   {% if requisicoes %}
-  <table class="table table-hover table-bordered">
-    <thead class="table-light">
-      <tr>
-        <th>Status</th>
-        <th>Responsável</th>
-        <th>Técnico</th>
-        <th>Tipo de Serviço</th>
-        <th>Data/Hora</th>
-        <th>Ações</th>
-      </tr>
-    </thead>
-    <tbody>
-      {% for req in requisicoes %}
-      <tr>
-        <td class="text-center">
-          {% if req.status == 'pendente' %}
+  <div class="tabela-container shadow-sm mb-4 border rounded">
+    <table class="table table-hover table-bordered align-middle mb-0">
+      <thead>
+        <tr>
+          <th>Status</th>
+          <th>Responsável</th>
+          <th>Resp. Projeto</th>
+          <th>Técnico</th>
+          <th>Tipo de Serviço</th>
+          <th>Data/Hora</th>
+          <th>Ações</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for req in requisicoes %}
+        <tr>
+          <td class="text-center">
+            {% if req.status == 'pendente' %}
             <span title="Pendente">🧍🏻‍♂️❗</span>
-          {% endif %}
-        </td>
-        <td>{{ req.solicitante_responsavel }}</td>
-        <td>{{ req.solicitante_tecnico }}</td>
-        <td>{{ req.tipo_servico }}</td>
-        <td>{{ req.data_hora.strftime('%d/%m/%Y %H:%M') }}</td>
-        <td>
-          <a href="{{ url_for('requisicoes_tecnicos.detalhes', requisicao_id=req.id) }}" class="btn btn-sm btn-primary">Visualizar</a>
-        </td>
-      </tr>
-      {% endfor %}
-    </tbody>
-  </table>
+            {% endif %}
+          </td>
+          <td>{{ req.solicitante_responsavel }}</td>
+          <td>{{ req.resp_projeto or '' }}</td>
+          <td>{{ req.solicitante_tecnico }}</td>
+          <td>{{ req.tipo_servico }}</td>
+          <td>{{ req.data_hora.strftime('%d/%m/%Y %H:%M') }}</td>
+          <td>
+            <a
+              href="{{ url_for('requisicoes_tecnicos.detalhes', requisicao_id=req.id) }}"
+              class="btn btn-sm btn-primary"
+            >
+              Visualizar
+            </a>
+          </td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
   {% else %}
   <p>Nenhuma requisição pendente.</p>
   {% endif %}

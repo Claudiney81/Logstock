@@ -1,0 +1,111 @@
+{% extends 'base.html' %}
+{% block content %}
+<div class="container-fluid mt-3">
+  <div class="card shadow-sm">
+    <!-- TOPO AZUL -->
+    <div class="card-header" style="background-color: #002b55; color: white;">
+      <h5 class="fw-semibold mb-0">
+        <i class="bi bi-clipboard-data me-2"></i>
+        Inventário de Estoque
+      </h5>
+    </div>
+
+    <div class="card-body">
+      <form method="POST" action="{{ url_for('inventario_estoque.finalizar_inventario') }}">
+        <!-- FILTROS -->
+        <div class="row g-3 mb-4">
+          <div class="col-md-4">
+            <label for="responsavel" class="form-label fw-bold">Responsável</label>
+            <input type="text" name="responsavel" id="responsavel" class="form-control shadow-sm"
+                   value="{{ current_user.nome }}" required>
+          </div>
+          <div class="col-md-4">
+            <label for="local" class="form-label fw-bold">Local</label>
+            <input type="text" name="local" id="local" class="form-control shadow-sm" required>
+          </div>
+          <div class="col-md-4">
+            <label for="data" class="form-label fw-bold">Data</label>
+            <input type="date" name="data" id="data" class="form-control shadow-sm"
+                   value="{{ data_hoje }}" required>
+          </div>
+        </div>
+
+        <div class="row g-3 mb-4">
+          <div class="col-md-4">
+            <label for="tipo_servico" class="form-label fw-bold">Filtrar por Tipo de Serviço</label>
+            <select name="tipo_servico" id="tipo_servico" class="form-select shadow-sm"
+                    onchange="window.location.href='?tipo_servico='+this.value">
+              <option value="">Todos</option>
+              {% for tipo in tipos_servico %}
+                <option value="{{ tipo.id }}" {% if tipo.id == tipo_servico_filtro|int %}selected{% endif %}>
+                  {{ tipo.nome }}
+                </option>
+              {% endfor %}
+            </select>
+          </div>
+        </div>
+
+        <!-- TABELA -->
+        <div class="table-responsive" style="max-height: 70vh; overflow-y: auto;">
+          <table class="table table-bordered table-hover align-middle mb-0">
+            <thead style="position: sticky; top: 0; z-index: 10; background-color: #002b55; color: white;">
+              <tr>
+                <th>Código</th>
+                <th>Descrição</th>
+                <th>Unidade</th>
+                <th>Tipo de Serviço</th>
+                <th>Quantidade Atual</th>
+                <th>Quantidade Contada</th>
+              </tr>
+            </thead>
+            <tbody>
+              {% for estoque, item, tipo in resultados %}
+              <tr>
+                <td>{{ item.codigo }}</td>
+                <td>{{ item.descricao }}</td>
+                <td>{{ item.unidade }}</td>
+                <td>{{ tipo.nome if tipo else '-' }}</td>
+                <td class="quantidade-atual">{{ estoque.quantidade }}</td>
+                <td>
+                  <input type="number" name="contada_{{ estoque.id }}" 
+                         class="form-control shadow-sm quantidade-contada"
+                         min="0" data-quantidade="{{ estoque.quantidade }}"
+                         style="width: 100px;">
+                </td>
+              </tr>
+              {% endfor %}
+            </tbody>
+          </table>
+        </div>
+
+        {% if resultados %}
+          <div class="text-end mt-3">
+            <button type="submit" class="btn btn-success shadow-sm">
+              ✅ Finalizar Inventário
+            </button>
+          </div>
+        {% else %}
+          <p class="text-muted mt-4">Nenhum item encontrado para este filtro.</p>
+        {% endif %}
+      </form>
+    </div>
+  </div>
+</div>
+
+<script>
+document.querySelectorAll('.quantidade-contada').forEach(input => {
+  input.addEventListener('input', function() {
+    const qtdAtual = parseInt(this.dataset.quantidade);
+    const qtdContada = parseInt(this.value || 0);
+    const row = this.closest('tr');
+    if (qtdContada < qtdAtual) {
+      row.style.backgroundColor = '#f8d7da';
+    } else if (qtdContada > qtdAtual) {
+      row.style.backgroundColor = '#fff3cd';
+    } else {
+      row.style.backgroundColor = '';
+    }
+  });
+});
+</script>
+{% endblock %}

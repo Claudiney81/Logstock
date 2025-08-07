@@ -1,0 +1,193 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+  <head>
+    <meta charset="UTF-8" />
+    <title>Baixa Técnica - Mobile</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <link
+      href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css"
+      rel="stylesheet"
+    />
+    <style>
+      body {
+        padding: 1rem;
+        background-color: #f9f9f9;
+      }
+      .card {
+        max-width: 600px;
+        margin: auto;
+        padding: 1.5rem;
+      }
+      .logo {
+        text-align: center;
+        margin-bottom: 1rem;
+      }
+      .small-note {
+        font-size: 0.85rem;
+        color: #777;
+      }
+      .user-info {
+        text-align: right;
+        font-size: 0.85rem;
+        color: #555;
+        margin-bottom: 0.5rem;
+      }
+    </style>
+  </head>
+  <body>
+    <div class="card shadow-sm">
+      <div class="user-info">
+        Técnico: <strong>{{ tecnico_nome }}</strong>
+        <input type="hidden" name="tecnico_id" value="{{ tecnico_id }}" />
+      </div>
+
+      <div class="logo">
+        <h5>📦 Baixa Técnica</h5>
+        <p class="small-note">
+          Informe os materiais utilizados e o endereço de aplicação.
+        </p>
+      </div>
+
+      <form method="POST" action="{{ url_for('baixa_tecnico.registrar') }}">
+        <input type="hidden" name="tecnico_id" value="{{ tecnico_id }}" />
+
+        <div class="mb-3">
+          <label class="form-label">Tipo de Serviço</label>
+          <select class="form-select" id="tipo_servico" required>
+            <option value="">Selecione</option>
+            {% for t in tipos_servico %}
+            <option value="{{ t.id }}">{{ t.nome }}</option>
+            {% endfor %}
+          </select>
+          <input
+            type="hidden"
+            name="tipo_servico_id"
+            id="tipo_servico_id_hidden"
+            value=""
+          />
+        </div>
+
+        <div class="mb-3">
+          <label class="form-label">Endereço (da requisição atendida)</label>
+          <select class="form-select" name="endereco" required>
+            <option value="">Selecione o endereço</option>
+            {% for e in enderecos %}
+            <option value="{{ e }}">{{ e }}</option>
+            {% endfor %}
+          </select>
+        </div>
+
+        <div class="mb-3">
+          <label class="form-label">Bairro</label>
+          <input type="text" class="form-control" name="bairro" />
+        </div>
+
+        <div class="mb-3">
+          <label class="form-label">Código do Imóvel (opcional)</label>
+          <input
+            type="text"
+            class="form-control"
+            name="codigo_imovel"
+            placeholder="Pode deixar em branco"
+          />
+        </div>
+
+        <div class="mb-3">
+          <label class="form-label">Observação</label>
+          <textarea
+            name="observacao"
+            class="form-control"
+            placeholder="Ex: usado em manutenção no local."
+          ></textarea>
+        </div>
+
+        <hr />
+        <h6 class="text-success">Itens</h6>
+        <div id="itens-container"></div>
+
+        <button
+          type="button"
+          class="btn btn-outline-secondary mb-3"
+          onclick="addItem()"
+        >
+          + Adicionar outro item
+        </button>
+
+        <div class="d-grid">
+          <button type="submit" class="btn btn-success btn-lg">
+            📤 Registrar Baixa
+          </button>
+        </div>
+      </form>
+    </div>
+
+    <script>
+      function addItem() {
+        const container = document.getElementById("itens-container");
+        const tipoServicoId = document.getElementById("tipo_servico").value;
+        const tecnicoId = "{{ tecnico_id }}";
+
+        if (!tipoServicoId) {
+          alert("Selecione o Tipo de Serviço primeiro.");
+          return;
+        }
+
+        fetch(`/api/itens_por_tipo/${tecnicoId}/${tipoServicoId}`)
+          .then((response) => response.json())
+          .then((data) => {
+            if (data.length === 0) {
+              alert("Nenhum item disponível para esse tipo de serviço.");
+              return;
+            }
+
+            const div = document.createElement("div");
+            div.className = "item-baixa border rounded p-2 mb-3";
+
+            const labelItem = document.createElement("label");
+            labelItem.className = "form-label";
+            labelItem.textContent = "Item";
+
+            const select = document.createElement("select");
+            select.name = "item_id[]";
+            select.className = "form-select";
+            select.required = true;
+
+            const defaultOption = document.createElement("option");
+            defaultOption.value = "";
+            defaultOption.textContent = "Selecione o item";
+            select.appendChild(defaultOption);
+
+            data.forEach((item) => {
+              const option = document.createElement("option");
+              option.value = item.id;
+              option.textContent = item.descricao;
+              select.appendChild(option);
+            });
+
+            const labelQtd = document.createElement("label");
+            labelQtd.className = "form-label mt-2";
+            labelQtd.textContent = "Quantidade";
+
+            const inputQtd = document.createElement("input");
+            inputQtd.type = "number";
+            inputQtd.name = "quantidade[]";
+            inputQtd.className = "form-control";
+            inputQtd.required = true;
+            inputQtd.min = "1";
+
+            div.appendChild(labelItem);
+            div.appendChild(select);
+            div.appendChild(labelQtd);
+            div.appendChild(inputQtd);
+
+            container.appendChild(div);
+
+            document.getElementById("tipo_servico_id_hidden").value =
+              tipoServicoId;
+          });
+      }
+    </script>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+  </body>
+</html>

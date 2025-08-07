@@ -1,0 +1,95 @@
+{% extends 'base.html' %}
+{% block content %}
+<div class="container mt-4">
+  <h4 class="mb-4">
+    <i class="bi bi-clipboard-data"></i>
+    Histórico de Inventários
+  </h4>
+
+  <!-- Filtro -->
+  <form method="get" action="{{ url_for('inventario_estoque.historico_inventarios') }}" class="row g-2 mb-4">
+    <div class="col-md-4">
+      <input type="text" class="form-control shadow-sm" name="responsavel"
+             placeholder="Filtrar por Responsável"
+             value="{{ responsavel }}">
+    </div>
+    <div class="col-md-3">
+      <input type="date" class="form-control shadow-sm" name="data"
+             value="{{ data_filtro }}">
+    </div>
+    <div class="col-md-2">
+      <button type="submit" class="btn btn-outline-primary w-100 shadow-sm">
+        <i class="bi bi-search"></i> Buscar
+      </button>
+    </div>
+  </form>
+
+  <!-- Tabela -->
+  <div class="table-responsive shadow-sm">
+    <table class="table table-bordered table-hover table-sm align-middle">
+      <thead class="table-light">
+        <tr>
+          <th>Data/Hora</th>
+          <th>Responsável</th>
+          <th>Ações</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for inv in inventarios.items %}
+        <tr>
+          <td>{{ inv.data_hora.strftime('%d/%m/%Y %H:%M') }}</td>
+          <td>{{ inv.responsavel }}</td>
+          <td>
+            <a href="{{ url_for('inventario_estoque.historico_inventario_detalhe', inventario_id=inv.id) }}"
+               class="btn btn-sm btn-outline-primary">
+              <i class="bi bi-eye"></i> Detalhes
+            </a>
+          </td>
+        </tr>
+        {% else %}
+        <tr>
+          <td colspan="3" class="text-center text-muted">Nenhum inventário encontrado.</td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+
+  <!-- Paginação -->
+  <nav class="mt-3">
+    <ul class="pagination justify-content-center">
+      {% if inventarios.has_prev %}
+      <li class="page-item">
+        <a class="page-link" href="{{ url_for('inventario_estoque.historico_inventarios',
+                                              page=inventarios.prev_num,
+                                              responsavel=responsavel,
+                                              data=data_filtro) }}">Anterior</a>
+      </li>
+      {% else %}
+      <li class="page-item disabled"><span class="page-link">Anterior</span></li>
+      {% endif %}
+
+      <li class="page-item disabled">
+        <span class="page-link">Página {{ inventarios.page }} de {{ inventarios.pages }}</span>
+      </li>
+
+      {% if inventarios.has_next %}
+      <li class="page-item">
+        <a class="page-link" href="{{ url_for('inventario_estoque.historico_inventarios',
+                                              page=inventarios.next_num,
+                                              responsavel=responsavel,
+                                              data=data_filtro) }}">Próxima</a>
+      </li>
+      {% else %}
+      <li class="page-item disabled"><span class="page-link">Próxima</span></li>
+      {% endif %}
+    </ul>
+  </nav>
+
+  <div class="mt-3">
+    <a href="{{ url_for('inventario_estoque.inventario') }}" class="btn btn-secondary">
+      Novo Inventário
+    </a>
+  </div>
+</div>
+{% endblock %}

@@ -1,37 +1,57 @@
-{% extends 'base.html' %}
-{% block content %}
+{% extends 'base.html' %} {% block content %}
 <div class="container mt-4">
-  <h2>Detalhes do Kit Inicial</h2>
-  <div class="mb-3">
-    <b>Nome do Kit:</b> {{ kit.nome_kit }}<br>
-    <b>Técnico:</b> {{ kit.tecnico_rel.nome if kit.tecnico_rel else '' }}<br>
-    <b>Tipo de Serviço:</b> {{ kit.tipo_servico_rel.nome if kit.tipo_servico_rel else '' }}<br>
-    <b>Data/Hora:</b> {{ kit.data_hora.strftime('%d/%m/%Y %H:%M') }}<br>
-    <b>Observação:</b> {{ kit.observacao }}
+  <h2 class="mb-4">Detalhes do Kit Inicial</h2>
+
+  <div class="card mb-4">
+    <div class="card-body">
+      <p><b>Nome do Kit:</b> {{ kit.nome_kit }}</p>
+      <p><b>Técnico:</b> {{ kit.tecnico.nome }}</p>
+      <p><b>Tipo de Serviço:</b> {{ kit.tipo_servico.nome }}</p>
+      <p><b>Data/Hora:</b> {{ kit.data_hora.strftime('%d/%m/%Y %H:%M') }}</p>
+      <p><b>Observação:</b> {{ kit.observacao or '-' }}</p>
+    </div>
   </div>
-  <h5>Itens do Kit</h5>
-  <table class="table table-bordered">
-    <thead>
-      <tr>
-        <th>Código</th>
-        <th>Descrição</th>
-        <th>Unidade</th>
-        <th>Quantidade</th>
-        <th>Valor Unitário</th>
-      </tr>
-    </thead>
-    <tbody>
-      {% for item in kit.itens_rel %}
-      <tr>
-        <td>{{ item.item_rel.codigo }}</td>
-        <td>{{ item.item_rel.descricao }}</td>
-        <td>{{ item.item_rel.unidade }}</td>
-        <td>{{ item.quantidade }}</td>
-        <td>{{ '%.2f'|format(item.valor_unitario) }}</td>
-      </tr>
-      {% endfor %}
-    </tbody>
-  </table>
-  <a href="{{ url_for('kit_inicial.historico_kits') }}" class="btn btn-secondary">Voltar ao Histórico</a>
+
+  <h5 class="mb-3">Itens do Kit</h5>
+  <div class="table-responsive">
+    <table class="table table-bordered table-hover">
+      <thead class="table-light">
+        <tr>
+          <th>Código</th>
+          <th>Descrição</th>
+          <th>Unidade</th>
+          <th>Quantidade</th>
+          <th>Valor Unitário</th>
+          <th>Total</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% set valor_total = 0 %} {% for item in kit.itens %} {% set total_item
+        = item.quantidade * item.valor_unitario %} {% set valor_total =
+        valor_total + total_item %}
+        <tr>
+          <td>{{ item.item.codigo }}</td>
+          <td>{{ item.item.descricao }}</td>
+          <td>{{ item.item.unidade }}</td>
+          <td>{{ item.quantidade }}</td>
+          <td>R$ {{ '%.2f'|format(item.valor_unitario)|replace('.', ',') }}</td>
+          <td>R$ {{ '%.2f'|format(total_item)|replace('.', ',') }}</td>
+        </tr>
+        {% endfor %}
+      </tbody>
+      <tfoot class="table-light">
+        <tr>
+          <th colspan="5" class="text-end">Valor Total do Kit:</th>
+          <th>R$ {{ '%.2f'|format(valor_total)|replace('.', ',') }}</th>
+        </tr>
+      </tfoot>
+    </table>
+  </div>
+
+  <a
+    href="{{ url_for('kit_inicial.historico_kits') }}"
+    class="btn btn-secondary mt-3"
+    >Voltar ao Histórico</a
+  >
 </div>
 {% endblock %}

@@ -1,45 +1,43 @@
-{% extends 'base.html' %} {% block content %}
+{% extends 'base.html' %}
+{% block content %}
 <div class="container mt-4">
-  <h2>Importar Itens via Excel (XLSX)</h2>
+  <div class="card shadow-sm border-0 p-4 bg-light">
+    <h4 class="mb-4 fw-bold text-dark">📥 Importar Itens via Excel</h4>
 
-  {% with messages = get_flashed_messages(with_categories=true) %} {% if
-  messages %} {% for category, message in messages %}
-  <div class="alert alert-{{ category }}">{{ message }}</div>
-  {% endfor %} {% endif %} {% endwith %}
+    {% with messages = get_flashed_messages(with_categories=true) %}
+      {% if messages %}
+        {% for category, message in messages %}
+          <div class="alert alert-{{ category }} alert-dismissible fade show" role="alert">
+            {{ message }}
+            <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Fechar"></button>
+          </div>
+        {% endfor %}
+      {% endif %}
+    {% endwith %}
 
-  <form method="POST" enctype="multipart/form-data">
-    <div class="mb-3">
-      <label for="arquivo" class="form-label"
-        >Selecione o arquivo Excel (.xlsx)</label
-      >
-      <input
-        type="file"
-        class="form-control"
-        id="arquivo"
-        name="arquivo"
-        accept=".xlsx"
-        required
-      />
-      <div class="form-text text-muted">
-        O arquivo deve estar no formato Excel (.xlsx) com as colunas:
-        <strong>Código</strong>, <strong>Descrição</strong>,
-        <strong>Unidade</strong>, <strong>Tipo de Serviço</strong> e
-        <strong>Valor</strong>.
+    <form method="POST" enctype="multipart/form-data" class="row g-3 align-items-end">
+      <div class="col-md-6">
+        <label for="arquivo" class="form-label">Arquivo Excel (.xlsx)</label>
+        <input type="file" class="form-control" id="arquivo" name="arquivo" accept=".xlsx" required>
+        <div class="form-text text-muted">
+          O arquivo deve conter: <strong>Código</strong>, <strong>Descrição</strong>,
+          <strong>Unidade</strong>, <strong>Valor</strong>.
+        </div>
       </div>
-    </div>
-    <button type="submit" class="btn btn-primary">Importar</button>
-  </form>
 
-  <div class="mt-4">
-    <h5>Formato esperado do arquivo Excel:</h5>
-    <ul>
-      <li>
-        Primeira linha com cabeçalhos: Código, Descrição, Unidade, Tipo de
-        Serviço, Valor
-      </li>
-      <li>As demais linhas devem conter os dados dos itens</li>
-      <li>Evite linhas em branco ou colunas adicionais</li>
-    </ul>
+      <div class="col-md-3 d-grid">
+        <button type="submit" class="btn btn-primary fw-semibold">📤 Importar</button>
+      </div>
+    </form>
+
+    <div class="mt-4">
+      <h6 class="fw-bold">📝 Formato esperado:</h6>
+      <ul class="small">
+        <li><strong>Linha 1:</strong> Cabeçalhos: Código, Descrição, Unidade, Valor</li>
+        <li><strong>Demais linhas:</strong> Dados dos itens</li>
+        <li>Evite linhas em branco ou colunas extras</li>
+      </ul>
+    </div>
   </div>
 </div>
 {% endblock %}

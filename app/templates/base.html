@@ -3,321 +3,536 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
-    <title>LogiStock</title>
-
-    <!-- Bootstrap CSS -->
-    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" />
-    <!-- Bootstrap Icons -->
-    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.10.5/font/bootstrap-icons.css" />
-
-    <style>
-      body {
-        display: flex;
-        min-height: 100vh;
-        flex-direction: column;
-        margin: 0;
-      }
-      #main-content {
-        flex: 1;
-        display: flex;
-      }
-      #sidebar {
-        min-width: 220px;
-        background-color: #002b55;
-        color: white;
-        padding-top: 1rem;
-        min-height: 100vh;
-      }
-      #sidebar .nav-link,
-      #sidebar .dropdown-item {
-        color:rgb(146, 217, 238);
-      }
-      #sidebar .nav-link:hover,
-      #sidebar .dropdown-item:hover {
-        background-color: rgb(46, 37, 144);
-        color: white;
-      }
-      #logo-nome {
-        font-size: 1.25rem;
-        font-weight: bold;
-        padding: 10px 20px;
-        color: #ffffff;
-      }
-      .menu-header {
-        color: #f9fafb;
-        font-weight: bold;
-        padding: 0.5rem 1rem 0 1rem;
-      }
-      .nav-link i {
-        margin-right: 0.5rem;
-      }
-    </style>
-
-    <!-- Custom CSS externo (opcional) -->
-    <link rel="stylesheet" href="{{ url_for('static', filename='css/custom.css') }}">
+    <title>LogStock</title>
   </head>
 
-  <body>
+  <body autocomplete="off" class="{% if request.path == '/' %}home-page{% endif %}">
+
+    <!-- Bootstrap 5 e ícones -->
+    <link
+      href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css"
+      rel="stylesheet"
+    />
+    <link
+      rel="stylesheet"
+      href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.10.5/font/bootstrap-icons.css"
+    />
+
+    <!-- Estilos customizados -->
+    <link
+      rel="stylesheet"
+      href="{{ url_for('static', filename='css/custom.css') }}"
+    />
+
+   <style>
+  /* =================== CONFIGURAÇÃO GERAL =================== */
+  html, body {
+    height: 100%;
+    margin: 0;
+    padding: 0;
+    overflow-x: hidden;
+    overflow-y: auto; /* permite rolagem vertical normal */
+  }
+  body {
+    display: flex;
+    flex-direction: column;
+    background-color: #f1f5f9;
+    padding-bottom: 60px; /* espaço para o rodapé fixo */
+  }
+
+  /* =================== CONTEÚDO PRINCIPAL =================== */
+  #main-content {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    margin-top: 56px;
+    overflow: hidden;
+  }
+
+  .flex-grow-1 {
+    margin-left: 260px;
+    overflow-y: auto;
+    animation: fadeIn 0.2s ease-in-out;
+  }
+
+  @keyframes fadeIn {
+    from { opacity: 0; transform: translateY(5px); }
+    to { opacity: 1; transform: translateY(0); }
+  }
+
+  /* =================== SIDEBAR =================== */
+  #sidebar {
+    width: 260px;
+    position: fixed;
+    top: 0;
+    left: 0;
+    height: 100vh;
+    background-color: rgba(25, 32, 85, 1);
+    color: white;
+    padding-top: 4rem;
+    padding-bottom: 2.5rem;
+    z-index: 1000;
+    overflow-y: auto;
+    scroll-behavior: smooth;
+  }
+
+  /* Cabeçalhos do menu */
+  .menu-header,
+  .menu-master {
+    color: #93c5fd !important; /* azul clarinho */
+    font-weight: bold !important;
+    font-size: 0.9rem !important;
+    letter-spacing: 0.5px;
+    text-transform: uppercase;
+  }
+
+  /* Links do menu */
+  #sidebar .nav-link,
+  #sidebar .dropdown-item {
+    color: #ffffff !important;
+    font-size: 0.8rem !important;
+    padding: 4px 16px;
+    transition: background-color 0.2s ease-in-out, color 0.2s ease-in-out;
+  }
+
+  #sidebar .nav-link i {
+    color: #ffffff !important;
+    font-size: 0.9rem;
+    margin-right: 6px;
+  }
+
+  #sidebar .nav-link:hover,
+  #sidebar .nav-link.active {
+    background-color: #0066cc !important;
+    color: white !important;
+  }
+
+  #sidebar .nav-link:hover i,
+  #sidebar .nav-link.active i {
+    color: white !important;
+  }
+
+  .collapse .nav-link { padding-left: 32px; }
+
+  /* =================== NAVBAR =================== */
+  .navbar {
+    position: sticky;
+    top: 0;
+    z-index: 1020;
+    background-color: #325c9b !important;
+  }
+
+  /* =================== RODAPÉ =================== */
+  footer.footer {
+    position: fixed;
+    bottom: 0;
+    left: 260px;                /* compensa a sidebar fixa */
+    width: calc(100% - 260px);  /* ocupa largura total menos sidebar */
+    background-color: #002b55;  /* cor igual ao topo */
+    color: white;
+    text-align: center;
+    padding: 8px 0;
+    font-size: 0.85rem;
+    z-index: 1030;
+  }
+
+  /* =================== TABELAS =================== */
+  .table-responsive { overflow-x: auto; }
+  .table { border-collapse: collapse; }
+  .table th, .table td {
+    border: 0.5px solid #dee2e6 !important;
+    padding: 0.55rem;
+  }
+  .table thead th {
+    background-color: #f8f9fa;
+    font-weight: bold;
+    border-bottom: 1px solid #ccc;
+  }
+
+  /* =================== SCROLLBAR SIDEBAR =================== */
+  #sidebar::-webkit-scrollbar { width: 6px; }
+  #sidebar::-webkit-scrollbar-thumb {
+    background-color: rgba(255, 255, 255, 0.3);
+    border-radius: 4px;
+  }
+  #sidebar { scrollbar-width: thin; scrollbar-color: rgba(255, 255, 255, 0.3) transparent; }
+
+  .nav-link[onclick] { cursor: pointer; }
+  #sidebar hr, #sidebar .dropdown-divider, #sidebar .nav-item:not(.menu-header)::after {
+    display: none !important;
+  }
+  .nav-link:focus {
+    outline: none;
+    box-shadow: inset 0 0 0 1px #5dd8ff;
+  }
+
+  /* =================== HOME PAGE =================== */
+  body.home-page {
+    height: 100vh;        /* altura exata da tela */
+    overflow-y: hidden;   /* remove scroll vertical */
+  }
+
+  body.home-page #main-content {
+    height: calc(100vh - 56px - 40px); /* menos navbar e menos rodapé */
+    overflow: hidden;
+  }
+
+  body.home-page footer.footer {
+    position: fixed;
+    bottom: 0;
+    left: 260px; /* compensa a sidebar */
+    width: calc(100% - 260px);
+  }
+</style>
+
+  </head>
+
     <!-- Barra superior -->
-    <nav class="navbar navbar-dark bg-dark">
-      <div class="container-fluid">
-        <a class="navbar-brand" href="/">LogiStock</a>
-        {% if current_user.is_authenticated %}
-          <div class="d-flex align-items-center text-white">
-            <span class="me-3">Olá, {{ current_user.nome }}</span>
-            <a href="{{ url_for('auth.logout') }}" class="btn btn-outline-light btn-sm">Sair</a>
-          </div>
-        {% else %}
-          <div>
-            <a href="{{ url_for('auth.login') }}" class="btn btn-outline-light btn-sm">Entrar</a>
-          </div>
-        {% endif %}
-      </div>
-    </nav>
+    <nav class="navbar navbar-dark bg-dark navbar-expand fixed-top">
+  <div class="container-fluid">
+    <a class="navbar-brand d-flex align-items-center text-white" href="/">
+      <!-- Ícone minimalista de estoque -->
+      <svg xmlns="http://www.w3.org/2000/svg" width="28" height="28" fill="white" viewBox="0 0 16 16" class="me-2">
+        <path d="M8.21.5a1 1 0 0 0-.42 0L1.5 2.11a1 1 0 0 0-.71.96v9.86a1 1 0 0 0 .7.96l6.29 1.61a1 1 0 0 0 .42 0l6.29-1.61a1 1 0 0 0 .7-.96V3.07a1 1 0 0 0-.7-.96L8.21.5zM8 1.69 13.49 3 8 4.31 2.51 3 8 1.69zM2 4.3v7.62l5 1.28V5.58L2 4.3zM9 5.58v7.62l5-1.28V4.3L9 5.58z"/>
+      </svg>
+      <span class="fw-bold fs-4">LogStock</span>
+    </a>
+    
+    {% if current_user.is_authenticated %}
+    <div class="d-flex align-items-center text-white">
+      <span class="me-3">Olá, {{ current_user.nome }}</span>
+      <a href="{{ url_for('auth.logout') }}" class="btn btn-outline-light btn-sm">Sair</a>
+    </div>
+    {% else %}
+    <div>
+      <a href="{{ url_for('auth.login') }}" class="btn btn-outline-light btn-sm">Entrar</a>
+    </div>
+    {% endif %}
+  </div>
+</nav>
+
 
     <div id="main-content">
       <!-- Sidebar -->
       <nav id="sidebar" class="d-flex flex-column">
         <ul class="nav flex-column">
-          <!-- Cadastro -->
-          <li class="nav-item">
-            <a class="nav-link dropdown-toggle" href="#cadastroSubmenu" data-bs-toggle="collapse" role="button" aria-expanded="false" aria-controls="cadastroSubmenu">
-              <i class="bi bi-pencil-square me-2"></i>Cadastro
-            </a>
-            <div class="collapse" id="cadastroSubmenu">
-              <div class="menu-header">Itens</div>
-              <ul class="btn-toggle-nav list-unstyled fw-normal pb-1 small">
-                <li><a href="/estoque/cadastro" class="nav-link px-3"><i class="bi bi-box-seam me-2"></i>Cadastro de Itens</a></li>
-                <li><a href="/estoque/listar" class="nav-link px-3"><i class="bi bi-card-list me-2"></i>Listar Itens</a></li>
-              </ul>
-              <div class="menu-header">Estoque</div>
-              <ul class="btn-toggle-nav list-unstyled fw-normal pb-1 small">
-                <li><a href="/estoque/saldo" class="nav-link px-3"><i class="bi bi-graph-up me-2"></i>Saldo de Estoque</a></li>
-                <li><a href="/estoque/alertas" class="nav-link px-3"><i class="bi bi-exclamation-triangle me-2"></i>Alerta Estoque</a></li>
-                <li><a href="{{ url_for('tipo_servico.cadastrar_tipo_servico') }}" class="nav-link px-3"><i class="bi bi-tools me-2"></i>Tipos de Serviço</a></li>
-                {% if current_user.perfil == 'estoque' %}
-                  <li><a href="{{ url_for('requisicoes.historico_requisicoes', status='pendente') }}" class="nav-link px-3"><i class="bi bi-inbox me-2"></i>📥 Recebidas</a></li>
-                {% endif %}
-              </ul>
-            </div>
-          </li>
+          <!-- Gestão de Estoque -->
+<li class="nav-item mt-1">
+  <span class="menu-master no-top-border px-3">
+    <i class="bi bi-box-seam me-2"></i> Gestão de Estoque
+  </span>
+</li>
 
-          <!-- Área Técnica -->
-            <li class="nav-item">
-              <a class="nav-link dropdown-toggle" href="#areaTecnicaSubmenu" data-bs-toggle="collapse" role="button" aria-expanded="false" aria-controls="areaTecnicaSubmenu">
-                <i class="bi bi-person-workspace me-2"></i>Área Técnica
-              </a>
-              <div class="collapse" id="areaTecnicaSubmenu">
-                <div class="menu-header">Cadastro</div>
-                <ul class="btn-toggle-nav list-unstyled fw-normal pb-1 small">
-                  <li><a href="{{ url_for('tecnicos.cadastrar_tecnico') }}" class="nav-link px-3"><i class="bi bi-person-plus me-2"></i>Cadastrar Técnico</a></li>
-                  <li><a href="{{ url_for('tecnicos.listar_tecnicos') }}" class="nav-link px-3"><i class="bi bi-people me-2"></i>Técnicos Cadastrados</a></li>
-                </ul>
-                <div class="menu-header">Kit Inicial</div>
-                <ul class="btn-toggle-nav list-unstyled fw-normal pb-1 small">
-                  <li><a href="{{ url_for('kit_inicial.cadastrar_kit') }}" class="nav-link px-3"><i class="bi bi-box-seam me-2"></i>Transferir Kit Inicial</a></li>
-                  <li><a href="{{ url_for('kit_inicial.historico_kits') }}" class="nav-link px-3"><i class="bi bi-clock-history me-2"></i>Histórico Kits</a></li>
-                </ul>
-                <div class="menu-header">Baixa em Campo</div>
-                <ul class="btn-toggle-nav list-unstyled fw-normal pb-1 small">
-                  <li><a href="{{ url_for('baixa_campo.nova_baixa') }}" class="nav-link px-3"><i class="bi bi-plus-circle me-2"></i>Nova Baixa</a></li>
-                  <li><a href="{{ url_for('baixa_campo.historico_baixas') }}" class="nav-link px-3"><i class="bi bi-clock-history me-2"></i>Histórico de Baixas</a></li>
-                  <li><a href="{{ url_for('baixa_campo.baixas_realizadas') }}" class="nav-link px-3"><i class="bi bi-clipboard-check me-2"></i>Baixas Realizadas</a></li>
-                </ul>
-              </div>
-            </li>
+<a
+  onclick="window.location.href='/estoque/saldo'"
+  class="nav-link px-3 {% if request.path == '/estoque/saldo' %}active{% endif %}"
+>
+  <i class="bi bi-graph-up me-2"></i>Saldo de Estoque
+</a>
+<a
+  onclick="window.location.href='/estoque/alertas'"
+  class="nav-link px-3 {% if request.path == '/estoque/alertas' %}active{% endif %}"
+>
+  <i class="bi bi-exclamation-triangle me-2"></i>Alerta de Estoque
+</a>
+<a
+  onclick="window.location.href='{{ url_for('inventario_estoque.inventario') }}'"
+  class="nav-link px-3 {% if request.path.startswith('/inventario_estoque') %}active{% endif %}"
+>
+  <i class="bi bi-clipboard-check me-2"></i>Inventário de Estoque
+</a>
+<a
+  onclick="window.location.href='{{ url_for('tipo_servico.cadastrar_tipo_servico') }}'"
+  class="nav-link px-3 {% if request.path == url_for('tipo_servico.cadastrar_tipo_servico') %}active{% endif %}"
+>
+  <i class="bi bi-tools me-2"></i>Tipos de Serviço
+</a>
 
-{# Bloco HTML do menu lateral atualizado com fluxo correto das requisições #}
-<!-- Requisições Técnicos -->
+<hr class="text-white my-2" />
+
+<!-- NOTA FISCAL -->
+<li class="nav-item">
+  <div
+    class="menu-header {% if 'nota' in request.path %}menu-active{% endif %}"
+  >
+    <i class="bi bi-receipt-cutoff me-2"></i> Nota Fiscal
+  </div>
+
+  <a
+    href="{{ url_for('nota_fiscal.nova_nota') }}"
+    target="_blank"
+    class="nav-link px-3 {% if request.path == url_for('nota_fiscal.nova_nota') %}active{% endif %}"
+  >
+    <i class="bi bi-file-earmark-plus me-2"></i>Nova Entrada
+  </a>
+
+  <a
+    onclick="window.location.href='{{ url_for('nota_fiscal.historico') }}'"
+    class="nav-link px-3 {% if request.path == url_for('nota_fiscal.historico') %}active{% endif %}"
+  >
+    <i class="bi bi-clock-history me-2"></i>Histórico
+  </a>
+
+  <a
+    onclick="window.location.href='{{ url_for('nota_fiscal.pesquisar') }}'"
+    class="nav-link px-3 {% if request.path == url_for('nota_fiscal.pesquisar') %}active{% endif %}"
+  >
+    <i class="bi bi-search me-2"></i>Pesquisar
+  </a>
+</li>
+
+<hr class="text-white my-2" />
+
+<!-- TRANSFERÊNCIAS -->
+<li class="menu-header px-3">
+  <i class="bi bi-arrow-left-right me-2"></i> Transferências
+</li>
+
+<li class="nav-item px-3"><strong>Interna</strong></li>
 <li class="nav-item">
   <a
-    class="nav-link dropdown-toggle"
-    href="#requisicoesTecnicosSubmenu"
-    data-bs-toggle="collapse"
-    role="button"
-    aria-expanded="false"
-    aria-controls="requisicoesTecnicosSubmenu"
+    href="/transferencias/interna/nova"
+    target="_blank"
+    class="nav-link"
+    ><i class="bi bi-plus-lg me-2"></i> Nova</a
   >
-    {% if requisicoes_tecnicos_pendentes > 0 %}
-      <i class="bi bi-person-exclamation me-2 text-danger"></i>
-    {% else %}
-      <i class="bi bi-clipboard-check me-2"></i>
-    {% endif %}
-    Requisições Técnicos
-  </a>
-  <div class="collapse show" id="requisicoesTecnicosSubmenu">
-    <div class="menu-header">Gestão</div>
-    <ul class="btn-toggle-nav list-unstyled fw-normal pb-1 small">
-
-      {% if current_user.perfil in ['estoque', 'admin'] %}
-      <li>
-        <a class="nav-link px-3" href="{{ url_for('requisicoes_tecnicos.recebidas') }}">
-          {% if requisicoes_tecnicos_pendentes > 0 %}
-            <i class="bi bi-person-exclamation me-2 text-danger"></i>
-          {% else %}
-            <i class="bi bi-inbox me-2"></i>
-          {% endif %}
-          Recebidas
-        </a>
-      </li>
-      {% endif %}
-
-      {% if current_user.perfil in ['estoque', 'admin', 'tecnico'] %}
-      <li>
-        <a class="nav-link px-3" href="{{ url_for('requisicoes_tecnicos.atendidas') }}">
-          <i class="bi bi-person-raised-hand me-2 text-success"></i>✅ Atendidas
-        </a>
-      </li>
-      {% endif %}
-
-      <li>
-        <a href="{{ url_for('requisicoes_tecnicos.nova_requisicao') }}" class="nav-link px-3">
-          <i class="bi bi-plus-circle me-2"></i>Nova
-        </a>
-      </li>
-      <li>
-        <a href="{{ url_for('requisicoes_tecnicos.historico') }}" class="nav-link px-3">
-          <i class="bi bi-clock-history me-2"></i>Histórico
-        </a>
-      </li>
-      <li>
-        <a class="nav-link px-3" href="{{ url_for('saldo_tecnico.exibir_saldo') }}">
-          <i class="bi bi-person-lines-fill me-2"></i>Saldo Técnico
-        </a>
-      </li>
-
-      {% if current_user.perfil in ['admin', 'estoque'] %}
-<li>
-  <a class="nav-link px-3" href="{{ url_for('requisicoes_tecnicos.relatorio_consumo') }}">
-    <i class="bi bi-bar-chart-line me-2"></i>📊 Relatório de Consumo
-  </a>
 </li>
-{% endif %}
+<li class="nav-item">
+  <a
+    onclick="window.location.href='/transferencias/interna/historico'"
+    class="nav-link"
+    ><i class="bi bi-journal-text me-2"></i> Histórico</a
+  >
+</li>
 
-    </ul>
+<li class="nav-item px-3 mt-2"><strong>Externa</strong></li>
+<li class="nav-item">
+  <a
+    href="{{ url_for('transferencia_externa.nova_transferencia_externa') }}"
+    target="_blank"
+    class="nav-link"
+    ><i class="bi bi-plus-lg me-2"></i> Nova</a
+  >
+</li>
+<li class="nav-item">
+  <a
+    href="{{ url_for('transferencia_externa.historico_transferencia_externa') }}"
+    class="nav-link"
+    ><i class="bi bi-journal-text me-2"></i> Histórico</a
+  >
+</li>
+
+<hr class="text-white my-2" />
+
+<!-- EMPRESAS / PARCEIROS -->
+<li class="nav-item">
+  <div
+    class="menu-header {% if 'empresas' in request.path %}menu-active{% endif %}"
+  >
+    <i class="bi bi-buildings me-2"></i> Empresas / Parceiros
   </div>
+
+  <a
+    href="{{ url_for('empresas.cadastrar_empresa') }}"
+    target="_blank"
+    class="nav-link px-3 {% if request.path == url_for('empresas.cadastrar_empresa') %}active{% endif %}"
+  >
+    <i class="bi bi-person-plus me-2"></i>Cadastrar Empresas
+  </a>
+
+  <a
+    onclick="window.location.href='{{ url_for('empresas.lista_empresas') }}'"
+    class="nav-link px-3 {% if request.path == url_for('empresas.lista_empresas') %}active{% endif %}"
+  >
+    <i class="bi bi-list-columns me-2"></i>Empresas Cadastradas
+  </a>
 </li>
 
+<hr class="text-white my-2" />
 
-          <li class="nav-item">
-            <a
-              class="nav-link dropdown-toggle"
-              href="#notaFiscalSubmenu"
-              data-bs-toggle="collapse"
-              role="button"
-              aria-expanded="false"
-              aria-controls="notaFiscalSubmenu"
-            >
-              <i class="bi bi-receipt-cutoff me-2"></i>Nota Fiscal
-            </a>
-            <div class="collapse" id="notaFiscalSubmenu">
-              <div class="menu-header">Entradas</div>
-              <ul class="btn-toggle-nav list-unstyled fw-normal pb-1 small">
-                <li>
-                  <a
-                    href="{{ url_for('nota_fiscal.nova_nota') }}"
-                    class="nav-link px-3"
-                    ><i class="bi bi-file-earmark-plus me-2"></i>Nova Entrada</a
-                  >
-                </li>
-                <li>
-                  <a
-                    href="{{ url_for('nota_fiscal.historico') }}"
-                    class="nav-link px-3"
-                    ><i class="bi bi-clock-history me-2"></i>Histórico</a
-                  >
-                </li>
-                <li>
-                  <a
-                    href="{{ url_for('nota_fiscal.pesquisar') }}"
-                    class="nav-link px-3"
-                    ><i class="bi bi-search me-2"></i>Pesquisar</a
-                  >
-                </li>
-              </ul>
-            </div>
-          </li>
+<!-- CADASTRO DE ITENS -->
+<li class="nav-item">
+  <div
+    class="menu-header px-3 fw-bold text-white {% if request.path == '/estoque/cadastro' or request.path == '/estoque/listar' %} bg-primary text-white {% endif %}"
+  >
+    <i class="bi bi-box2-heart me-2"></i> Cadastro de Itens
+  </div>
 
-          <!-- Empresas / Parceiros -->
-          <li class="nav-item">
-            <a
-              class="nav-link dropdown-toggle"
-              href="#empresasSubmenu"
-              data-bs-toggle="collapse"
-              role="button"
-              aria-expanded="false"
-              aria-controls="empresasSubmenu"
-            >
-              <i class="bi bi-buildings me-2"></i>Empresas/Parceiros
-            </a>
-            <div class="collapse" id="empresasSubmenu">
-              <div class="menu-header">Gestão</div>
-              <ul class="btn-toggle-nav list-unstyled fw-normal pb-1 small">
-                <li>
-                  <a
-                    href="{{ url_for('empresas.cadastrar_empresa') }}"
-                    class="nav-link px-3"
-                    ><i class="bi bi-person-plus me-2"></i>Cadastrar Empresas</a
-                  >
-                </li>
-                <li>
-                  <a
-                    href="{{ url_for('empresas.lista_empresas') }}"
-                    class="nav-link px-3"
-                    ><i class="bi bi-list-columns me-2"></i>Empresas
-                    Cadastradas</a
-                  >
-                </li>
-              </ul>
-            </div>
-          </li>
+  <a
+    href="/estoque/cadastro"
+    target="_blank"
+    class="nav-link px-3 {% if request.path == '/estoque/cadastro' %}active{% endif %}"
+  >
+    <i class="bi bi-plus-lg me-2"></i>Novo
+  </a>
 
-          <!-- Transferências -->
-          <li class="nav-item">
-            <a
-              class="nav-link dropdown-toggle"
-              href="#transferenciasSubmenu"
-              data-bs-toggle="collapse"
-              role="button"
-              aria-expanded="false"
-              aria-controls="transferenciasSubmenu"
-            >
-              <i class="bi bi-arrow-left-right me-2"></i>Transferências
-            </a>
-            <div class="collapse" id="transferenciasSubmenu">
-              <div class="menu-header">Transferência Interna</div>
-              <ul class="btn-toggle-nav list-unstyled fw-normal pb-1 small">
-                <li>
-                  <a
-                    href="{{ url_for('transferencias_interna.nova_transferencia_interna') }}"
-                    class="nav-link px-3"
-                    ><i class="bi bi-arrow-right-circle me-2"></i>Nova</a
-                  >
-                </li>
-                <li>
-                  <a
-                    href="{{ url_for('transferencias_interna.historico_transferencia_interna') }}"
-                    class="nav-link px-3"
-                    ><i class="bi bi-clock-history me-2"></i>Histórico</a
-                  >
-                </li>
-              </ul>
-              <div class="menu-header">Transferência Externa</div>
-              <ul class="btn-toggle-nav list-unstyled fw-normal pb-1 small">
-                <li>
-                  <a
-                    href="{{ url_for('transferencia_externa.nova_transferencia_externa') }}"
-                    class="nav-link px-3"
-                    ><i class="bi bi-arrow-left-circle me-2"></i>Nova</a
-                  >
-                </li>
-                <li>
-                  <a
-                    href="{{ url_for('transferencia_externa.historico_transferencia_externa') }}"
-                    class="nav-link px-3"
-                    ><i class="bi bi-clock-history me-2"></i>Histórico</a
-                  >
-                </li>
+  <a
+    href="/estoque/listar"
+    target="_blank"
+    class="nav-link px-3 {% if request.path == '/estoque/listar' %}active{% endif %}"
+  >
+    <i class="bi bi-card-list me-2"></i>Listar Itens
+  </a>
+</li>
+
+<hr class="text-white my-2" />
+
+<!-- Cadastro de Técnico -->
+<li class="menu-header px-3">Cadastro de Técnico</li>
+<li class="nav-item ps-3">
+  <a 
+    href="{{ url_for('tecnicos.cadastrar_tecnico') }}" 
+    target="_blank"
+    class="nav-link w-100 text-start {% if request.path == url_for('tecnicos.cadastrar_tecnico') %}active{% endif %}">
+    <i class="bi bi-person-plus me-2"></i> Cadastrar Técnico
+  </a>
+</li>
+<li class="nav-item ps-3">
+  <a 
+    href="{{ url_for('tecnicos.listar_tecnicos') }}" 
+    target="_blank"
+    class="nav-link w-100 text-start {% if request.path == url_for('tecnicos.listar_tecnicos') %}active{% endif %}">
+    <i class="bi bi-people me-2"></i> Técnicos Cadastrados
+  </a>
+</li>
+
+<!--
+<li class="nav-item">
+  <a class="nav-link" href="{{ url_for('baixa_tecnico.formulario_baixa') }}">
+    <i class="bi bi-phone me-2"></i> Baixa Mobile (Admin)
+  </a>
+</li>
+-->
+<!-- Kit & Inventário -->
+<li class="menu-header px-3">Kit & Inventário</li>
+<li class="nav-item ps-3">
+  <button class="nav-link w-100 text-start border-0 bg-transparent {% if request.path.startswith('/kit_inicial') %}active{% endif %}"
+    onclick="window.location.href='/kit_inicial/cadastrar'">
+    <i class="bi bi-arrow-left-right me-2"></i> Transferir Kit Inicial
+  </button>
+</li>
+<li>
+  <a href="{{ url_for('inventario_tecnico.historico_inventarios') }}"
+    target="_blank"
+    class="nav-link px-4 {% if request.path == url_for('inventario_tecnico.historico_inventarios') %}active{% endif %}">
+    <i class="bi bi-clipboard-data me-2"></i> Inventário Técnico
+  </a>
+</li>
+<li class="nav-item ps-3">
+  <button class="nav-link w-100 text-start border-0 bg-transparent {% if request.path.startswith('/kit_inicial/historico') %}active{% endif %}"
+    onclick="window.location.href='/kit_inicial/historico'">
+    <i class="bi bi-clock-history me-2"></i> Histórico Kits
+  </button>
+</li>
+
+<!-- Requisições Técnicos -->
+<li class="menu-header px-3">Requisições Técnicos</li>
+<li class="nav-item ps-3">
+  <button class="nav-link w-100 text-start border-0 bg-transparent d-flex justify-content-between align-items-center {% if request.path.startswith('/requisicoes_tecnicos/recebidas') %}active{% endif %}"
+    onclick="window.location.href='/requisicoes_tecnicos/recebidas'">
+    <span><i class="bi bi-inbox-arrow-down me-2"></i>Recebidas</span>
+    {% if requisicoes_tecnicos_pendentes and requisicoes_tecnicos_pendentes > 0 %}
+    <span class="badge bg-danger">{{ requisicoes_tecnicos_pendentes }}</span>
+    {% endif %}
+  </button>
+</li>
+<li class="nav-item ps-3">
+  <button class="nav-link w-100 text-start border-0 bg-transparent {% if request.path.startswith('/requisicoes_tecnicos/mobile/recebidas') %}active{% endif %}"
+    onclick="window.location.href='{{ url_for('requisicoes_tecnicos.mobile_recebidas') }}'">
+    <i class="bi bi-phone me-2"></i> Recebidas (Mobile)
+  </button>
+</li>
+<li class="nav-item ps-3">
+  <button class="nav-link w-100 text-start border-0 bg-transparent {% if request.path.startswith('/requisicoes_tecnicos/atendidas') %}active{% endif %}"
+    onclick="window.location.href='/requisicoes_tecnicos/atendidas'">
+    <i class="bi bi-check2-circle me-2"></i> Atendidas
+  </button>
+</li>
+<li class="nav-item ps-3">
+  <a 
+    href="/requisicoes_tecnicos/nova"
+    target="_blank"
+    class="nav-link w-100 text-start {% if request.path == '/requisicoes_tecnicos/nova' %}active{% endif %}">
+    <i class="bi bi-plus-lg me-2"></i> Nova
+  </a>
+</li>
+
+<li class="nav-item ps-3">
+  <button class="nav-link w-100 text-start border-0 bg-transparent {% if request.path == '/requisicoes_tecnicos/historico' %}active{% endif %}"
+    onclick="window.location.href='/requisicoes_tecnicos/historico'">
+    <i class="bi bi-journal-text me-2"></i> Histórico
+  </button>
+</li>
+<a href="{{ url_for('requisicoes_tecnicos.nova_requisicao_mobile') }}" 
+   class="nav-link px-3" 
+   style="color: #5dd8ff" 
+   target="_blank">
+  <i class="bi bi-phone-fill me-2"></i> Acessar Requisição Mobile
+</a>
+
+<li class="nav-item ps-3">
+  <button class="nav-link w-100 text-start border-0 bg-transparent {% if request.path == url_for('saldo_tecnico.exibir_saldo') %}active{% endif %}"
+    onclick="window.location.href='{{ url_for('saldo_tecnico.exibir_saldo') }}'">
+    <i class="bi bi-person-bounding-box me-2"></i> Saldo Técnico
+  </button>
+</li>
+<li class="nav-item ps-3">
+  <button class="nav-link w-100 text-start border-0 bg-transparent {% if request.path == url_for('requisicoes_tecnicos.relatorio_consumo') %}active{% endif %}"
+    onclick="window.location.href='{{ url_for('requisicoes_tecnicos.relatorio_consumo') }}'">
+    <i class="bi bi-bar-chart-line me-2"></i> Relatório de Consumo
+  </button>
+</li>
+
+<!-- Controle de Ferramentas -->
+<li class="menu-header px-3">Controle de Ferramentas</li>
+<li class="nav-item ps-3">
+  <a class="nav-link {% if request.path == url_for('equipamentos.nova_movimentacao') %}active{% endif %}"
+     href="{{ url_for('equipamentos.nova_movimentacao') }}">
+    <i class="bi bi-tools me-2"></i> Nova Movimentação
+  </a>
+</li>
+<li class="nav-item ps-3">
+  <a class="nav-link {% if request.path == url_for('equipamentos.historico_equipamentos') %}active{% endif %}"
+     href="{{ url_for('equipamentos.historico_equipamentos') }}">
+    <i class="bi bi-clock-history me-2"></i> Histórico
+  </a>
+</li>
+
+<li class="nav-item ps-3">
+  <a class="nav-link {% if request.path == url_for('equipamentos.saldo_tecnico') %}active{% endif %}"
+     href="{{ url_for('equipamentos.saldo_tecnico') }}">
+    <i class="bi bi-person-lines-fill me-2"></i> Saldo Técnico
+  </a>
+</li>
+
+<!-- Validação de Baixas -->
+<li class="menu-header px-3">Validação de Baixas</li>
+<li class="nav-item ps-3">
+  <a class="nav-link {% if request.path == url_for('baixa_desktop.nova_baixa') %}active{% endif %}"
+    href="{{ url_for('baixa_desktop.nova_baixa') }}">
+    <i class="bi bi-plus-square me-2"></i> Nova Baixa
+  </a>
+</li>
+<li class="nav-item ps-3">
+  <a class="nav-link {% if request.path.startswith('/baixa_desktop/pendentes') %}active{% endif %}"
+    href="{{ url_for('baixa_desktop.baixas_pendentes') }}" id="menu-baixas-pendentes">
+    <i class="bi bi-hourglass-split me-2"></i> Baixas Pendentes
+    <span id="contador-baixas" class="badge bg-danger ms-2" style="display: none"></span>
+  </a>
+</li>
+<li class="nav-item ps-3">
+  <a class="nav-link {% if request.path == url_for('baixa_desktop.historico_baixas') %}active{% endif %}"
+    href="{{ url_for('baixa_desktop.historico_baixas') }}">
+    <i class="bi bi-journal-check me-2"></i> Histórico de Baixas
+  </a>
+</li>
+<li class="nav-item ps-3">
+  <a class="nav-link {% if request.path == url_for('baixa_desktop.baixas_realizadas') %}active{% endif %}"
+    href="{{ url_for('baixa_desktop.baixas_realizadas') }}">
+    <i class="bi bi-check-all me-2"></i> Baixas Realizadas
+  </a>
+</li>
+
               </ul>
             </div>
           </li>
@@ -327,40 +542,138 @@
       <!-- Conteúdo principal -->
 
       <div class="flex-grow-1 p-4">
-        {% with messages = get_flashed_messages(with_categories=true) %}
-          {% if messages %}
-            {% for category, message in messages %}
-              <div class="alert alert-{{ category }} alert-dismissible fade show" role="alert">
-                {{ message }}
-                <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Fechar"></button>
-              </div>
-            {% endfor %}
-          {% endif %}
-        {% endwith %}
-
-        {% block content %}{% endblock %}
+        {% with messages = get_flashed_messages(with_categories=true) %} {% if
+        messages %} {% for category, message in messages %}
+        <div
+          class="alert alert-{{ category }} alert-dismissible fade show"
+          role="alert"
+        >
+          {{ message }}
+          <button
+            type="button"
+            class="btn-close"
+            data-bs-dismiss="alert"
+            aria-label="Fechar"
+          ></button>
+        </div>
+        {% endfor %} {% endif %} {% endwith %} {% block content %}{% endblock %}
       </div>
     </div>
 
     <!-- Rodapé -->
-    <footer class="text-center text-muted py-3 mt-auto">
-      <hr />
-      <p>&copy; 2025 LogiStock - Sistema de Controle de Materiais</p>
-    </footer>
+    <footer class="footer text-white text-center py-3">
+  <hr class="mb-2" style="border-top: 1px solid rgba(255, 255, 255, 0.2)" />
+  <div>
+    © 2025 <strong>LogStock</strong> - Sistema Gestão de Materiais<br />
+    <small>Desenvolvido por CCM</small>
+  </div>
+</footer>
+
 
     <!-- Bootstrap JS -->
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
-  </body>
-</html>
 
-<script>
-  // Fechar automaticamente mensagens flash após 3 segundos (3000ms)
-  setTimeout(() => {
-    const alerts = document.querySelectorAll('.alert');
-    alerts.forEach(alert => {
-      const bsAlert = bootstrap.Alert.getOrCreateInstance(alert);
-      bsAlert.close();
+    <!-- Script para fechar alertas flash automaticamente em 3s -->
+    <script>
+      setTimeout(() => {
+        const alerts = document.querySelectorAll(".alert");
+        alerts.forEach((alert) => {
+          const bsAlert = bootstrap.Alert.getOrCreateInstance(alert);
+          bsAlert.close();
+        });
+      }, 3000); // 3 segundos
+    </script>
+
+    <!-- Script para manter a posição da sidebar entre navegações -->
+    <script>
+      const sidebar = document.querySelector("#sidebar");
+
+      if (sidebar) {
+        sidebar.addEventListener("scroll", () => {
+          localStorage.setItem("sidebar-scroll", sidebar.scrollTop);
+        });
+
+        window.addEventListener("load", () => {
+          const savedScroll = localStorage.getItem("sidebar-scroll");
+          if (savedScroll !== null) {
+            sidebar.scrollTop = parseInt(savedScroll);
+          }
+        });
+      }
+    </script>
+
+    <!-- Atualização em tempo real do menu 📥 Recebidas -->
+    <script>
+      function atualizarMenuRequisicoes() {
+        fetch("{{ url_for('requisicoes_tecnicos.api_requisicoes_pendentes') }}")
+          .then((response) => response.json())
+          .then((data) => {
+            const count = data.count;
+            const link = document.getElementById("link-recebidas");
+
+            if (link) {
+              let badge = link.querySelector(".badge");
+
+              if (count > 0) {
+                link.classList.add("text-danger", "fw-bold");
+                if (!badge) {
+                  badge = document.createElement("span");
+                  badge.className = "badge bg-danger ms-2";
+                  link.appendChild(badge);
+                }
+                badge.textContent = count;
+              } else {
+                link.classList.remove("text-danger", "fw-bold");
+                if (badge) badge.remove();
+              }
+            }
+          });
+      }
+
+      setInterval(atualizarMenuRequisicoes, 10000); // Atualiza a cada 10s
+      document.addEventListener("DOMContentLoaded", atualizarMenuRequisicoes);
+    </script>
+
+    <script>
+      function atualizarContadorBaixas() {
+        fetch("{{ url_for('baixa_desktop.api_baixas_pendentes_count') }}")
+          .then((r) => r.json())
+          .then((data) => {
+            const badge = document.getElementById("contador-baixas");
+            if (badge) {
+              if (data.count > 0) {
+                badge.innerText = data.count;
+                badge.style.display = "inline-block";
+              } else {
+                badge.style.display = "none";
+              }
+            }
+          })
+          .catch(console.error);
+      }
+
+      document.addEventListener("DOMContentLoaded", function () {
+        // Atualiza imediatamente ao carregar
+        atualizarContadorBaixas();
+
+        // Requisita novamente a cada 5 segundos (mais rápido que 15s)
+        setInterval(atualizarContadorBaixas, 5000);
+
+        // Observa quando a aba volta para foco e atualiza instantaneamente
+        document.addEventListener("visibilitychange", function () {
+          if (!document.hidden) {
+            atualizarContadorBaixas();
+          }
+        });
+      });
+    </script>
+
+    <!-- Desabilitar autocomplete em todos os campos -->
+    <script>
+    document.addEventListener("DOMContentLoaded", function () {
+      document.querySelectorAll("input, textarea, select").forEach(function (el) {
+        el.setAttribute("autocomplete", "off");
+      });
     });
-  }, 3000);
-</script>
-
+    </script>
+</html>

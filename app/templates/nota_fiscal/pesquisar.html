@@ -1,67 +1,84 @@
 {% extends 'base.html' %} {% block content %}
-<div class="container mt-4">
-  <h2>Pesquisar Nota Fiscal</h2>
+<style>
+  .tabela-container {
+    max-height: 350px; /* Altura máxima ajustável */
+    overflow-y: auto;
+  }
+  /* Cabeçalho fixo com fundo sólido e prioridade alta */
+  .tabela-container table thead th {
+    position: sticky;
+    top: 0;
+    z-index: 1000;
+    background: #002b55; /* cor sólida do topo */
+    color: white;
+  }
+</style>
 
+<div class="container mt-4">
+  <!-- Cabeçalho fixo da pesquisa -->
+  <h4 class="mb-4 text-primary">
+    <i class="bi bi-search"></i> Pesquisar Nota Fiscal
+  </h4>
   <form
     method="GET"
     action="{{ url_for('nota_fiscal.pesquisar') }}"
-    class="row g-3 mb-4"
+    class="row g-2 mb-4"
   >
     <div class="col-md-6">
       <input
         type="text"
-        class="form-control"
+        class="form-control shadow-sm"
         name="query"
         placeholder="Número da Nota ou Reserva"
         value="{{ termo }}"
       />
     </div>
     <div class="col-md-2">
-      <button type="submit" class="btn btn-primary w-100">Pesquisar</button>
+      <button type="submit" class="btn btn-primary w-100 shadow-sm">
+        <i class="bi bi-search"></i> Pesquisar
+      </button>
     </div>
   </form>
 
-  {% if nota %}
-  <div class="card">
-    <div class="card-header">
-      <strong>Nota Fiscal nº {{ nota.numero_nf }}</strong>
-    </div>
-    <div class="card-body">
-      <p><strong>Reserva:</strong> {{ nota.reserva }}</p>
-      <p><strong>Tipo de Serviço:</strong> {{ nota.tipo_servico }}</p>
-      <p><strong>Responsável:</strong> {{ nota.responsavel }}</p>
-      <p>
-        <strong>Data/Hora:</strong> {{ nota.data_hora.strftime('%d/%m/%Y %H:%M')
-        }}
-      </p>
-
-      <h5 class="mt-4">Itens:</h5>
-      <table class="table table-bordered table-sm">
-        <thead class="table-light">
-          <tr>
-            <th>Código</th>
-            <th>Descrição</th>
-            <th>Unidade</th>
-            <th>Quantidade</th>
-            <th>Valor Unitário (R$)</th>
-          </tr>
-        </thead>
-        <tbody>
-          {% for item in nota.itens %}
-          <tr>
-            <td>{{ item.item.codigo }}</td>
-            <td>{{ item.item.descricao }}</td>
-            <td>{{ item.item.unidade }}</td>
-            <td>{{ item.quantidade }}</td>
-            <td>{{ "%.2f"|format(item.valor_unitario) }}</td>
-          </tr>
-          {% endfor %}
-        </tbody>
-      </table>
-    </div>
+  {% if notas %}
+  <div class="tabela-container shadow-sm mb-4 border rounded">
+    <table class="table table-bordered table-hover table-sm align-middle">
+      <thead>
+        <tr>
+          <th>Número</th>
+          <th>Data/Hora</th>
+          <th>Tipo de Serviço</th>
+          <th>Responsável</th>
+          <th class="text-end">Total da Nota (R$)</th>
+          <th class="text-center">Ações</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for n in notas %}
+        <tr>
+          <td>{{ n.nota.numero_nf }}</td>
+          <td>{{ n.nota.data_hora.strftime('%d/%m/%Y %H:%M') }}</td>
+          <td>
+            {{ n.nota.tipo_servico_ref.nome if n.nota.tipo_servico_ref else
+            n.nota.tipo_servico or '—' }}
+          </td>
+          <td>{{ n.nota.responsavel or '—' }}</td>
+          <td class="text-end">{{ n.total_nota|brl }}</td>
+          <td class="text-center">
+            <a
+              href="{{ url_for('nota_fiscal.detalhes', id=n.nota.id) }}"
+              class="btn btn-sm btn-outline-primary"
+            >
+              <i class="bi bi-eye"></i> Detalhes
+            </a>
+          </td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
   </div>
   {% elif termo %}
-  <div class="alert alert-warning">
+  <div class="alert alert-warning text-center shadow-sm">
     Nenhuma nota encontrada com o termo informado.
   </div>
   {% endif %}

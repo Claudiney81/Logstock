@@ -1,98 +1,103 @@
-{% extends 'base.html' %} 
-{% block content %}
+{% extends 'base.html' %} {% block content %}
 
-<style>
-thead th {
-  position: sticky;
-  top: 0;
-  background: #212529;
-  color: #fff;
-  z-index: 2;
-}
-</style>
+<div class="container-fluid mt-4">
+  <div class="row justify-content-center">
+    <div class="col-xl-10 col-lg-11 col-md-12">
+      <div class="card shadow-sm border-0">
+        <div class="card-body">
+          <h4 class="fw-bold mb-4 text-primary">📋 Itens Cadastrados</h4>
 
-<div class="container mt-4">
-  <h2>Lista de Itens Cadastrados</h2>
+          <!-- Flash messages -->
+          {% with messages = get_flashed_messages(with_categories=true) %} {% if
+          messages %} {% for category, message in messages %}
+          <div
+            class="alert alert-{{ category }} alert-dismissible fade show"
+            role="alert"
+          >
+            {{ message }}
+            <button
+              type="button"
+              class="btn-close"
+              data-bs-dismiss="alert"
+              aria-label="Fechar"
+            ></button>
+          </div>
+          {% endfor %} {% endif %} {% endwith %}
 
-  <!-- Mensagens flash -->
-  {% with messages = get_flashed_messages(with_categories=true) %}
-    {% if messages %}
-      {% for category, message in messages %}
-        <div class="alert alert-{{ category }}">{{ message }}</div>
-      {% endfor %}
-    {% endif %}
-  {% endwith %}
+          <!-- Filtros -->
+          <form method="GET" class="row g-2 mb-3">
+            <div class="col-md-4">
+              <input
+                type="text"
+                name="codigo"
+                class="form-control form-control-sm"
+                placeholder="Código"
+                value="{{ codigo }}"
+              />
+            </div>
+            <div class="col-md-6">
+              <input
+                type="text"
+                name="descricao"
+                class="form-control form-control-sm"
+                placeholder="Descrição"
+                value="{{ descricao }}"
+              />
+            </div>
+            <div class="col-md-2 d-grid">
+              <button type="submit" class="btn btn-sm btn-primary">
+                🔍 Filtrar
+              </button>
+            </div>
+          </form>
 
-  <!-- Filtros de busca -->
-  <form method="GET" class="row g-3 mb-4">
-    <div class="col-md-3">
-      <input
-        type="text"
-        class="form-control"
-        name="codigo"
-        placeholder="Código"
-        value="{{ codigo }}"
-      />
+          <!-- Tabela -->
+          <div
+            class="table-responsive border rounded shadow-sm"
+            style="max-height: 430px; overflow-y: auto"
+          >
+            <table class="table table-bordered table-hover align-middle mb-0">
+              <thead class="sticky-top bg-primary text-white">
+                <tr>
+                  <th scope="col" class="fw-bold">Código</th>
+                  <th scope="col" class="fw-bold">Descrição</th>
+                  <th scope="col" class="fw-bold">Unidade</th>
+                  <th scope="col" class="fw-bold">Valor (R$)</th>
+                  <th scope="col" class="fw-bold">Ações</th>
+                </tr>
+              </thead>
+
+              <tbody>
+                {% for item in itens %}
+                <tr class="{{ loop.index0 % 2 == 0 and 'table-light' or '' }}">
+                  <td>{{ item.codigo }}</td>
+                  <td>{{ item.descricao }}</td>
+                  <td>{{ item.unidade }}</td>
+                  <td>{{ item.valor|brl }}</td>
+                  <td>
+                    <a href="{{ url_for('itens.editar', id=item.id) }}" class="btn btn-sm btn-outline-primary me-1">
+                      ✏️ Editar
+                  </a>
+                  <a href="{{ url_for('itens.excluir', id=item.id) }}" class="btn btn-sm btn-outline-danger"
+                     onclick="return confirm('Tem certeza que deseja excluir este item?');">
+                    🗑️ Excluir
+                  </a>
+                </td>
+              </tr>
+              {% else %}
+              <tr>
+                <td colspan="5" class="text-center text-muted py-3">
+                  Nenhum item cadastrado ou encontrado.
+                </td>
+              </tr>
+              {% endfor %}
+            </tbody>
+            </table>
+          </div>
+        </div>
+      </div>
     </div>
-    <div class="col-md-4">
-      <input
-        type="text"
-        class="form-control"
-        name="descricao"
-        placeholder="Descrição"
-        value="{{ descricao }}"
-      />
-    </div>
-    <div class="col-md-3">
-      <input
-        type="text"
-        class="form-control"
-        name="tipo_servico"
-        placeholder="Tipo de Serviço"
-        value="{{ tipo_servico }}"
-      />
-    </div>
-    <div class="col-md-2">
-      <button type="submit" class="btn btn-primary w-100">Filtrar</button>
-    </div>
-  </form>
-
-  <!-- Tabela de itens com cabeçalho fixo -->
-  <div style="max-height: 400px; overflow-y: auto;">
-    <table class="table table-bordered table-hover">
-      <thead class="table-dark">
-        <tr>
-          <th>Código</th>
-          <th>Descrição</th>
-          <th>Unidade</th>
-          <th>Tipo de Serviço</th>
-          <th>Valor (R$)</th>
-          <th>Ações</th>
-        </tr>
-      </thead>
-      <tbody>
-        {% for item, tipo_servico in itens %}
-        <tr>
-          <td>{{ item.codigo }}</td>
-          <td>{{ item.descricao }}</td>
-          <td>{{ item.unidade }}</td>
-          <td>{{ tipo_servico.nome }}</td>
-          <td>{{ "%.2f"|format(item.valor) }}</td>
-          <td>
-            <a href="{{ url_for('itens.editar', id=item.id) }}" class="btn btn-sm btn-primary">Editar</a>
-            <a href="{{ url_for('itens.excluir', id=item.id) }}" class="btn btn-sm btn-danger"
-               onclick="return confirm('Tem certeza que deseja excluir este item?');">Excluir</a>
-          </td>
-        </tr>
-        {% else %}
-        <tr>
-          <td colspan="6" class="text-center">
-            Nenhum item cadastrado ou encontrado.
-          </td>
-        </tr>
-        {% endfor %}
-      </tbody>
-    </table>
   </div>
 </div>
+
 {% endblock %}

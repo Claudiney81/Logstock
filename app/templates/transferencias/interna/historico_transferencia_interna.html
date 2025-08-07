@@ -1,34 +1,50 @@
 {% extends 'base.html' %}
 {% block content %}
 <div class="container mt-4">
-  <h2>Histórico de Transferências Internas</h2>
-  <table class="table table-bordered">
-    <thead>
-      <tr>
-        <th>ID</th>
-        <th>Técnico</th>
-        <th>Matrícula</th>
-        <th>Área Técnica</th>
-        <th>Tipo de Serviço</th>
-        <th>Data/Hora</th>
-        <th>Ações</th>
-      </tr>
-    </thead>
-    <tbody>
-      {% for t in transferencias %}
-      <tr>
-        <td>{{ t.id }}</td>
-        <td>{{ t.tecnico.nome if t.tecnico else '' }}</td>
-        <td>{{ t.tecnico.matricula if t.tecnico else '' }}</td>
-        <td>{{ t.area_tecnica }}</td>
-        <td>{{ t.tipo_servico.nome if t.tipo_servico else '' }}</td>
-        <td>{{ t.data_hora.strftime('%d/%m/%Y %H:%M') }}</td>
-        <td>
-          <a href="{{ url_for('transferencias_interna.detalhes_transferencia_interna', id=t.id) }}" class="btn btn-primary btn-sm">Ver</a>
-        </td>
-      </tr>
-      {% endfor %}
-    </tbody>
-  </table>
+  <!-- Título -->
+  <h2 class="mb-4 text-primary">
+    <i class="bi bi-clock-history me-2"></i> Histórico de Transferências Internas
+  </h2>
+
+  <!-- Tabela -->
+  <div class="table-responsive shadow-sm rounded border">
+    <table class="table table-hover table-sm align-middle mb-0">
+      <thead class="table-primary">
+        <tr>
+          <th style="width: 5%;">ID</th>
+          <th style="width: 25%;">Técnico</th>
+          <th style="width: 10%;">Matrícula</th>
+          <th style="width: 20%;">Área Técnica</th>
+          <th style="width: 20%;">Tipo de Serviço</th>
+          <th style="width: 15%;">Data/Hora</th>
+          <th style="width: 5%;" class="text-center">Ações</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for t in transferencias %}
+        <tr>
+          <td><span class="fw-semibold">{{ t.id }}</span></td>
+          <td>{{ t.tecnico.nome if t.tecnico else '—' }}</td>
+          <td>{{ t.tecnico.matricula if t.tecnico else '—' }}</td>
+          <td>{{ t.area_tecnica }}</td>
+          <td>{{ t.tipo_servico.nome if t.tipo_servico else '—' }}</td>
+          <td>{{ t.data_hora.strftime('%d/%m/%Y %H:%M') }}</td>
+          <td class="text-center">
+            <a href="{{ url_for('transferencias_interna.detalhes_transferencia_interna', id=t.id) }}" 
+               class="btn btn-outline-primary btn-sm px-2 py-1 shadow-sm" title="Ver detalhes">
+              <i class="bi bi-eye"></i>
+            </a>
+          </td>
+        </tr>
+        {% else %}
+        <tr>
+          <td colspan="7" class="text-center text-muted py-3">
+            <i class="bi bi-info-circle me-1"></i> Nenhuma transferência encontrada.
+          </td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
 </div>
 {% endblock %}

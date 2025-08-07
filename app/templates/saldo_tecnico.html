@@ -1,28 +1,79 @@
-{% extends 'base.html' %}
-{% block content %}
+{% extends 'base.html' %} {% block content %}
+
+<style>
+  .tabela-container {
+    max-height: 70vh; /* altura máxima ajustável */
+    overflow-y: auto;
+  }
+  .tabela-container table thead th {
+    position: sticky;
+    top: 0;
+    z-index: 1000;
+    background: #002b55 !important;
+    color: white !important;
+    font-weight: 600;
+    font-size: 0.9rem;
+    text-transform: uppercase;
+    border-bottom: 2px solid #dee2e6;
+    text-align: center;
+  }
+  .table-hover tbody tr:hover {
+    background-color: #e9f4ff !important;
+  }
+  td {
+    text-align: center;
+    vertical-align: middle;
+  }
+  .badge {
+    font-size: 0.85rem;
+    font-weight: 500;
+    padding: 0.35em 0.6em;
+  }
+</style>
+
 <div class="container mt-4">
+  {% with messages = get_flashed_messages(with_categories=true) %} {% if
+  messages %} {% for category, message in messages %}
+  <div
+    class="alert alert-{{ category }} alert-dismissible fade show"
+    role="alert"
+  >
+    {{ message }}
+    <button
+      type="button"
+      class="btn-close"
+      data-bs-dismiss="alert"
+      aria-label="Fechar"
+    ></button>
+  </div>
+  {% endfor %} {% endif %} {% endwith %}
+
   <div class="d-flex justify-content-between align-items-center mb-4">
     <h3 class="fw-bold">📋 Saldo por Técnico</h3>
+    <form
+      method="get"
+      action="{{ url_for('saldo_tecnico.exibir_saldo') }}"
+      class="d-flex gap-2"
+    >
+      <input
+        type="text"
+        name="tecnico"
+        class="form-control"
+        placeholder="Buscar técnico por nome..."
+        value="{{ termo_busca }}"
+      />
+      <button type="submit" class="btn btn-primary">
+        <i class="bi bi-search"></i> Buscar
+      </button>
+    </form>
   </div>
 
-  <form method="get" class="mb-4 d-flex justify-content-end gap-2" action="{{ url_for('saldo_tecnico.exibir_saldo') }}">
-    <input type="text"
-           name="tecnico"
-           class="form-control w-50"
-           placeholder="Buscar técnico por nome..."
-           value="{{ termo_busca }}">
-    <button type="submit" class="btn btn-primary">
-      <i class="bi bi-search"></i> Buscar
-    </button>
-  </form>
-
-  <div class="table-responsive shadow-sm rounded">
-    <table class="table table-hover align-middle">
-      <thead class="table-dark">
+  <div class="tabela-container shadow-sm rounded">
+    <table class="table table-hover align-middle mb-0">
+      <thead>
         <tr>
           <th>Nome</th>
           <th>Área Técnica</th>
-          <th>Tipos de Serviço</th>
           <th class="text-center">Ações</th>
         </tr>
       </thead>
@@ -31,21 +82,19 @@
         <tr>
           <td class="text-capitalize">{{ tecnico.nome }}</td>
           <td class="text-uppercase">{{ tecnico.area_tecnica or '-' }}</td>
-          <td>
-            {% set nomes_tipos = tecnico.estoque_tecnico | map(attribute='tipo_servico.nome') | list %}
-            {% for tipo in nomes_tipos | unique %}
-              <span class="badge bg-info text-dark me-1">{{ tipo }}</span>
-            {% endfor %}
-          </td>
           <td class="text-center">
-            <a href="{{ url_for('saldo_tecnico.saldo_detalhado', id_tecnico=tecnico.id) }}"
-               class="btn btn-sm btn-outline-primary me-1"
-               title="Visualizar saldo">
+            <a
+              href="{{ url_for('saldo_tecnico.saldo_detalhado', id_tecnico=tecnico.id) }}"
+              class="btn btn-sm btn-outline-primary me-1"
+              title="Visualizar saldo"
+            >
               <i class="bi bi-eye"></i>
             </a>
-            <a href="{{ url_for('saldo_tecnico.exportar_saldo_tecnico', id_tecnico=tecnico.id) }}"
-               class="btn btn-sm btn-outline-success"
-               title="Exportar Excel">
+            <a
+              href="{{ url_for('saldo_tecnico.exportar_saldo_tecnico', id_tecnico=tecnico.id) }}"
+              class="btn btn-sm btn-outline-success"
+              title="Exportar Excel"
+            >
               <i class="bi bi-file-earmark-excel"></i>
             </a>
           </td>
@@ -55,4 +104,5 @@
     </table>
   </div>
 </div>
+
 {% endblock %}

@@ -1,12 +1,21 @@
-{% extends 'base.html' %}
-{% block content %}
+{% extends 'base.html' %} {% block content %}
 <div class="container mt-4">
   <h2>Transferir Kit Inicial</h2>
-  <form method="POST" action="{{ url_for('kit_inicial.cadastrar_kit') }}" onsubmit="return enviarItens();">
+  <form
+    method="POST"
+    action="{{ url_for('kit_inicial.cadastrar_kit') }}"
+    onsubmit="return enviarItens();"
+  >
     <div class="row g-3 mb-3">
       <div class="col-md-3">
         <label for="nome_kit" class="form-label">Nome do Kit</label>
-        <input type="text" id="nome_kit" name="nome_kit" class="form-control" required>
+        <input
+          type="text"
+          id="nome_kit"
+          name="nome_kit"
+          class="form-control"
+          required
+        />
       </div>
       <div class="col-md-3">
         <label for="tecnico_id" class="form-label">Técnico</label>
@@ -19,7 +28,12 @@
       </div>
       <div class="col-md-3">
         <label for="tipo_servico_id" class="form-label">Tipo de Serviço</label>
-        <select id="tipo_servico_id" name="tipo_servico_id" class="form-select" required>
+        <select
+          id="tipo_servico_id"
+          name="tipo_servico_id"
+          class="form-select"
+          required
+        >
           <option value="">Selecione o tipo de serviço</option>
           {% for ts in tipos_servico %}
           <option value="{{ ts.id }}">{{ ts.nome }}</option>
@@ -28,13 +42,21 @@
       </div>
       <div class="col-md-3">
         <label for="observacao" class="form-label">Observação</label>
-        <input type="text" id="observacao" name="observacao" class="form-control">
+        <input
+          type="text"
+          id="observacao"
+          name="observacao"
+          class="form-control"
+        />
       </div>
     </div>
 
-    <button type="button" id="carregar-itens" class="btn btn-info mb-3">Carregar Itens do Tipo de Serviço</button>
+    <!-- Botão para carregar os itens -->
+    <button type="button" id="carregar-itens" class="btn btn-primary mb-3">
+      <i class="bi bi-arrow-repeat"></i> Exibir Itens
+    </button>
 
-    <h5>Itens</h5>
+    <h5>Itens do Tipo de Serviço Selecionado</h5>
     <table class="table table-bordered" id="tabela-itens">
       <thead>
         <tr>
@@ -43,37 +65,51 @@
           <th>Unidade</th>
           <th>Disponível</th>
           <th>Quantidade</th>
-          <th>Valor Unitário</th>
+          <th>Valor Unitário (R$)</th>
         </tr>
       </thead>
       <tbody>
-        <!-- Vai ser preenchido via JS -->
+        <!-- Preenchido via JS -->
       </tbody>
     </table>
 
-    <input type="hidden" name="itens_json" id="itens_json">
+    <input type="hidden" name="itens_json" id="itens_json" />
 
-    <button type="submit" class="btn btn-primary">Finalizar e Transferir Kit</button>
+    <button type="submit" class="btn btn-success mt-3">
+      Finalizar e Transferir Kit
+    </button>
   </form>
 </div>
 
 <script>
-  document.getElementById('carregar-itens').addEventListener('click', function() {
-    const tipo_servico_id = document.getElementById('tipo_servico_id').value;
-    if (!tipo_servico_id) {
-      alert('Selecione o tipo de serviço!');
-      return;
-    }
-    fetch(`/kit_inicial/api/itens_por_tipo_servico/${tipo_servico_id}`)
-      .then(response => response.json())
-      .then(data => preencherTabela(data));
-  });
+  document
+    .getElementById("carregar-itens")
+    .addEventListener("click", function () {
+      const tipo_servico_id = document.getElementById("tipo_servico_id").value;
+      if (!tipo_servico_id) {
+        alert("Selecione o tipo de serviço!");
+        return;
+      }
+      fetch(`/kit_inicial/api/itens_por_tipo_servico/${tipo_servico_id}`)
+        .then((response) => {
+          if (!response.ok) throw new Error();
+          return response.json();
+        })
+        .then((data) => {
+          if (!data.length) {
+            alert("Nenhum item encontrado para este tipo de serviço!");
+            return;
+          }
+          preencherTabela(data);
+        })
+        .catch(() => alert("Erro ao carregar itens."));
+    });
 
   function preencherTabela(itens) {
-    const tbody = document.querySelector('#tabela-itens tbody');
-    tbody.innerHTML = '';
-    itens.forEach(item => {
-      const tr = document.createElement('tr');
+    const tbody = document.querySelector("#tabela-itens tbody");
+    tbody.innerHTML = "";
+    itens.forEach((item) => {
+      const tr = document.createElement("tr");
       tr.innerHTML = `
         <td><input type="text" class="form-control" value="${item.codigo}" readonly></td>
         <td><input type="text" class="form-control" value="${item.descricao}" readonly></td>
@@ -86,32 +122,34 @@
     });
   }
 
-  // Antes de enviar, monta JSON dos itens preenchidos com quantidade > 0
   function enviarItens() {
-    const rows = document.querySelectorAll('#tabela-itens tbody tr');
+    const rows = document.querySelectorAll("#tabela-itens tbody tr");
     let itens = [];
-    rows.forEach(row => {
-      const codigo = row.children[0].querySelector('input').value;
-      const descricao = row.children[1].querySelector('input').value;
-      const unidade = row.children[2].querySelector('input').value;
-      const quantidade_disponivel = parseInt(row.children[3].querySelector('input').value) || 0;
-      const quantidade = parseInt(row.children[4].querySelector('input').value) || 0;
-      const valor = parseFloat(row.children[5].querySelector('input').value) || 0;
+    for (const row of rows) {
+      const codigo = row.children[0].querySelector("input").value;
+      const descricao = row.children[1].querySelector("input").value;
+      const unidade = row.children[2].querySelector("input").value;
+      const quantidade_disponivel =
+        parseInt(row.children[3].querySelector("input").value) || 0;
+      const quantidade =
+        parseInt(row.children[4].querySelector("input").value) || 0;
+      const valor =
+        parseFloat(row.children[5].querySelector("input").value) || 0;
       if (quantidade > 0) {
         if (quantidade > quantidade_disponivel) {
-          alert(`A quantidade do item ${codigo} não pode ser maior que o disponível.`);
-          itens = null;
+          alert(
+            `A quantidade do item ${codigo} não pode ser maior que o disponível.`
+          );
           return false;
         }
-        itens.push({codigo, descricao, unidade, quantidade, valor});
+        itens.push({ codigo, descricao, unidade, quantidade, valor });
       }
-    });
-    if (itens === null) return false;
+    }
     if (itens.length === 0) {
-      alert('Adicione pelo menos um item ao kit.');
+      alert("Adicione pelo menos um item ao kit.");
       return false;
     }
-    document.getElementById('itens_json').value = JSON.stringify(itens);
+    document.getElementById("itens_json").value = JSON.stringify(itens);
     return true;
   }
 </script>

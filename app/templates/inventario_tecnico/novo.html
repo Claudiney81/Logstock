@@ -1,0 +1,68 @@
+{% extends 'base.html' %}
+{% block content %}
+<div class="container mt-4">
+  <h2>Registrar Inventário Técnico</h2>
+
+  <form method="POST">
+    <div class="row mb-3">
+      <div class="col-md-5">
+        <label class="form-label">Técnico</label>
+        <select name="tecnico_id" class="form-select" required onchange="this.form.submit()">
+          <option value="">Selecione</option>
+          {% for t in tecnicos %}
+          <option value="{{ t.id }}" {% if tecnico_id == t.id %}selected{% endif %}>{{ t.nome }}</option>
+          {% endfor %}
+        </select>
+      </div>
+      <div class="col-md-5">
+        <label class="form-label">Tipo de Serviço</label>
+        <select name="tipo_servico_id" class="form-select" required onchange="this.form.submit()">
+          <option value="">Selecione</option>
+          {% for ts in tipos_servico %}
+          <option value="{{ ts.id }}" {% if tipo_servico_id == ts.id %}selected{% endif %}>{{ ts.nome }}</option>
+          {% endfor %}
+        </select>
+      </div>
+      <div class="col-md-2">
+        <label class="form-label">Responsável</label>
+        <input type="text" name="responsavel" class="form-control" value="{{ responsavel or '' }}">
+      </div>
+    </div>
+
+    {% if saldo_tecnico %}
+    <hr>
+    <h5>Itens no Saldo Técnico</h5>
+    <table class="table table-sm table-bordered mt-2">
+      <thead class="table-light">
+        <tr>
+          <th>Código</th>
+          <th>Descrição</th>
+          <th>Unidade</th>
+          <th>Saldo Atual</th>
+          <th>Qtd Contada</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for s in saldo_tecnico %}
+        <tr>
+          <td>
+            {{ s.item.codigo }}
+            <input type="hidden" name="codigo[]" value="{{ s.item.codigo }}">
+          </td>
+          <td>{{ s.item.descricao }}</td>
+          <td>{{ s.item.unidade }}</td>
+          <td>{{ s.quantidade }}</td>
+          <td><input type="number" name="quantidade_contada[]" class="form-control"></td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+    <div class="text-end">
+      <button type="submit" class="btn btn-primary mt-3">Registrar Inventário</button>
+    </div>
+    {% elif tecnico_id and tipo_servico_id %}
+      <div class="alert alert-warning mt-3">Este técnico não possui saldo registrado para este tipo de serviço.</div>
+    {% endif %}
+  </form>
+</div>
+{% endblock %}

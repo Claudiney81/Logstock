@@ -1,0 +1,115 @@
+{% extends 'base.html' %} {% block content %}
+<div class="container mt-4">
+  <h2 class="mb-4">🕒 Baixas Pendentes</h2>
+
+  {% if baixas %}
+  <div class="table-responsive shadow-sm">
+    <table class="table table-bordered table-hover align-middle">
+      <thead class="table-light text-center">
+        <tr>
+          <th>Data</th>
+          <th>Técnico</th>
+          <th>Tipo Serviço</th>
+          <th>Item</th>
+          <th>Qtd</th>
+          <th>Observação</th>
+          <th>Ações</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for baixa in baixas %} {% for item in baixa.itens %}
+        <tr>
+          <td>{{ baixa.data.strftime('%d/%m/%Y %H:%M') }}</td>
+          <td>{{ baixa.tecnico.nome if baixa.tecnico else '---' }}</td>
+          <td>
+            {{ baixa.tipo_servico_rel.nome if baixa.tipo_servico_rel else '---'
+            }}
+          </td>
+          <td>{{ item.item.descricao }}</td>
+          <td class="text-center">{{ item.quantidade }}</td>
+          <td>{{ baixa.observacao or '---' }}</td>
+          <td class="text-center">
+            <div class="d-flex justify-content-center gap-2">
+              <form
+                method="GET"
+                action="{{ url_for('baixa_tecnico.atualizar_status', id=baixa.id, acao='aprovar') }}"
+              >
+                <button type="submit" class="btn btn-success btn-sm">
+                  Aprovar
+                </button>
+              </form>
+
+              <button
+                class="btn btn-danger btn-sm"
+                data-bs-toggle="modal"
+                data-bs-target="#recusarModal{{ baixa.id }}"
+              >
+                Recusar
+              </button>
+            </div>
+
+            <!-- Modal de Recusa -->
+            <div
+              class="modal fade"
+              id="recusarModal{{ baixa.id }}"
+              tabindex="-1"
+              aria-labelledby="recusarModalLabel{{ baixa.id }}"
+              aria-hidden="true"
+            >
+              <div class="modal-dialog">
+                <div class="modal-content">
+                  <form
+                    method="POST"
+                    action="{{ url_for('baixa_tecnico.atualizar_status', id=baixa.id, acao='recusar') }}"
+                  >
+                    <div class="modal-header">
+                      <h5
+                        class="modal-title"
+                        id="recusarModalLabel{{ baixa.id }}"
+                      >
+                        Recusar Baixa
+                      </h5>
+                      <button
+                        type="button"
+                        class="btn-close"
+                        data-bs-dismiss="modal"
+                        aria-label="Fechar"
+                      ></button>
+                    </div>
+                    <div class="modal-body">
+                      <label for="motivo" class="form-label"
+                        >Motivo da recusa:</label
+                      >
+                      <textarea
+                        name="motivo"
+                        class="form-control"
+                        required
+                      ></textarea>
+                    </div>
+                    <div class="modal-footer">
+                      <button type="submit" class="btn btn-danger">
+                        Confirmar Recusa
+                      </button>
+                      <button
+                        type="button"
+                        class="btn btn-secondary"
+                        data-bs-dismiss="modal"
+                      >
+                        Cancelar
+                      </button>
+                    </div>
+                  </form>
+                </div>
+              </div>
+            </div>
+          </td>
+        </tr>
+        {% endfor %} {% endfor %}
+      </tbody>
+    </table>
+  </div>
+  {% else %}
+  <div class="alert alert-info">Nenhuma baixa pendente no momento.</div>
+  {% endif %}
+</div>
+{% endblock %}

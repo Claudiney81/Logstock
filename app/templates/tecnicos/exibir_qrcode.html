@@ -1,0 +1,10 @@
+{% extends 'base.html' %}
+{% block content %}
+<div class="container mt-4">
+    <h4>QR Code e Link de Acesso para {{ tecnico.nome }}</h4>
+    <hr>
+    <p><strong>Link:</strong> <a href="{{ link }}" target="_blank">{{ link }}</a></p>
+    <p><strong>QR Code:</strong></p>
+    <img src="{{ url_for('static', filename=qr_path) }}" alt="QR Code">
+</div>
+{% endblock %}

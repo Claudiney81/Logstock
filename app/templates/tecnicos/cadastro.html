@@ -1,33 +1,70 @@
 {% extends 'base.html' %} {% block content %}
 <div class="container mt-4">
   <h2>Cadastro de Técnico</h2>
-  <form method="POST" action="{{ url_for('tecnicos.cadastrar_tecnico') }}">
+
+  <form
+    method="POST"
+    action="{{ url_for('tecnicos.cadastrar_tecnico') }}"
+    onsubmit="desativarBotao()"
+  >
     <div class="mb-3">
       <label for="nome" class="form-label">Nome</label>
-      <input type="text" name="nome" id="nome" class="form-control" required />
+      <input
+        type="text"
+        name="nome"
+        id="nome"
+        class="form-control"
+        placeholder="Ex: João da Silva"
+        required
+      />
     </div>
+
     <div class="mb-3">
       <label for="matricula" class="form-label">Matrícula / Login</label>
       <input
         type="text"
         name="matricula"
         id="matricula"
-        class="form-control"
+        class="form-control text-lowercase"
+        placeholder="ex: joaosilva"
         required
       />
     </div>
+
     <div class="mb-3">
       <label for="cpf" class="form-label">CPF</label>
-      <input type="text" name="cpf" id="cpf" class="form-control" required />
+      <input
+        type="text"
+        name="cpf"
+        id="cpf"
+        class="form-control"
+        placeholder="000.000.000-00"
+        required
+      />
     </div>
+
     <div class="mb-3">
       <label for="telefone" class="form-label">Telefone</label>
-      <input type="text" name="telefone" id="telefone" class="form-control" />
+      <input
+        type="text"
+        name="telefone"
+        id="telefone"
+        class="form-control"
+        placeholder="(99) 99999-9999"
+      />
     </div>
+
     <div class="mb-3">
       <label for="email" class="form-label">Email</label>
-      <input type="email" name="email" id="email" class="form-control" />
+      <input
+        type="email"
+        name="email"
+        id="email"
+        class="form-control"
+        placeholder="exemplo@email.com"
+      />
     </div>
+
     <div class="mb-3">
       <label for="area_tecnica" class="form-label">Área Técnica</label>
       <input
@@ -35,8 +72,10 @@
         name="area_tecnica"
         id="area_tecnica"
         class="form-control"
+        placeholder="Ex: Instalação GPON"
       />
     </div>
+
     <div class="mb-3">
       <label for="status" class="form-label">Status</label>
       <select name="status" id="status" class="form-select">
@@ -44,7 +83,26 @@
         <option value="Inativo">Inativo</option>
       </select>
     </div>
-    <button type="submit" class="btn btn-primary">Cadastrar</button>
+
+    <button type="submit" class="btn btn-primary" id="botaoCadastrar">
+      Cadastrar
+    </button>
   </form>
 </div>
+
+<!-- Scripts de máscara e proteção contra duplo envio -->
+<script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jquery.mask/1.14.16/jquery.mask.min.js"></script>
+<script>
+  $(document).ready(function () {
+    $("#cpf").mask("000.000.000-00");
+    $("#telefone").mask("(00) 00000-0000");
+  });
+
+  function desativarBotao() {
+    const botao = document.getElementById("botaoCadastrar");
+    botao.disabled = true;
+    botao.innerText = "Cadastrando...";
+  }
+</script>
 {% endblock %}

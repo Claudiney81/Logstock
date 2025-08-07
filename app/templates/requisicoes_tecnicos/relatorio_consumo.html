@@ -2,40 +2,77 @@
 {% block content %}
 <div class="container mt-4">
   <h2 class="mb-4">Relatório de Consumo Técnico</h2>
+
   <form method="POST" class="row g-3">
     <div class="col-md-3">
       <label for="tecnico" class="form-label">Técnico</label>
       <select name="tecnico" id="tecnico" class="form-select">
         <option value="todos">Todos</option>
         {% for t in tecnicos %}
-        <option value="{{ t.nome }}" {% if request.form.get('tecnico') == t.nome %}selected{% endif %}>{{ t.nome }}</option>
+        <option value="{{ t }}" {% if filtros.tecnico == t %}selected{% endif %}>{{ t }}</option>
         {% endfor %}
       </select>
     </div>
+
     <div class="col-md-3">
       <label for="codigo_item" class="form-label">Código do Item</label>
-      <input type="text" name="codigo_item" id="codigo_item" class="form-control" placeholder="Ex: 123456" value="{{ request.form.get('codigo_item', '') }}">
+      <input type="text" name="codigo_item" id="codigo_item" class="form-control"
+             placeholder="Ex: 123456" value="{{ filtros.codigo_item }}">
     </div>
+
     <div class="col-md-3">
       <label for="data_inicio" class="form-label">Data Início</label>
-      <input type="date" name="data_inicio" id="data_inicio" class="form-control" value="{{ request.form.get('data_inicio', '') }}">
+      <input type="date" name="data_inicio" id="data_inicio"
+             class="form-control" value="{{ filtros.data_inicio }}">
     </div>
+
     <div class="col-md-3">
       <label for="data_fim" class="form-label">Data Fim</label>
-      <input type="date" name="data_fim" id="data_fim" class="form-control" value="{{ request.form.get('data_fim', '') }}">
+      <input type="date" name="data_fim" id="data_fim"
+             class="form-control" value="{{ filtros.data_fim }}">
     </div>
+
     <div class="col-md-12 text-end">
-      <button type="submit" class="btn btn-primary">Buscar</button>
-      <button type="submit" formaction="/requisicoes_tecnicos/relatorio-consumo/exportar-excel" class="btn btn-success">Exportar Excel</button>
+      <button type="submit" class="btn btn-primary">
+        <i class="bi bi-search"></i> Buscar
+      </button>
+      <button type="submit" formaction="/requisicoes_tecnicos/relatorio-consumo/exportar-excel" class="btn btn-success">
+        <i class="bi bi-file-earmark-excel"></i> Exportar Excel
+      </button>
+      <button type="button" onclick="window.print()" class="btn btn-outline-secondary">
+        <i class="bi bi-printer"></i> Imprimir
+      </button>
     </div>
   </form>
 
   <hr>
 
+  <style>
+    @media print {
+      button, form, nav, footer {
+        display: none !important;
+      }
+      table {
+        font-size: 12px;
+      }
+    }
+    .tabela-container {
+      max-height: 65vh;
+      overflow-y: auto;
+    }
+    .tabela-container table thead th {
+      position: sticky;
+      top: 0;
+      z-index: 1000;
+      background: #002b55;
+      color: white;
+    }
+  </style>
+
   {% if resultados %}
-  <div class="table-responsive">
-    <table class="table table-bordered table-hover">
-      <thead class="table-light">
+  <div class="tabela-container shadow-sm rounded border">
+    <table class="table table-bordered table-hover align-middle mb-0">
+      <thead>
         <tr>
           <th>Técnico</th>
           <th>Código</th>
@@ -46,16 +83,21 @@
         </tr>
       </thead>
       <tbody>
-        {% set atual = None %}
+        {% set atual_tecnico = None %}
         {% set subtotal = 0 %}
+        {% set total_geral = 0 %}
         {% for r in resultados %}
-          {% set chave = r.nome_tecnico ~ r.codigo %}
-          {% if atual != chave and not loop.first %}
+          {% if atual_tecnico != r.nome_tecnico %}
+            {% if not loop.first %}
             <tr class="table-secondary fw-bold">
               <td colspan="4">Subtotal</td>
               <td colspan="2">{{ subtotal }}</td>
             </tr>
             {% set subtotal = 0 %}
+            {% endif %}
+            <tr class="table-primary fw-bold">
+              <td colspan="6">Técnico: {{ r.nome_tecnico }}</td>
+            </tr>
           {% endif %}
           <tr>
             <td>{{ r.nome_tecnico }}</td>
@@ -63,14 +105,19 @@
             <td>{{ r.descricao }}</td>
             <td>{{ r.unidade }}</td>
             <td>{{ r.quantidade_total }}</td>
-            <td>-</td>
+            <td>{{ r.data_hora.strftime("%d/%m/%Y %H:%M") if r.data_hora else '-' }}</td>
           </tr>
           {% set subtotal = subtotal + r.quantidade_total %}
-          {% set atual = chave %}
+          {% set total_geral = total_geral + r.quantidade_total %}
+          {% set atual_tecnico = r.nome_tecnico %}
           {% if loop.last %}
             <tr class="table-secondary fw-bold">
               <td colspan="4">Subtotal</td>
               <td colspan="2">{{ subtotal }}</td>
+            </tr>
+            <tr class="table-dark fw-bold">
+              <td colspan="4">Total Geral</td>
+              <td colspan="2">{{ total_geral }}</td>
             </tr>
           {% endif %}
         {% endfor %}

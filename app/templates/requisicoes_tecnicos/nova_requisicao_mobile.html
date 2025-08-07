@@ -1,0 +1,148 @@
+{% extends "base_mobile.html" %}
+{% block title %}Nova Requisição - Mobile{% endblock %}
+{% block content %}
+<h5 class="mb-3 text-primary">📱 Nova Requisição</h5>
+
+<form method="post">
+  <div class="mb-3">
+    <label class="form-label fw-semibold">Solicitante</label>
+    <input type="text" name="solicitante_responsavel" class="form-control form-control-sm" required />
+  </div>
+
+  <div class="row g-2 mb-3">
+    <div class="col-6">
+      <label class="form-label fw-semibold">Técnico</label>
+      <select name="solicitante_tecnico" class="form-select form-select-sm" required>
+        <option value="">Selecione</option>
+        {% for tecnico in tecnicos %}
+        <option value="{{ tecnico.nome }}">{{ tecnico.nome }}</option>
+        {% endfor %}
+      </select>
+    </div>
+    <div class="col-6">
+      <label class="form-label fw-semibold">Tipo de Serviço</label>
+      <select name="tipo_servico" id="tipo-servico-select" class="form-select form-select-sm" required>
+        <option value="">Selecione</option>
+        {% for tipo in tipos_servico %}
+        <option value="{{ tipo.id }}">{{ tipo.nome }}</option>
+        {% endfor %}
+      </select>
+    </div>
+  </div>
+
+  <div class="mb-3">
+    <label class="form-label fw-semibold">Resp. Projeto</label>
+    <input type="text" name="resp_projeto" class="form-control form-control-sm" required />
+  </div>
+
+  <div class="mb-3">
+    <label class="form-label fw-semibold">Observação</label>
+    <input type="text" name="observacao" class="form-control form-control-sm" />
+  </div>
+
+  <h6 class="text-success mt-4">Itens da Requisição</h6>
+  <div class="table-responsive mb-3">
+    <table class="table table-sm table-bordered" id="tabela-itens">
+      <thead class="table-light">
+        <tr>
+          <th>Código</th>
+          <th>Desc.</th>
+          <th>Unid.</th>
+          <th>Qtd</th>
+          <th>Valor</th>
+          <th>Est.</th>
+          <th></th>
+        </tr>
+      </thead>
+      <tbody></tbody>
+    </table>
+  </div>
+
+  <button type="button" class="btn btn-outline-primary w-100 mb-2" onclick="adicionarLinha()">+ Adicionar Item</button>
+  <button type="submit" class="btn btn-success w-100">📤 Enviar Requisição</button>
+</form>
+
+<!-- Toast de mensagem -->
+{% with messages = get_flashed_messages(with_categories=true) %}
+  {% if messages %}
+    <div id="toast-msg"
+         class="position-fixed top-0 start-50 translate-middle-x mt-3 px-3 py-2 bg-success text-white rounded shadow"
+         style="z-index:9999; font-size:0.9rem;">
+      {% for category, message in messages %}
+        {{ message }}
+      {% endfor %}
+    </div>
+    <script>
+      setTimeout(() => {
+        const toast = document.getElementById('toast-msg');
+        if (toast) toast.style.display = 'none';
+      }, 3000);
+    </script>
+  {% endif %}
+{% endwith %}
+
+<script>
+  let tipoSelecionado = "";
+  document.getElementById("tipo-servico-select").addEventListener("change", function () {
+    tipoSelecionado = this.value;
+  });
+
+  function adicionarLinha() {
+    if (!tipoSelecionado) {
+      alert("Selecione o Tipo de Serviço antes de adicionar um item.");
+      return;
+    }
+    const tbody = document.querySelector("#tabela-itens tbody");
+    const linha = document.createElement("tr");
+    linha.innerHTML = `
+      <td>
+        <select name="codigo[]" class="form-control form-control-sm codigo-select" onchange="preencherCampos(this)">
+          <option value="">Carregando...</option>
+        </select>
+      </td>
+      <td><input name="descricao[]" class="form-control form-control-sm descricao" readonly /></td>
+      <td><input name="unidade[]" class="form-control form-control-sm unidade" readonly /></td>
+      <td><input name="quantidade[]" type="number" min="1" class="form-control form-control-sm" required /></td>
+      <td><input name="valor[]" type="number" step="0.01" class="form-control form-control-sm valor" readonly /></td>
+      <td><input class="form-control form-control-sm estoque" readonly disabled /></td>
+      <td><button type="button" class="btn btn-sm btn-danger" onclick="removerLinha(this)">✕</button></td>
+    `;
+    tbody.appendChild(linha);
+    carregarItensNaLinha(linha.querySelector(".codigo-select"));
+  }
+
+  function removerLinha(botao) {
+    botao.closest("tr").remove();
+  }
+
+  function carregarItensNaLinha(select) {
+    fetch(`/requisicoes_tecnicos/api/itens_disponiveis?tipo_servico_id=${tipoSelecionado}`)
+      .then(res => res.json())
+      .then(data => {
+        select.innerHTML = '<option value="">Selecione...</option>';
+        data.forEach(item => {
+          const option = document.createElement("option");
+          option.value = item.codigo;
+          option.textContent = `${item.codigo} - ${item.descricao}`;
+          option.dataset.descricao = item.descricao;
+          option.dataset.unidade = item.unidade;
+          option.dataset.valor = item.valor;
+          option.dataset.estoque = item.quantidade_estoque;
+          select.appendChild(option);
+        });
+      })
+      .catch(() => {
+        select.innerHTML = '<option value="">Erro ao carregar</option>';
+      });
+  }
+
+  function preencherCampos(select) {
+    const selected = select.selectedOptions[0];
+    const linha = select.closest("tr");
+    linha.querySelector(".descricao").value = selected.dataset.descricao || "";
+    linha.querySelector(".unidade").value = selected.dataset.unidade || "";
+    linha.querySelector(".valor").value = selected.dataset.valor || "";
+    linha.querySelector(".estoque").value = selected.dataset.estoque || "";
+  }
+</script>
+{% endblock %}

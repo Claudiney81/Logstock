@@ -1,86 +1,96 @@
 {% extends 'base.html' %}
 {% block content %}
-<div class="container mt-4">
-  <h2>Histórico de Notas Fiscais</h2>
+<div class="container-fluid mt-3">
+  <div class="card shadow-sm">
+    <!-- Cabeçalho azul -->
+    <div class="card-header" style="background-color: #002b55; color: white;">
+      <h5 class="fw-semibold mb-0">
+        <i class="bi bi-clock-history me-2"></i>
+        Histórico de Notas Fiscais
+        {% if tipo_servico_nome %}
+          <span class="fw-light">– {{ tipo_servico_nome }}</span>
+        {% endif %}
+      </h5>
+    </div>
 
-  <!-- Mensagem de feedback estilizada -->
-  <div class="d-flex justify-content-center">
-    {% with messages = get_flashed_messages(with_categories=true) %}
-      {% if messages %}
-        {% for category, message in messages %}
-          <div class="alert alert-{{ category }} flash-message mt-2 mb-2 p-2 shadow-sm"
-               style="max-width: 340px; font-size: 1rem; text-align: center;">
-            {{ message }}
-          </div>
-        {% endfor %}
-      {% endif %}
-    {% endwith %}
+    <div class="card-body">
+      <!-- Mensagens de alerta -->
+      <div class="d-flex justify-content-center">
+        {% with messages = get_flashed_messages(with_categories=true) %}
+          {% if messages %}
+            {% for category, message in messages %}
+              <div class="alert alert-{{ category }} flash-message mt-2 mb-2 p-2 shadow-sm text-center"
+                   style="max-width: 360px; font-size: 1rem;">
+                {{ message }}
+              </div>
+            {% endfor %}
+          {% endif %}
+        {% endwith %}
+      </div>
+      <script>
+        setTimeout(() => document.querySelectorAll('.flash-message')
+                     .forEach(el => el.style.display = 'none'), 3000);
+      </script>
+
+      <!-- Filtro -->
+      <form method="GET" action="{{ url_for('nota_fiscal.historico') }}" class="row g-2 mb-3">
+        <div class="col-md-4">
+          <select class="form-select shadow-sm" name="tipo_servico">
+            <option value="">Todos os Tipos de Serviço</option>
+            {% for ts in tipos_servico %}
+              <option value="{{ ts.id }}" {% if tipo_servico_id == ts.id %}selected{% endif %}>
+                {{ ts.nome }}
+              </option>
+            {% endfor %}
+          </select>
+        </div>
+        <div class="col-md-2">
+          <button type="submit" class="btn btn-outline-primary shadow-sm w-100">
+            <i class="bi bi-funnel-fill me-1"></i> Filtrar
+          </button>
+        </div>
+      </form>
+
+      <!-- Tabela com rolagem -->
+      <div class="table-responsive" style="max-height: 70vh; overflow-y: auto;">
+        <table class="table table-bordered table-hover table-sm align-middle mb-0">
+          <thead style="position: sticky; top: 0; z-index: 10; background-color: #002b55; color: white;">
+            <tr>
+              <th>Número</th>
+              <th>Data/Hora</th>
+              <th>Tipo de Serviço</th>
+              <th>Responsável</th>
+              <th class="text-center">Ações</th>
+            </tr>
+          </thead>
+          <tbody>
+            {% for nota in notas %}
+            <tr>
+              <td>{{ nota.numero_nf }}</td>
+              <td>{{ nota.data_hora.strftime('%d/%m/%Y %H:%M') }}</td>
+              <td>{{ nota.tipo_servico_ref.nome if nota.tipo_servico_ref else nota.tipo_servico or '—' }}</td>
+              <td>{{ nota.responsavel or '—' }}</td>
+              <td class="text-center">
+                <a href="{{ url_for('nota_fiscal.detalhes', id=nota.id) }}" class="btn btn-sm btn-primary shadow-sm">
+                  <i class="bi bi-eye"></i> Detalhes
+                </a>
+                <form action="{{ url_for('nota_fiscal.excluir_nota', id=nota.id) }}" method="post" style="display:inline;">
+                  <button type="submit" class="btn btn-sm btn-danger shadow-sm"
+                          onclick="return confirm('Tem certeza que deseja excluir esta nota?');">
+                    <i class="bi bi-trash"></i> Excluir
+                  </button>
+                </form>
+              </td>
+            </tr>
+            {% else %}
+            <tr>
+              <td colspan="5" class="text-center text-muted">Nenhuma nota fiscal encontrada.</td>
+            </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+    </div>
   </div>
-  <script>
-    setTimeout(function() {
-      let flashes = document.querySelectorAll('.flash-message');
-      flashes.forEach(el => el.style.display = 'none');
-    }, 3000);
-  </script>
-
-  <!-- Filtro por tipo de serviço -->
-  <form
-    method="GET"
-    action="{{ url_for('nota_fiscal.historico') }}"
-    class="row g-3 mb-3"
-  >
-    <div class="col-md-4">
-      <input
-        type="text"
-        class="form-control"
-        name="tipo_servico"
-        placeholder="Tipo de Serviço"
-        value="{{ tipo_servico }}"
-      />
-    </div>
-    <div class="col-md-2">
-      <button type="submit" class="btn btn-primary w-100">Filtrar</button>
-    </div>
-  </form>
-
-  <!-- Tabela de notas -->
-  <table class="table table-bordered table-hover mt-3">
-    <thead class="table-dark">
-      <tr>
-        <th>Número</th>
-        <th>Data/Hora</th>
-        <th>Responsável</th>
-        <th>Ações</th>
-      </tr>
-    </thead>
-    <tbody>
-      {% for nota in notas %}
-      <tr>
-        <td>{{ nota.numero_nf }}</td>
-        <td>{{ nota.data_hora.strftime('%d/%m/%Y %H:%M') }}</td>
-        <td>{{ nota.responsavel }}</td>
-        <td>
-          <a
-            href="{{ url_for('nota_fiscal.detalhes', id=nota.id) }}"
-            class="btn btn-sm btn-info me-2"
-            >Ver Detalhes</a
-          >
-          <form
-            method="POST"
-            action="{{ url_for('nota_fiscal.excluir_nota', id=nota.id) }}"
-            style="display: inline"
-            onsubmit="return confirm('Tem certeza que deseja excluir esta nota fiscal?');"
-          >
-            <button type="submit" class="btn btn-sm btn-danger">Excluir</button>
-          </form>
-        </td>
-      </tr>
-      {% else %}
-      <tr>
-        <td colspan="4" class="text-center">Nenhuma nota fiscal encontrada.</td>
-      </tr>
-      {% endfor %}
-    </tbody>
-  </table>
 </div>
 {% endblock %}
