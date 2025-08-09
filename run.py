@@ -22,7 +22,7 @@ def _bootstrap_admin():
         nome="Administrador",
         email="admin@logstock.com",
         perfil="admin",
-        senha=generate_password_hash("811401")  # ajuste se o campo tiver outro nome
+        senha_hash=generate_password_hash("811401")  # corrigido para usar o campo certo
     )
     db.session.add(admin)
     db.session.commit()
