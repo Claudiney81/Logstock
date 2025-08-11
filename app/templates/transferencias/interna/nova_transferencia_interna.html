@@ -1,152 +1,76 @@
-{% extends 'base.html' %} {% block content %}
+{% extends 'base.html' %}
+{% block content %}
 <div class="container mt-4">
   <h2 class="mb-4 text-primary">
-    <i class="bi bi-tools me-2"></i> Nova Movimentação de Ferramentas
+    <i class="bi bi-arrow-left-right me-2"></i> Nova Transferência Interna
   </h2>
 
-  <form method="POST" autocomplete="off">
+  <form method="POST" action="{{ url_for('transferencias_interna.nova_transferencia_interna') }}" autocomplete="off">
     <div class="row g-3 mb-3">
       <div class="col-md-4">
-        <label class="form-label fw-semibold">Técnico</label>
-        <select name="tecnico_id" class="form-select shadow-sm" required>
-          <option value="">Selecione</option>
+        <label for="tecnico_id" class="form-label fw-semibold">Técnico</label>
+        <select id="tecnico_id" name="tecnico_id" class="form-select shadow-sm" required>
+          <option value="">Selecione o técnico</option>
           {% for tecnico in tecnicos %}
-          <option value="{{ tecnico.id }}">{{ tecnico.nome }}</option>
+          <option value="{{ tecnico.id }}">{{ tecnico.nome }} ({{ tecnico.matricula }})</option>
           {% endfor %}
         </select>
       </div>
-
       <div class="col-md-4">
-        <label class="form-label fw-semibold">Tipo de Serviço</label>
-        <select
-          id="tipo-servico"
-          name="tipo_servico_id"
-          class="form-select shadow-sm"
-          required
-        >
-          <option value="">Selecione</option>
-          {% for tipo in tipos_servico %}
-          <option value="{{ tipo.id }}">{{ tipo.nome }}</option>
+        <label for="area_tecnica" class="form-label fw-semibold">Área Técnica</label>
+        <input type="text" id="area_tecnica" name="area_tecnica" class="form-control shadow-sm" required>
+      </div>
+      <div class="col-md-4">
+        <label for="tipo_servico_id" class="form-label fw-semibold">Tipo de Serviço</label>
+        <select id="tipo_servico_id" name="tipo_servico_id" class="form-select shadow-sm" required>
+          <option value="">Selecione o tipo de serviço</option>
+          {% for ts in tipos_servico %}
+          <option value="{{ ts.id }}">{{ ts.nome }}</option>
           {% endfor %}
         </select>
-      </div>
-
-      <div class="col-md-4">
-        <label class="form-label fw-semibold">Local</label>
-        <input
-          type="text"
-          name="local"
-          class="form-control shadow-sm"
-          required
-        />
-      </div>
-
-      <div class="col-md-12">
-        <label class="form-label fw-semibold">Observação</label>
-        <input type="text" name="observacao" class="form-control shadow-sm" />
       </div>
     </div>
 
     <h5 class="fw-semibold mt-4 mb-2">
-      <i class="bi bi-box-seam me-2"></i> Itens da Movimentação
+      <i class="bi bi-box-seam me-2"></i> Itens da Transferência
     </h5>
-
-    <div class="table-responsive shadow-sm border rounded">
-      <table
-        class="table table-bordered table-sm align-middle mb-0"
-        id="tabela-itens"
-        style="min-width: 950px"
-      >
+    <div class="table-responsive shadow-sm rounded border">
+      <table class="table table-bordered table-sm align-middle mb-0" id="tabela-itens" style="min-width:950px;">
         <thead class="table-light">
           <tr>
-            <th style="width: 15%">Código</th>
-            <th style="width: 40%">Descrição</th>
-            <th style="width: 10%">Un</th>
-            <th style="width: 10%">Qtd</th>
-            <th style="width: 10%">Valor Un (R$)</th>
-            <th style="width: 7%">Status</th>
-            <th style="width: 8%">Ações</th>
+            <th style="width: 15%;">Código</th>
+            <th style="width: 40%;">Descrição</th>
+            <th style="width: 10%;">Un</th>
+            <th style="width: 10%;">Qtd</th>
+            <th style="width: 10%;">Valor Un (R$)</th>
+            <th style="width: 8%;">Saldo</th>
+            <th style="width: 7%;">Ações</th>
           </tr>
         </thead>
         <tbody>
           <tr>
+            <td><input type="text" name="codigo[]" class="form-control form-control-sm codigo-input" readonly /></td>
             <td>
-              <input
-                type="text"
-                name="codigo[]"
-                class="form-control form-control-sm codigo-input"
-                readonly
-              />
-            </td>
-            <td>
-              <select
-                name="descricao[]"
-                class="form-select form-select-sm descricao-select"
-                required
-              >
+              <select name="descricao[]" class="form-select form-select-sm descricao-select" required>
                 <option value="">Selecione</option>
               </select>
             </td>
-            <td>
-              <input
-                type="text"
-                name="unidade[]"
-                class="form-control form-control-sm unidade-input"
-                readonly
-              />
-            </td>
-            <td>
-              <input
-                type="number"
-                name="quantidade[]"
-                min="1"
-                value="1"
-                class="form-control form-control-sm text-end"
-              />
-            </td>
-            <td>
-              <input
-                type="number"
-                name="valor_unitario[]"
-                step="0.01"
-                class="form-control form-control-sm valor-input text-end"
-                readonly
-              />
-            </td>
-            <td>
-              <select name="status[]" class="form-select form-select-sm">
-                <option value="tecnico">Técnico</option>
-                <option value="almoxarifado">Almoxarifado</option>
-              </select>
-            </td>
+            <td><input type="text" name="unidade[]" class="form-control form-control-sm unidade-input" readonly /></td>
+            <td><input type="number" name="quantidade[]" min="1" class="form-control form-control-sm text-end" /></td>
+            <td><input type="number" name="valor_unitario[]" step="0.01" class="form-control form-control-sm valor-input text-end" readonly /></td>
+            <td class="saldo-cell text-end"><span class="saldo-info"></span></td>
             <td class="text-center">
               <div class="d-flex justify-content-center gap-1">
-                <button
-                  type="button"
-                  class="btn btn-success btn-sm"
-                  onclick="inserirLinha()"
-                  title="Adicionar linha"
-                >
-                  <i class="bi bi-plus"></i>
-                </button>
-                <button
-                  type="button"
-                  class="btn btn-danger btn-sm excluir-btn"
-                  style="opacity: 0.5; pointer-events: none"
-                  onclick="removerLinha(this, true)"
-                  title="Excluir linha"
-                >
-                  <i class="bi bi-x"></i>
-                </button>
+                <button type="button" class="btn btn-success btn-sm" onclick="inserirLinha()" title="Inserir nova linha"><i class="bi bi-plus"></i></button>
+                <button type="button" class="btn btn-danger btn-sm excluir-btn" style="opacity:0.5; pointer-events:none;" onclick="removerLinha(this, true)" title="Excluir linha" tabindex="-1"><i class="bi bi-x"></i></button>
               </div>
             </td>
           </tr>
         </tbody>
       </table>
     </div>
-
     <button type="submit" class="btn btn-primary mt-3 shadow-sm">
-      <i class="bi bi-save"></i> Registrar
+      <i class="bi bi-save"></i> Registrar Transferência
     </button>
   </form>
 </div>
@@ -155,19 +79,19 @@
   let itensDisponiveis = [];
 
   function atualizarListaDeItens() {
-    const tipoServicoId = document.getElementById("tipo-servico").value;
+    const tipoServicoId = document.getElementById("tipo_servico_id").value;
     if (!tipoServicoId) return;
 
-    fetch(`/equipamentos/api/itens_por_tipo/${tipoServicoId}`)
-      .then((res) => res.json())
-      .then((data) => {
-        itensDisponiveis = data;
-        const selects = document.querySelectorAll(".descricao-select");
-        selects.forEach((select) => {
+    fetch(`/transferencias/interna/api/itens_disponiveis?tipo_servico_id=${tipoServicoId}`)
+      .then(res => res.json())
+      .then(data => {
+        itensDisponiveis = data; 
+        const selects = document.querySelectorAll('.descricao-select');
+        selects.forEach(select => {
           const valorAtual = select.value;
           select.innerHTML = '<option value="">Selecione</option>';
-          data.forEach((item) => {
-            const option = document.createElement("option");
+          data.forEach(item => {
+            const option = document.createElement('option');
             option.value = item.codigo;
             option.textContent = item.descricao;
             select.appendChild(option);
@@ -177,33 +101,31 @@
       });
   }
 
-  document.getElementById("tipo-servico").addEventListener("change", () => {
+  document.getElementById("tipo_servico_id").addEventListener("change", () => {
     atualizarListaDeItens();
-    document
-      .querySelectorAll(".codigo-input, .unidade-input, .valor-input")
-      .forEach((el) => (el.value = ""));
+    document.querySelectorAll('.codigo-input, .unidade-input, .valor-input, .saldo-info').forEach(el => {
+      if (el.tagName === 'INPUT') el.value = '';
+      else el.innerText = '';
+    });
   });
 
-  document
-    .querySelector("#tabela-itens tbody")
-    .addEventListener("change", function (e) {
-      if (e.target.classList.contains("descricao-select")) {
-        const codigo = e.target.value;
-        const tr = e.target.closest("tr");
-        const item = itensDisponiveis.find((i) => i.codigo === codigo);
-        if (item) {
-          tr.querySelector(".codigo-input").value = item.codigo;
-          tr.querySelector(".unidade-input").value = item.unidade || "";
-          tr.querySelector(".valor-input").value = parseFloat(
-            item.valor || 0
-          ).toFixed(2);
-        }
+  document.querySelector('#tabela-itens tbody').addEventListener('change', function (e) {
+    if (e.target.classList.contains('descricao-select')) {
+      const codigo = e.target.value;
+      const tr = e.target.closest('tr');
+      const item = itensDisponiveis.find(i => i.codigo === codigo);
+      if (item) {
+        tr.querySelector('.codigo-input').value = item.codigo;
+        tr.querySelector('.unidade-input').value = item.unidade || '';
+        tr.querySelector('.valor-input').value = parseFloat(item.valor || 0).toFixed(2);
+        tr.querySelector('.saldo-info').innerText = item.saldo ?? 0;
       }
-    });
+    }
+  });
 
   function inserirLinha() {
-    const tbody = document.querySelector("#tabela-itens tbody");
-    const tr = document.createElement("tr");
+    const tbody = document.querySelector('#tabela-itens tbody');
+    const tr = document.createElement('tr');
     tr.innerHTML = `
       <td><input type="text" name="codigo[]" class="form-control form-control-sm codigo-input" readonly /></td>
       <td>
@@ -212,17 +134,12 @@
         </select>
       </td>
       <td><input type="text" name="unidade[]" class="form-control form-control-sm unidade-input" readonly /></td>
-      <td><input type="number" name="quantidade[]" min="1" value="1" class="form-control form-control-sm text-end" /></td>
+      <td><input type="number" name="quantidade[]" min="1" class="form-control form-control-sm text-end" /></td>
       <td><input type="number" name="valor_unitario[]" step="0.01" class="form-control form-control-sm valor-input text-end" readonly /></td>
-      <td>
-        <select name="status[]" class="form-select form-select-sm">
-          <option value="tecnico">Técnico</option>
-          <option value="almoxarifado">Almoxarifado</option>
-        </select>
-      </td>
+      <td class="saldo-cell text-end"><span class="saldo-info"></span></td>
       <td class="text-center">
         <div class="d-flex justify-content-center gap-1">
-          <button type="button" class="btn btn-success btn-sm" onclick="inserirLinha()" title="Adicionar linha"><i class="bi bi-plus"></i></button>
+          <button type="button" class="btn btn-success btn-sm" onclick="inserirLinha()" title="Inserir nova linha"><i class="bi bi-plus"></i></button>
           <button type="button" class="btn btn-danger btn-sm excluir-btn" onclick="removerLinha(this, false)" title="Excluir linha"><i class="bi bi-x"></i></button>
         </div>
       </td>
@@ -232,12 +149,11 @@
   }
 
   function removerLinha(btn, isFirstLine) {
-    const tr = btn.closest("tr");
+    const tr = btn.closest('tr');
     const tbody = tr.parentElement;
     if (isFirstLine && tbody.rows.length === 1) {
-      tr.querySelectorAll("input, select").forEach(
-        (input) => (input.value = "")
-      );
+      tr.querySelectorAll('input, select').forEach(input => input.value = '');
+      tr.querySelectorAll('.saldo-info').forEach(span => span.innerText = '');
       return;
     }
     tr.remove();

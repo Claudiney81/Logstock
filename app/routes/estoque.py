@@ -58,50 +58,114 @@ def listar_itens():
     return render_template('estoque/listar.html', itens=itens, codigo=codigo, descricao=descricao)
 
 # ------------------------
-# Importar Itens via Excel (corrigido valores BR)
+# Importar Itens via Excel (robusto e rápido)
 # ------------------------
 @bp.route('/importar', methods=['POST'])
 @login_required
 def importar_itens():
     arquivo = request.files.get('arquivo')
-
     if not arquivo:
         flash('Nenhum arquivo selecionado.', 'danger')
         return redirect(url_for('estoque.cadastrar_item'))
 
     try:
-        df = pd.read_excel(arquivo)
-        for _, row in df.iterrows():
-            codigo = str(row.get('Código', '')).strip()
-            descricao = str(row.get('Descrição', '')).strip()
-            unidade = str(row.get('Unidade', '')).strip()
+        # 1) Ler tudo como string para preservar zeros à esquerda
+        df = pd.read_excel(arquivo, dtype=str)
 
-            # --- CORRIGIDO: trata valor no formato brasileiro (milhar/ponto e centavo/vírgula)
-            valor_raw = str(row.get('Valor', '0')).strip()
+        # 2) Normalizar nomes de colunas (aceita variações)
+        colmap = {
+            'codigo': 'Código', 'código': 'Código', 'cod': 'Código',
+            'descrição': 'Descrição', 'descricao': 'Descrição', 'descriçao': 'Descrição',
+            'un': 'Unidade', 'unidade': 'Unidade',
+            'valor (r$)': 'Valor', 'valor r$': 'Valor', 'valor': 'Valor', 'preço': 'Valor', 'preco': 'Valor'
+        }
+        df.columns = [c.strip() for c in df.columns]
+        lower_to_real = {c.lower(): c for c in df.columns}
+        for k, std in colmap.items():
+            if k in lower_to_real:
+                df.rename(columns={lower_to_real[k]: std}, inplace=True)
+
+        # 3) Garantir colunas obrigatórias
+        obrig = ['Código', 'Descrição', 'Unidade', 'Valor']
+        for c in obrig:
+            if c not in df.columns:
+                df[c] = ''
+
+        # 4) Limpeza
+        df = df[obrig].copy().fillna('')
+        for c in obrig:
+            df[c] = df[c].astype(str).str.strip()
+
+        # 5) Valor BR -> float
+        def parse_val(v: str) -> float:
+            v = (v or '').strip()
+            if not v:
+                return 0.0
+            v = v.replace('.', '').replace(',', '.')
             try:
-                valor = float(valor_raw.replace('.', '').replace(',', '.'))
+                return float(v)
             except ValueError:
-                valor = 0.0
+                return 0.0
 
-            if not codigo or not descricao:
+        df['valor_float'] = df['Valor'].apply(parse_val)
+
+        # 6) Linhas válidas e tirar duplicados no próprio arquivo
+        df = df[(df['Código'] != '') & (df['Descrição'] != '')]
+        df = df.drop_duplicates(subset=['Código'], keep='first')
+
+        # 7) Buscar códigos já existentes EM LOTES (evita limite do SQLite)
+        codigos = df['Código'].tolist()
+
+        def fetch_existentes_em_lotes(lista, step=900):
+            existentes = set()
+            for i in range(0, len(lista), step):
+                chunk = lista[i:i+step]
+                rows = db.session.query(Item.codigo).filter(Item.codigo.in_(chunk)).all()
+                existentes.update(c for (c,) in rows)
+            return existentes
+
+        existentes = fetch_existentes_em_lotes(codigos)
+
+        # 8) Preparar inserções novas (com fallback de Unidade = 'Un')
+        novos = []
+        sem_unidade = 0
+        ignorados_dup = 0
+
+        for _, row in df.iterrows():
+            codigo = row['Código']
+            if codigo in existentes:
+                ignorados_dup += 1
                 continue
 
-            if not Item.query.filter_by(codigo=codigo).first():
-                # Aqui não tem informação se é equipamento no Excel, então default False
-                item = Item(
-                    codigo=codigo,
-                    descricao=descricao,
-                    unidade=unidade,
-                    valor=valor,
-                    eh_equipamento=False  # NOVO
-                )
-                db.session.add(item)
+            unidade = row['Unidade'] or 'Un'
+            if not row['Unidade']:
+                sem_unidade += 1
 
-        db.session.commit()
-        flash('Itens importados com sucesso.', 'success')
+            novos.append(Item(
+                codigo=codigo,
+                descricao=row['Descrição'],
+                unidade=unidade,
+                valor=row['valor_float'],
+                eh_equipamento=False
+            ))
+
+        # 9) Persistir em lote (rápido)
+        if novos:
+            step = 1000
+            for i in range(0, len(novos), step):
+                db.session.bulk_save_objects(novos[i:i+step])
+            db.session.commit()
+
+        flash(
+            f'Importação concluída. Linhas lidas: {len(df)}. '
+            f'Criadas: {len(novos)}. Duplicadas ignoradas: {ignorados_dup}. '
+            f'Linhas sem Unidade (usado "Un"): {sem_unidade}.',
+            'success'
+        )
 
     except Exception as e:
-        flash(f'Erro ao importar itens: {str(e)}', 'danger')
+        db.session.rollback()
+        flash(f'Erro ao importar itens: {e}', 'danger')
 
     return redirect(url_for('estoque.cadastrar_item'))
 
