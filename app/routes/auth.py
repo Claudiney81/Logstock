@@ -34,19 +34,36 @@ def load_user(user_id):
 
 
 # --------------------------------------------------
-# TOKEN SEGURO
+# TOKENS SEGUROS
 # --------------------------------------------------
 def gerar_token_login(usuario_id):
     s = URLSafeTimedSerializer(current_app.secret_key)
     return s.dumps(usuario_id, salt='login-direto')
 
 
-def carregar_usuario_por_token(token, max_age=3600):
+def gerar_token_senha(usuario_id):
+    s = URLSafeTimedSerializer(current_app.secret_key)
+    return s.dumps(usuario_id, salt='redefinir-senha')
+
+
+def carregar_usuario_por_token_login(token, max_age=3600):
     s = URLSafeTimedSerializer(current_app.secret_key)
 
     usuario_id = s.loads(
         token,
         salt='login-direto',
+        max_age=max_age
+    )
+
+    return Usuario.query.get(usuario_id)
+
+
+def carregar_usuario_por_token_senha(token, max_age=3600):
+    s = URLSafeTimedSerializer(current_app.secret_key)
+
+    usuario_id = s.loads(
+        token,
+        salt='redefinir-senha',
         max_age=max_age
     )
 
@@ -60,7 +77,7 @@ def carregar_usuario_por_token(token, max_age=3600):
 def login_direto(token):
 
     try:
-        user = carregar_usuario_por_token(token, max_age=86400)
+        user = carregar_usuario_por_token_login(token, max_age=86400)
 
     except SignatureExpired:
         flash('Link expirado. Solicite um novo.', 'warning')
@@ -250,7 +267,7 @@ def esqueci_senha():
 
         if usuario:
 
-            token = gerar_token_login(usuario.id)
+            token = gerar_token_senha(usuario.id)
 
             link = url_for(
                 'auth.redefinir_senha',
@@ -278,7 +295,12 @@ LogiStock
 '''
             )
 
-            mail.send(msg)
+            try:
+                mail.send(msg)
+            except Exception as e:
+                current_app.logger.error(
+                    f"Erro ao enviar e-mail de redefinição para {usuario.email}: {e}"
+                )
 
         flash(
             'Se o e-mail estiver cadastrado, você receberá um link para redefinir sua senha.',
@@ -297,7 +319,7 @@ LogiStock
 def redefinir_senha(token):
 
     try:
-        usuario = carregar_usuario_por_token(token, max_age=3600)
+        usuario = carregar_usuario_por_token_senha(token, max_age=3600)
 
     except SignatureExpired:
         flash('Link expirado. Solicite uma nova redefinição de senha.', 'warning')
