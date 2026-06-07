@@ -34,3 +34,6 @@ tzdata==2026.2
 urllib3==2.7.0
 Werkzeug==3.1.8
 xlsxwriter==3.2.9
+google-api-python-client
+google-auth
+google-auth-httplib2

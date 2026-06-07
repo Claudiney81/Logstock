@@ -179,6 +179,11 @@ def create_app():
         "app.routes.movimentacao_estoque",
         candidates=("bp_movimentacao", "bp"),
     )
+    
+    bp_backup = _import_bp(
+        "app.routes.backup",
+        candidates=("bp_backup", "bp"),
+    )
 
     bp_frota = _import_bp(
         "app.routes.frota",
@@ -239,6 +244,8 @@ def create_app():
 
     app.register_blueprint(bp_tecnico_mobile)
     app.register_blueprint(bp_movimentacao)
+    app.register_blueprint(bp_backup)
+    
 
     app.cli.add_command(init_db)
     app.cli.add_command(seed_dados)
