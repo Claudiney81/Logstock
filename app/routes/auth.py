@@ -277,7 +277,6 @@ def esqueci_senha():
 
             msg = Message(
                 subject='Redefinição de senha - LogiStock',
-                sender='logistockteste@gmail.com',
                 recipients=[usuario.email],
                 body=f'''
 Olá, {usuario.nome}.
