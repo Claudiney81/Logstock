@@ -272,6 +272,8 @@ def create_app():
 
     @app.route("/")
     def raiz():
+        if current_user.is_authenticated:
+            return redirect(url_for("home.index"))
         return redirect(url_for("auth.login"))
 
     @app.route("/login-tecnico", methods=["GET", "POST"])
