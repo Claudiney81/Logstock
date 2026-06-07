@@ -271,7 +271,7 @@ def esqueci_senha():
             f"USUARIO ENCONTRADO = {usuario}"
         )
 
-        if usuario:    
+        if usuario:
 
             token = gerar_token_senha(usuario.id)
 
@@ -302,23 +302,65 @@ LogiStock
             )
 
             try:
-                current_app.logger.info(
-                    f"SMTP CONFIG | "
-                    f"SERVER={current_app.config.get('MAIL_SERVER')} | "
-                    f"PORT={current_app.config.get('MAIL_PORT')} | "
-                    f"TLS={current_app.config.get('MAIL_USE_TLS')} | "
-                    f"USERNAME={current_app.config.get('MAIL_USERNAME')} | "
-                    f"SENDER={current_app.config.get('MAIL_DEFAULT_SENDER')}"
-                )
 
                 current_app.logger.warning(
                     f"LINK DE RESET: {link}"
                 )
 
-                mail.send(msg)
+                brevo_api_key = os.getenv("BREVO_API_KEY")
+
+                payload = {
+                    "sender": {
+                        "name": os.getenv(
+                            "BREVO_SENDER_NAME",
+                            "LogiStock"
+                        ),
+                        "email": os.getenv(
+                            "BREVO_SENDER_EMAIL",
+                            "logistockteste@gmail.com"
+                        )
+                    },
+                    "to": [
+                        {
+                            "email": usuario.email,
+                            "name": usuario.nome
+                        }
+                    ],
+                    "subject": "Redefinição de senha - LogiStock",
+                    "textContent": msg.body
+                }
 
                 current_app.logger.warning(
-                    f"EMAIL DE RESET ENVIADO PARA: {usuario.email}"
+                    "ANTES DO BREVO"
+                )
+
+                response = requests.post(
+                    "https://api.brevo.com/v3/smtp/email",
+                    headers={
+                        "accept": "application/json",
+                        "api-key": brevo_api_key,
+                        "content-type": "application/json"
+                    },
+                    json=payload,
+                    timeout=15
+                )
+
+                current_app.logger.warning(
+                    f"STATUS BREVO = {response.status_code}"
+                )
+
+                current_app.logger.warning(
+                    f"RESPOSTA BREVO = {response.text}"
+                )
+
+                response.raise_for_status()
+
+                current_app.logger.warning(
+                    "DEPOIS DO BREVO"
+                )
+
+                current_app.logger.warning(
+                    f"EMAIL BREVO ENVIADO PARA: {usuario.email}"
                 )
 
             except Exception:
@@ -334,7 +376,6 @@ LogiStock
         return redirect(url_for('auth.login'))
 
     return render_template('auth/esqueci_senha.html')
-
 
 # --------------------------------------------------
 # REDEFINIR SENHA
