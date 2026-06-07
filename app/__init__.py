@@ -8,6 +8,7 @@ from flask_login import current_user
 from werkzeug.security import check_password_hash
 from app.routes.ferramentas_epis import bp_ferramentas_epis
 from app.routes.frota_vistoria import bp_frota_vistoria
+import os
 
 
 # Comandos CLI
@@ -37,7 +38,12 @@ def _import_bp(module_path, candidates=('bp', 'bp_estoque', 'estoque_bp', 'bp_ro
 def create_app():
     app = Flask(__name__, instance_relative_config=True)
 
-    app.config.from_pyfile('config.py')
+    config_path = os.path.join(
+        os.path.dirname(os.path.dirname(__file__)),
+        "config.py"
+    )
+
+    app.config.from_pyfile(config_path)
 
     db.init_app(app)
     mail.init_app(app)
