@@ -18,10 +18,10 @@ SQLALCHEMY_TRACK_MODIFICATIONS = False
 
 
 # ==================================================
-# EMAIL
+# EMAIL - BREVO
 # ==================================================
 
-MAIL_SERVER = os.getenv("MAIL_SERVER", "smtp.gmail.com")
+MAIL_SERVER = os.getenv("MAIL_SERVER", "smtp-relay.brevo.com")
 MAIL_PORT = int(os.getenv("MAIL_PORT", 587))
 MAIL_USE_TLS = True
 MAIL_USE_SSL = False
@@ -31,5 +31,5 @@ MAIL_PASSWORD = os.getenv("MAIL_PASSWORD")
 
 MAIL_DEFAULT_SENDER = (
     "LogiStock",
-    os.getenv("MAIL_USERNAME", "sistemalogstock@gmail.com")
+    os.getenv("MAIL_DEFAULT_SENDER", "claudineymoura@gmail.com")
 )

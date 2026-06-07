@@ -316,10 +316,10 @@ LogiStock
                             "LogiStock"
                         ),
                         "email": os.getenv(
-                            "BREVO_SENDER_EMAIL",
-                            "logistockteste@gmail.com"
+                                "BREVO_SENDER_EMAIL",
+                                current_app.config["MAIL_DEFAULT_SENDER"][1]
                         )
-                    },
+                                            },
                     "to": [
                         {
                             "email": usuario.email,
