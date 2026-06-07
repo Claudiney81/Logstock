@@ -10,6 +10,11 @@ from app.routes.ferramentas_epis import bp_ferramentas_epis
 from app.routes.frota import frota_bp
 from app.routes.frota_vistoria import bp_frota_vistoria
 
+import os
+
+
+
+
 
 
 # Comandos CLI
@@ -42,7 +47,9 @@ def create_app():
     app.config.from_pyfile('config.py', silent=True)
     
     app.config["SECRET_KEY"] = "logstock-secret-key"
-    app.config.setdefault("SQLALCHEMY_DATABASE_URI", "sqlite:///logstock.db")
+    app.config["SQLALCHEMY_DATABASE_URI"] = (
+    "sqlite:///" + os.path.join(os.getcwd(), "logstock.db")
+    )   
     app.config.setdefault("SQLALCHEMY_TRACK_MODIFICATIONS", False)
 
     db.init_app(app)
