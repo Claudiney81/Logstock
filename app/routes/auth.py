@@ -296,10 +296,24 @@ LogiStock
             )
 
             try:
+                current_app.logger.info(
+                    f"SMTP CONFIG | "
+                    f"SERVER={current_app.config.get('MAIL_SERVER')} | "
+                    f"PORT={current_app.config.get('MAIL_PORT')} | "
+                    f"TLS={current_app.config.get('MAIL_USE_TLS')} | "
+                    f"USERNAME={current_app.config.get('MAIL_USERNAME')} | "
+                    f"SENDER={current_app.config.get('MAIL_DEFAULT_SENDER')}"
+                )
+
                 mail.send(msg)
-            except Exception as e:
-                current_app.logger.error(
-                    f"Erro ao enviar e-mail de redefinição para {usuario.email}: {e}"
+
+                current_app.logger.info(
+                    f"E-mail de redefinição enviado com sucesso para {usuario.email}"
+                )
+
+            except Exception:
+                current_app.logger.exception(
+                    f"Erro ao enviar e-mail de redefinição para {usuario.email}"
                 )
 
         flash(
