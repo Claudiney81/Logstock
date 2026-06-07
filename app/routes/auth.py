@@ -305,10 +305,8 @@ LogiStock
                     f"SENDER={current_app.config.get('MAIL_DEFAULT_SENDER')}"
                 )
 
-                mail.send(msg)
-
-                current_app.logger.info(
-                    f"E-mail de redefinição enviado com sucesso para {usuario.email}"
+                current_app.logger.warning(
+                    f"LINK DE RESET: {link}"
                 )
 
             except Exception:
