@@ -44,18 +44,29 @@ def _import_bp(module_path, candidates=('bp', 'bp_estoque', 'estoque_bp', 'bp_ro
 def create_app():
     app = Flask(__name__, instance_relative_config=True)
 
-    # Carrega as configurações do projeto
-    app.config.from_object('config')
     app.config.from_pyfile('config.py', silent=True)
 
-    # Mantém o banco configurado no config.py / instance/config.py
-    # e garante apenas o controle do SQLAlchemy
+    app.config["SECRET_KEY"] = os.getenv(
+        "SECRET_KEY",
+        "logstock-secret-key"
+    )
+
+    app.config["SQLALCHEMY_DATABASE_URI"] = (
+        "sqlite:///" + os.path.join(os.getcwd(), "logstock.db")
+    )
+
     app.config["SQLALCHEMY_TRACK_MODIFICATIONS"] = False
 
-    print("DATABASE:", app.config.get("SQLALCHEMY_DATABASE_URI"))
-    print("MAIL_SERVER:", app.config.get("MAIL_SERVER"))
-    print("MAIL_PORT:", app.config.get("MAIL_PORT"))
-    print("MAIL_USERNAME:", app.config.get("MAIL_USERNAME"))
+    app.config["MAIL_SERVER"] = os.getenv("MAIL_SERVER", "smtp.gmail.com")
+    app.config["MAIL_PORT"] = int(os.getenv("MAIL_PORT", "587"))
+    app.config["MAIL_USE_TLS"] = os.getenv("MAIL_USE_TLS", "True").lower() == "true"
+    app.config["MAIL_USE_SSL"] = False
+    app.config["MAIL_USERNAME"] = os.getenv("MAIL_USERNAME")
+    app.config["MAIL_PASSWORD"] = os.getenv("MAIL_PASSWORD")
+    app.config["MAIL_DEFAULT_SENDER"] = os.getenv(
+        "MAIL_DEFAULT_SENDER",
+        app.config["MAIL_USERNAME"]
+    )
 
     db.init_app(app)
     mail.init_app(app)
