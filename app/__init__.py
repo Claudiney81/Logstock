@@ -44,23 +44,23 @@ def _import_bp(module_path, candidates=('bp', 'bp_estoque', 'estoque_bp', 'bp_ro
 def create_app():
     app = Flask(__name__, instance_relative_config=True)
 
-    # Carrega o config.py da raiz do projeto
+    # Carrega as configurações do projeto
     app.config.from_object('config')
-
-    # Se existir instance/config.py, carrega por cima sem quebrar
     app.config.from_pyfile('config.py', silent=True)
 
-    app.config.setdefault("SECRET_KEY", os.getenv("SECRET_KEY", "logstock-secret-key"))
-    app.config.setdefault("SQLALCHEMY_DATABASE_URI", os.getenv(
-        "DATABASE_URL",
-        "sqlite:///" + os.path.join(os.getcwd(), "logstock.db")
-    ))
-    app.config.setdefault("SQLALCHEMY_TRACK_MODIFICATIONS", False)
+    # Mantém o banco configurado no config.py / instance/config.py
+    # e garante apenas o controle do SQLAlchemy
+    app.config["SQLALCHEMY_TRACK_MODIFICATIONS"] = False
+
+    print("DATABASE:", app.config.get("SQLALCHEMY_DATABASE_URI"))
+    print("MAIL_SERVER:", app.config.get("MAIL_SERVER"))
+    print("MAIL_PORT:", app.config.get("MAIL_PORT"))
+    print("MAIL_USERNAME:", app.config.get("MAIL_USERNAME"))
+
     db.init_app(app)
     mail.init_app(app)
 
     from app import models  # noqa: F401
-
     Migrate(app, db)
 
     with app.app_context():
