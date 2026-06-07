@@ -41,7 +41,7 @@ def create_app():
 
     app.config.from_pyfile('config.py', silent=True)
     
-    app.config.setdefault("SECRET_KEY", "logstock-secret-key")
+    app.config["SECRET_KEY"] = "logstock-secret-key"
     app.config.setdefault("SQLALCHEMY_DATABASE_URI", "sqlite:///logstock.db")
     app.config.setdefault("SQLALCHEMY_TRACK_MODIFICATIONS", False)
 
