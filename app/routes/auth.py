@@ -265,7 +265,11 @@ def esqueci_senha():
 
         usuario = Usuario.query.filter_by(email=email).first()
 
-        if usuario:
+        current_app.logger.warning(
+            f"USUARIO ENCONTRADO = {usuario}"
+        )
+
+        if usuario:    
 
             token = gerar_token_senha(usuario.id)
 
