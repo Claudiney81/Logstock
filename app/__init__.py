@@ -1,15 +1,25 @@
 # app/__init__.py
 
-from flask import Flask, redirect, url_for, has_request_context, session, render_template, request, flash
-from .extensions import db, login_manager, mail
-from flask_migrate import Migrate
-from app.models import RequisicaoTecnico, Usuario
-from flask_login import current_user
-from werkzeug.security import check_password_hash
-from app.routes.ferramentas_epis import bp_ferramentas_epis
-from app.routes.frota_vistoria import bp_frota_vistoria
 import os
 
+from flask import (
+    Flask,
+    redirect,
+    url_for,
+    has_request_context,
+    session,
+    render_template,
+    request,
+    flash,
+)
+from flask_migrate import Migrate
+from flask_login import current_user
+from werkzeug.security import check_password_hash, generate_password_hash
+
+from .extensions import db, login_manager, mail
+from app.models import RequisicaoTecnico, Usuario
+from app.routes.ferramentas_epis import bp_ferramentas_epis
+from app.routes.frota_vistoria import bp_frota_vistoria
 
 # Comandos CLI
 from app.cli import (
@@ -18,12 +28,15 @@ from app.cli import (
     criar_usuario,
     editar_usuario,
     listar_usuarios,
-    deletar_usuario
+    deletar_usuario,
 )
 
 
-def _import_bp(module_path, candidates=('bp', 'bp_estoque', 'estoque_bp', 'bp_routes', 'blueprint')):
-    mod = __import__(module_path, fromlist=['*'])
+def _import_bp(
+    module_path,
+    candidates=("bp", "bp_estoque", "estoque_bp", "bp_routes", "blueprint"),
+):
+    mod = __import__(module_path, fromlist=["*"])
 
     for name in candidates:
         if hasattr(mod, name):
@@ -40,7 +53,7 @@ def create_app():
 
     config_path = os.path.join(
         os.path.dirname(os.path.dirname(__file__)),
-        "config.py"
+        "config.py",
     )
 
     app.config.from_pyfile(config_path)
@@ -53,28 +66,24 @@ def create_app():
     with app.app_context():
         db.create_all()
 
-    from werkzeug.security import generate_password_hash
+        if not Usuario.query.filter_by(
+            email="claudineymoura@gmail.com"
+        ).first():
+            usuario = Usuario(
+                nome="Claudiney Moura",
+                email="claudineymoura@gmail.com",
+                senha_hash=generate_password_hash("123456"),
+                perfil="admin",
+            )
 
-    if not Usuario.query.filter_by(
-        email="claudineymoura@gmail.com"
-    ).first():
-
-        usuario = Usuario(
-            nome="Claudiney Moura",
-            email="claudineymoura@gmail.com",
-            senha_hash=generate_password_hash("123456"),
-            perfil="admin"
-        )
-
-        db.session.add(usuario)
-        db.session.commit()
-        
+            db.session.add(usuario)
+            db.session.commit()
 
     Migrate(app, db)
 
     login_manager.init_app(app)
-    login_manager.login_view = 'auth.login'
-    login_manager.login_message_category = 'info'
+    login_manager.login_view = "auth.login"
+    login_manager.login_message_category = "info"
 
     @login_manager.user_loader
     def load_user(user_id):
@@ -83,98 +92,97 @@ def create_app():
         except Exception:
             return None
 
-    estoque_bp = _import_bp('app.routes.estoque')
-
-    nota_fiscal_bp = _import_bp('app.routes.nota_fiscal')
+    estoque_bp = _import_bp("app.routes.estoque")
+    nota_fiscal_bp = _import_bp("app.routes.nota_fiscal")
 
     empresas_bp = _import_bp(
-        'app.routes.empresas',
-        candidates=('empresas_bp', 'bp', 'blueprint')
+        "app.routes.empresas",
+        candidates=("empresas_bp", "bp", "blueprint"),
     )
 
     itens_bp = _import_bp(
-        'app.routes.itens',
-        candidates=('bp', 'itens_bp')
+        "app.routes.itens",
+        candidates=("bp", "itens_bp"),
     )
 
     tipo_servico_bp = _import_bp(
-        'app.routes.tipo_servico',
-        candidates=('tipo_servico_bp', 'bp')
+        "app.routes.tipo_servico",
+        candidates=("tipo_servico_bp", "bp"),
     )
 
     home_bp = _import_bp(
-        'app.routes.home',
-        candidates=('home_bp', 'bp')
+        "app.routes.home",
+        candidates=("home_bp", "bp"),
     )
 
     tecnicos_bp = _import_bp(
-        'app.routes.tecnicos',
-        candidates=('bp', 'tecnicos_bp')
+        "app.routes.tecnicos",
+        candidates=("bp", "tecnicos_bp"),
     )
 
     bp_baixa_desktop = _import_bp(
-        'app.routes.baixa_desktop',
-        candidates=('bp_baixa_desktop', 'bp')
+        "app.routes.baixa_desktop",
+        candidates=("bp_baixa_desktop", "bp"),
     )
 
     bp_requisicoes_tecnicos = _import_bp(
-        'app.routes.requisicoes_tecnicos',
-        candidates=('bp_requisicoes_tecnicos', 'bp')
+        "app.routes.requisicoes_tecnicos",
+        candidates=("bp_requisicoes_tecnicos", "bp"),
     )
 
     bp_requisicao_mobile = _import_bp(
-        'app.routes.requisicao_mobile',
-        candidates=('bp_requisicao_mobile', 'bp')
+        "app.routes.requisicao_mobile",
+        candidates=("bp_requisicao_mobile", "bp"),
     )
 
     auth_bp = _import_bp(
-        'app.routes.auth',
-        candidates=('auth_bp', 'bp')
+        "app.routes.auth",
+        candidates=("auth_bp", "bp"),
     )
 
     saldo_tecnico_bp = _import_bp(
-        'app.routes.saldo_tecnico',
-        candidates=('bp', 'saldo_tecnico_bp')
+        "app.routes.saldo_tecnico",
+        candidates=("bp", "saldo_tecnico_bp"),
     )
 
     bp_inventario = _import_bp(
-        'app.routes.inventario_tecnico',
-        candidates=('bp_inventario', 'bp')
+        "app.routes.inventario_tecnico",
+        candidates=("bp_inventario", "bp"),
     )
 
     bp_baixa_tecnico = _import_bp(
-        'app.routes.baixa_tecnico',
-        candidates=('bp_baixa_tecnico', 'bp')
+        "app.routes.baixa_tecnico",
+        candidates=("bp_baixa_tecnico", "bp"),
     )
 
     inventario_estoque_bp = _import_bp(
-        'app.routes.inventario_estoque',
-        candidates=('bp', 'inventario_estoque_bp')
+        "app.routes.inventario_estoque",
+        candidates=("bp", "inventario_estoque_bp"),
     )
 
     bp_login_supervisor = _import_bp(
-        'app.routes.login_supervisor',
-        candidates=('bp_login_supervisor', 'bp')
+        "app.routes.login_supervisor",
+        candidates=("bp_login_supervisor", "bp"),
     )
 
     bp_equipamentos = _import_bp(
-        'app.routes.equipamentos',
-        candidates=('bp_equipamentos', 'bp')
+        "app.routes.equipamentos",
+        candidates=("bp_equipamentos", "bp"),
     )
 
     bp_tecnico_mobile = _import_bp(
-        'app.routes.tecnico_mobile',
-        candidates=('bp_tecnico_mobile', 'bp')
+        "app.routes.tecnico_mobile",
+        candidates=("bp_tecnico_mobile", "bp"),
     )
 
     bp_movimentacao = _import_bp(
-        'app.routes.movimentacao_estoque',
-        candidates=('bp_movimentacao', 'bp')
+        "app.routes.movimentacao_estoque",
+        candidates=("bp_movimentacao", "bp"),
     )
 
     bp_frota = _import_bp(
-        'app.routes.frota',
-        candidates=('frota_bp', 'bp')
+        "app.routes.frota",
+        candidates=("frota_bp", "bp"),
     )
 
     app.register_blueprint(estoque_bp)
@@ -186,7 +194,7 @@ def create_app():
 
     app.register_blueprint(
         tipo_servico_bp,
-        url_prefix='/cadastro'
+        url_prefix="/cadastro",
     )
 
     app.register_blueprint(home_bp)
@@ -194,7 +202,7 @@ def create_app():
 
     app.register_blueprint(
         bp_baixa_desktop,
-        url_prefix='/baixa_desktop'
+        url_prefix="/baixa_desktop",
     )
 
     app.register_blueprint(bp_requisicoes_tecnicos)
@@ -202,17 +210,17 @@ def create_app():
 
     app.register_blueprint(
         bp_requisicao_mobile,
-        url_prefix='/requisicao_mobile'
+        url_prefix="/requisicao_mobile",
     )
 
     app.register_blueprint(
         auth_bp,
-        url_prefix='/auth'
+        url_prefix="/auth",
     )
 
     app.register_blueprint(
         saldo_tecnico_bp,
-        url_prefix='/saldo_tecnico'
+        url_prefix="/saldo_tecnico",
     )
 
     app.register_blueprint(bp_inventario)
@@ -221,12 +229,12 @@ def create_app():
 
     app.register_blueprint(
         bp_baixa_tecnico,
-        url_prefix='/baixa_tecnico'
+        url_prefix="/baixa_tecnico",
     )
 
     app.register_blueprint(
         bp_equipamentos,
-        url_prefix="/equipamentos"
+        url_prefix="/equipamentos",
     )
 
     app.register_blueprint(bp_tecnico_mobile)
@@ -244,8 +252,8 @@ def create_app():
         try:
             if has_request_context() and current_user.is_authenticated:
                 if (
-                    hasattr(current_user, 'perfil')
-                    and current_user.perfil in ['estoque', 'admin']
+                    hasattr(current_user, "perfil")
+                    and current_user.perfil in ["estoque", "admin"]
                 ):
                     count = RequisicaoTecnico.query.filter_by(
                         status="pendente"
@@ -262,28 +270,25 @@ def create_app():
             requisicoes_tecnicos_pendentes=0
         )
 
-    @app.route('/')
+    @app.route("/")
     def raiz():
-        return redirect(url_for('auth.login'))
+        return redirect(url_for("auth.login"))
 
     @app.route("/login-tecnico", methods=["GET", "POST"])
     def login_tecnico():
-
         if request.method == "POST":
-
             email = request.form.get("email")
             senha = request.form.get("senha")
 
             usuario = Usuario.query.filter_by(
                 email=email,
-                perfil="tecnico"
+                perfil="tecnico",
             ).first()
 
             if usuario and check_password_hash(
                 usuario.senha_hash,
-                senha
+                senha,
             ):
-
                 session.permanent = True
 
                 session["usuario_id"] = usuario.id
@@ -297,16 +302,15 @@ def create_app():
 
             flash(
                 "Email ou senha inválidos",
-                "danger"
+                "danger",
             )
 
         return render_template(
             "baixa_tecnico/login_tecnico.html"
         )
 
-    @app.template_filter('brl')
+    @app.template_filter("brl")
     def brl_format(value):
-
         try:
             return (
                 f"R$ {value:,.2f}"
