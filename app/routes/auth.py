@@ -313,6 +313,12 @@ LogiStock
                     f"LINK DE RESET: {link}"
                 )
 
+                mail.send(msg)
+
+                current_app.logger.warning(
+                    f"EMAIL DE RESET ENVIADO PARA: {usuario.email}"
+                )
+
             except Exception:
                 current_app.logger.exception(
                     f"Erro ao enviar e-mail de redefinição para {usuario.email}"
