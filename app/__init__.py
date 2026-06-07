@@ -50,6 +50,9 @@ def create_app():
 
     from app import models  # noqa: F401
 
+    with app.app_context():
+        db.create_all()
+
     Migrate(app, db)
 
     login_manager.init_app(app)
