@@ -7,47 +7,52 @@ from googleapiclient.http import MediaFileUpload
 
 
 def enviar_backup_google_drive(caminho_arquivo):
-    try:
 
-        credentials = service_account.Credentials.from_service_account_file(
-            os.getenv("GOOGLE_DRIVE_CREDENTIALS_FILE")
-        )
+    credentials_file = os.getenv("GOOGLE_DRIVE_CREDENTIALS_FILE")
+    folder_id = os.getenv("GOOGLE_DRIVE_FOLDER_ID")
 
-        service = build(
-            "drive",
-            "v3",
-            credentials=credentials
-        )
+    if not credentials_file:
+        raise Exception("Variável GOOGLE_DRIVE_CREDENTIALS_FILE não configurada")
 
-        folder_id = os.getenv("GOOGLE_DRIVE_FOLDER_ID")
+    if not folder_id:
+        raise Exception("Variável GOOGLE_DRIVE_FOLDER_ID não configurada")
 
-        nome_backup = (
-            f"logistock_backup_"
-            f"{datetime.now().strftime('%Y%m%d_%H%M%S')}.db"
-        )
+    if not os.path.exists(credentials_file):
+        raise Exception(f"Arquivo de credenciais não encontrado: {credentials_file}")
 
-        metadata = {
-            "name": nome_backup,
-            "parents": [folder_id]
-        }
+    if not os.path.exists(caminho_arquivo):
+        raise Exception(f"Banco não encontrado: {caminho_arquivo}")
 
-        media = MediaFileUpload(
-            caminho_arquivo,
-            mimetype="application/octet-stream"
-        )
+    credentials = service_account.Credentials.from_service_account_file(
+        credentials_file,
+        scopes=["https://www.googleapis.com/auth/drive.file"]
+    )
 
-        arquivo = service.files().create(
-            body=metadata,
-            media_body=media,
-            fields="id"
-        ).execute()
+    service = build(
+        "drive",
+        "v3",
+        credentials=credentials
+    )
 
-        print(
-            f"Backup enviado com sucesso. ID: {arquivo.get('id')}"
-        )
+    nome_backup = (
+        f"logistock_backup_"
+        f"{datetime.now().strftime('%Y%m%d_%H%M%S')}.db"
+    )
 
-        return True
+    metadata = {
+        "name": nome_backup,
+        "parents": [folder_id]
+    }
 
-    except Exception as e:
-        print(f"Erro ao enviar backup: {e}")
-        return False
+    media = MediaFileUpload(
+        caminho_arquivo,
+        mimetype="application/octet-stream"
+    )
+
+    arquivo = service.files().create(
+        body=metadata,
+        media_body=media,
+        fields="id"
+    ).execute()
+
+    return arquivo.get("id")

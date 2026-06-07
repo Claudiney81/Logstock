@@ -14,17 +14,24 @@ bp_backup = Blueprint(
 @login_required
 def executar_backup():
 
-    sucesso = enviar_backup_google_drive(
-        "logistock.db"
-    )
+    try:
+        sucesso = enviar_backup_google_drive(
+            "logistock.db"
+        )
 
-    if sucesso:
+        if sucesso:
+            return jsonify({
+                "status": "ok",
+                "mensagem": "Backup enviado para o Google Drive"
+            })
+
         return jsonify({
-            "status": "ok",
-            "mensagem": "Backup enviado para o Google Drive"
-        })
+            "status": "erro",
+            "mensagem": "Falha ao enviar backup"
+        }), 500
 
-    return jsonify({
-        "status": "erro",
-        "mensagem": "Falha ao enviar backup"
-    }), 500
+    except Exception as e:
+        return jsonify({
+            "status": "erro",
+            "mensagem": str(e)
+        }), 500
