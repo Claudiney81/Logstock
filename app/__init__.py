@@ -44,14 +44,18 @@ def _import_bp(module_path, candidates=('bp', 'bp_estoque', 'estoque_bp', 'bp_ro
 def create_app():
     app = Flask(__name__, instance_relative_config=True)
 
-    app.config.from_pyfile('config.py', silent=True)
-    
-    app.config["SECRET_KEY"] = "logstock-secret-key"
-    app.config["SQLALCHEMY_DATABASE_URI"] = (
-    "sqlite:///" + os.path.join(os.getcwd(), "logstock.db")
-    )   
-    app.config.setdefault("SQLALCHEMY_TRACK_MODIFICATIONS", False)
+    # Carrega o config.py da raiz do projeto
+    app.config.from_object('config')
 
+    # Se existir instance/config.py, carrega por cima sem quebrar
+    app.config.from_pyfile('config.py', silent=True)
+
+    app.config.setdefault("SECRET_KEY", os.getenv("SECRET_KEY", "logstock-secret-key"))
+    app.config.setdefault("SQLALCHEMY_DATABASE_URI", os.getenv(
+        "DATABASE_URL",
+        "sqlite:///" + os.path.join(os.getcwd(), "logstock.db")
+    ))
+    app.config.setdefault("SQLALCHEMY_TRACK_MODIFICATIONS", False)
     db.init_app(app)
     mail.init_app(app)
 
