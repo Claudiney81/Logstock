@@ -39,7 +39,7 @@ def _import_bp(module_path, candidates=('bp', 'bp_estoque', 'estoque_bp', 'bp_ro
 def create_app():
     app = Flask(__name__, instance_relative_config=True)
 
-    app.config.from_pyfile('config.py')
+    app.config.from_pyfile('config.py', silent=True)
 
     db.init_app(app)
     mail.init_app(app)
