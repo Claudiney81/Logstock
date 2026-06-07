@@ -22,7 +22,7 @@
                 Informe seu e-mail cadastrado para receber o link de redefinição de senha.
             </p>
 
-            <form method="POST">
+            <form method="POST" action="{{ url_for('auth.esqueci_senha') }}">
 
                 <div class="mb-3">
                     <label class="form-label">
