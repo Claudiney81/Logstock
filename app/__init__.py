@@ -7,14 +7,7 @@ from app.models import RequisicaoTecnico, Usuario
 from flask_login import current_user
 from werkzeug.security import check_password_hash
 from app.routes.ferramentas_epis import bp_ferramentas_epis
-from app.routes.frota import frota_bp
 from app.routes.frota_vistoria import bp_frota_vistoria
-
-import os
-
-
-
-
 
 
 # Comandos CLI
@@ -44,46 +37,18 @@ def _import_bp(module_path, candidates=('bp', 'bp_estoque', 'estoque_bp', 'bp_ro
 def create_app():
     app = Flask(__name__, instance_relative_config=True)
 
-    app.config.from_pyfile('config.py', silent=True)
-
-    app.config["SECRET_KEY"] = os.getenv(
-        "SECRET_KEY",
-        "logstock-secret-key"
-    )
-
-    app.config["SQLALCHEMY_DATABASE_URI"] = (
-        "sqlite:///" + os.path.join(os.getcwd(), "logstock.db")
-    )
-
-    app.config["SQLALCHEMY_TRACK_MODIFICATIONS"] = False
-
-    app.config["MAIL_SERVER"] = os.getenv("MAIL_SERVER", "smtp.gmail.com")
-    app.config["MAIL_PORT"] = int(os.getenv("MAIL_PORT", "587"))
-    app.config["MAIL_USE_TLS"] = os.getenv("MAIL_USE_TLS", "True").lower() == "true"
-    app.config["MAIL_USE_SSL"] = False
-    app.config["MAIL_USERNAME"] = os.getenv("MAIL_USERNAME")
-    app.config["MAIL_PASSWORD"] = os.getenv("MAIL_PASSWORD")
-    app.config["MAIL_DEFAULT_SENDER"] = os.getenv(
-        "MAIL_DEFAULT_SENDER",
-        app.config["MAIL_USERNAME"]
-    )
+    app.config.from_pyfile('config.py')
 
     db.init_app(app)
     mail.init_app(app)
 
     from app import models  # noqa: F401
-    Migrate(app, db)
 
-    with app.app_context():
-        db.create_all()
+    Migrate(app, db)
 
     login_manager.init_app(app)
     login_manager.login_view = 'auth.login'
     login_manager.login_message_category = 'info'
-
-    # ==================================================
-    # USER LOADER
-    # ==================================================
 
     @login_manager.user_loader
     def load_user(user_id):
@@ -92,15 +57,9 @@ def create_app():
         except Exception:
             return None
 
-    # ==================================================
-    # IMPORTAÇÃO DOS BLUEPRINTS
-    # ==================================================
-
     estoque_bp = _import_bp('app.routes.estoque')
 
-    nota_fiscal_bp = _import_bp(
-        'app.routes.nota_fiscal'
-    )
+    nota_fiscal_bp = _import_bp('app.routes.nota_fiscal')
 
     empresas_bp = _import_bp(
         'app.routes.empresas',
@@ -125,7 +84,7 @@ def create_app():
     tecnicos_bp = _import_bp(
         'app.routes.tecnicos',
         candidates=('bp', 'tecnicos_bp')
-    )    
+    )
 
     bp_baixa_desktop = _import_bp(
         'app.routes.baixa_desktop',
@@ -136,10 +95,6 @@ def create_app():
         'app.routes.requisicoes_tecnicos',
         candidates=('bp_requisicoes_tecnicos', 'bp')
     )
-
-    # ==================================================
-    # NOVO BLUEPRINT MOBILE
-    # ==================================================
 
     bp_requisicao_mobile = _import_bp(
         'app.routes.requisicao_mobile',
@@ -190,27 +145,17 @@ def create_app():
         'app.routes.movimentacao_estoque',
         candidates=('bp_movimentacao', 'bp')
     )
-    
+
     bp_frota = _import_bp(
         'app.routes.frota',
         candidates=('frota_bp', 'bp')
     )
-    
-
-    # ==================================================
-    # REGISTRO DOS BLUEPRINTS
-    # ==================================================
 
     app.register_blueprint(estoque_bp)
-
     app.register_blueprint(nota_fiscal_bp)
-    
     app.register_blueprint(bp_frota)
-    
     app.register_blueprint(bp_frota_vistoria)
-
     app.register_blueprint(empresas_bp)
-
     app.register_blueprint(itens_bp)
 
     app.register_blueprint(
@@ -219,25 +164,15 @@ def create_app():
     )
 
     app.register_blueprint(home_bp)
-
-    app.register_blueprint(tecnicos_bp)   
+    app.register_blueprint(tecnicos_bp)
 
     app.register_blueprint(
         bp_baixa_desktop,
         url_prefix='/baixa_desktop'
     )
 
-    app.register_blueprint(
-        bp_requisicoes_tecnicos
-    )
-    
+    app.register_blueprint(bp_requisicoes_tecnicos)
     app.register_blueprint(bp_ferramentas_epis)
-    
-   
-
-    # ==================================================
-    # REGISTRO REQUISIÇÃO MOBILE
-    # ==================================================
 
     app.register_blueprint(
         bp_requisicao_mobile,
@@ -255,11 +190,7 @@ def create_app():
     )
 
     app.register_blueprint(bp_inventario)
-
     app.register_blueprint(inventario_estoque_bp)
-
-    # Não adicionar url_prefix aqui:
-    # o blueprint já define /login-supervisor internamente
     app.register_blueprint(bp_login_supervisor)
 
     app.register_blueprint(
@@ -273,12 +204,7 @@ def create_app():
     )
 
     app.register_blueprint(bp_tecnico_mobile)
-
     app.register_blueprint(bp_movimentacao)
-
-    # ==================================================
-    # COMANDOS CLI
-    # ==================================================
 
     app.cli.add_command(init_db)
     app.cli.add_command(seed_dados)
@@ -287,20 +213,14 @@ def create_app():
     app.cli.add_command(listar_usuarios)
     app.cli.add_command(deletar_usuario)
 
-    # ==================================================
-    # CONTEXT PROCESSOR
-    # ==================================================
-    
     @app.context_processor
     def inject_requisicoes_tecnicos_pendentes():
         try:
             if has_request_context() and current_user.is_authenticated:
-
                 if (
                     hasattr(current_user, 'perfil')
                     and current_user.perfil in ['estoque', 'admin']
                 ):
-
                     count = RequisicaoTecnico.query.filter_by(
                         status="pendente"
                     ).count()
@@ -316,17 +236,9 @@ def create_app():
             requisicoes_tecnicos_pendentes=0
         )
 
-    # ==================================================
-    # ROTA RAIZ
-    # ==================================================
-
     @app.route('/')
     def raiz():
         return redirect(url_for('auth.login'))
-
-    # ==================================================
-    # LOGIN TÉCNICO
-    # ==================================================
 
     @app.route("/login-tecnico", methods=["GET", "POST"])
     def login_tecnico():
@@ -365,10 +277,6 @@ def create_app():
         return render_template(
             "baixa_tecnico/login_tecnico.html"
         )
-
-    # ==================================================
-    # FILTRO MOEDA BR
-    # ==================================================
 
     @app.template_filter('brl')
     def brl_format(value):
