@@ -34,36 +34,19 @@ def load_user(user_id):
 
 
 # --------------------------------------------------
-# TOKENS SEGUROS
+# TOKEN SEGURO
 # --------------------------------------------------
 def gerar_token_login(usuario_id):
     s = URLSafeTimedSerializer(current_app.secret_key)
     return s.dumps(usuario_id, salt='login-direto')
 
 
-def gerar_token_senha(usuario_id):
-    s = URLSafeTimedSerializer(current_app.secret_key)
-    return s.dumps(usuario_id, salt='redefinir-senha')
-
-
-def carregar_usuario_por_token_login(token, max_age=3600):
+def carregar_usuario_por_token(token, max_age=3600):
     s = URLSafeTimedSerializer(current_app.secret_key)
 
     usuario_id = s.loads(
         token,
         salt='login-direto',
-        max_age=max_age
-    )
-
-    return Usuario.query.get(usuario_id)
-
-
-def carregar_usuario_por_token_senha(token, max_age=3600):
-    s = URLSafeTimedSerializer(current_app.secret_key)
-
-    usuario_id = s.loads(
-        token,
-        salt='redefinir-senha',
         max_age=max_age
     )
 
@@ -77,7 +60,7 @@ def carregar_usuario_por_token_senha(token, max_age=3600):
 def login_direto(token):
 
     try:
-        user = carregar_usuario_por_token_login(token, max_age=86400)
+        user = carregar_usuario_por_token(token, max_age=86400)
 
     except SignatureExpired:
         flash('Link expirado. Solicite um novo.', 'warning')
@@ -265,13 +248,9 @@ def esqueci_senha():
 
         usuario = Usuario.query.filter_by(email=email).first()
 
-        current_app.logger.warning(
-            f"USUARIO ENCONTRADO = {usuario}"
-        )
+        if usuario:
 
-        if usuario:    
-
-            token = gerar_token_senha(usuario.id)
+            token = gerar_token_login(usuario.id)
 
             link = url_for(
                 'auth.redefinir_senha',
@@ -299,30 +278,7 @@ LogiStock
 '''
             )
 
-            try:
-                current_app.logger.info(
-                    f"SMTP CONFIG | "
-                    f"SERVER={current_app.config.get('MAIL_SERVER')} | "
-                    f"PORT={current_app.config.get('MAIL_PORT')} | "
-                    f"TLS={current_app.config.get('MAIL_USE_TLS')} | "
-                    f"USERNAME={current_app.config.get('MAIL_USERNAME')} | "
-                    f"SENDER={current_app.config.get('MAIL_DEFAULT_SENDER')}"
-                )
-
-                current_app.logger.warning(
-                    f"LINK DE RESET: {link}"
-                )
-
-                mail.send(msg)
-
-                current_app.logger.warning(
-                    f"EMAIL DE RESET ENVIADO PARA: {usuario.email}"
-                )
-
-            except Exception:
-                current_app.logger.exception(
-                    f"Erro ao enviar e-mail de redefinição para {usuario.email}"
-                )
+            mail.send(msg)
 
         flash(
             'Se o e-mail estiver cadastrado, você receberá um link para redefinir sua senha.',
@@ -341,7 +297,7 @@ LogiStock
 def redefinir_senha(token):
 
     try:
-        usuario = carregar_usuario_por_token_senha(token, max_age=3600)
+        usuario = carregar_usuario_por_token(token, max_age=3600)
 
     except SignatureExpired:
         flash('Link expirado. Solicite uma nova redefinição de senha.', 'warning')
