@@ -53,6 +53,23 @@ def create_app():
     with app.app_context():
         db.create_all()
 
+    from werkzeug.security import generate_password_hash
+
+    if not Usuario.query.filter_by(
+        email="claudineymoura@gmail.com"
+    ).first():
+
+        usuario = Usuario(
+            nome="Claudiney Moura",
+            email="claudineymoura@gmail.com",
+            senha_hash=generate_password_hash("123456"),
+            perfil="admin"
+        )
+
+        db.session.add(usuario)
+        db.session.commit()
+        
+
     Migrate(app, db)
 
     login_manager.init_app(app)
