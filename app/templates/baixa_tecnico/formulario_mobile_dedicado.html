@@ -1,113 +1,895 @@
-{% extends 'base_mobile_tecnico.html' %}
-{% block title %}Baixa Técnica - {{ tecnico_nome }}{% endblock %}
-{% block content %}
-<div class="card mt-3 shadow-sm">
-  <div class="card-body">
-    <h5 class="card-title text-center mb-4">
-      <i class="bi bi-clipboard-check"></i> Baixa Técnica - {{ tecnico_nome }}
-    </h5>
+    {% extends 'base_mobile_tecnico.html' %}
+    {% block title %}Baixa Técnica - {{ tecnico_nome }}{% endblock %}
 
-    <form id="form-baixa-mobile" action="{{ url_for('baixa_tecnico.registrar') }}" method="POST">
-      <input type="hidden" name="tecnico_id" value="{{ tecnico_id }}" />
+    {% block content %}
 
-      <!-- Técnico -->
-      <div class="mb-3">
-        <label class="form-label">Técnico</label>
-        <input type="text" class="form-control" value="{{ tecnico_nome }}" readonly />
+    <div class="card mt-3 shadow-sm border-0">
+
+      <div class="card-header text-white text-center" style="background:#002b55;">
+        <strong>🛠️ Baixa Técnica - {{ tecnico_nome }}</strong>
       </div>
 
-      <!-- Tipo de Serviço -->
-      <div class="mb-3">
-        <label for="tipo_servico_id" class="form-label">Tipo de Serviço</label>
-        <select class="form-select" name="tipo_servico_id" id="tipo_servico_id" required>
-          <option value="">Selecione</option>
-          {% for ts in tipos_servico %}
-            <option value="{{ ts.id }}">{{ ts.nome }}</option>
-          {% endfor %}
-        </select>
-      </div>
+      {% if baixas_recusadas %}
+      <div class="alert alert-danger shadow-sm border-0 mt-3 mx-3 mb-0">
 
-      <!-- Responsável -->
-      <div class="mb-3">
-        <label for="responsavel" class="form-label">Responsável pela Baixa</label>
-        <input type="text" class="form-control" name="responsavel" required />
-      </div>
+        <button
+          class="btn btn-sm btn-danger w-100 text-start fw-bold"
+          type="button"
+          data-bs-toggle="collapse"
+          data-bs-target="#alertaBaixaDevolvida"
+          aria-expanded="true"
+        >
+          ⚠ Baixa devolvida para ajuste
+          <span class="float-end">▼</span>
+        </button>
 
-      <!-- Observação -->
-      <div class="mb-3">
-        <label for="observacao" class="form-label">Observações</label>
-        <textarea class="form-control" name="observacao" rows="2"></textarea>
-      </div>
+        <div class="collapse show mt-3" id="alertaBaixaDevolvida">
 
-      <!-- Itens -->
-      <div id="itens-container" class="mt-4">
-        <div class="alert alert-info small">
-          Selecione um tipo de serviço para carregar os itens...
-        </div>
-      </div>
+          {% for baixa in baixas_recusadas %}
 
-      <button type="submit" class="btn btn-primary w-100 mt-4" id="btn-enviar" disabled>
-        <i class="bi bi-check-circle"></i> Enviar Baixa
-      </button>
-    </form>
-  </div>
-</div>
-{% endblock %}
+          {% set tipo_estoque_alerta = '-' %}
+          {% if baixa.itens and baixa.itens|length > 0 %}
+            {% set tipo_estoque_alerta = baixa.itens[0].tipo_estoque %}
+          {% endif %}
 
-{% block scripts %}
-<script>
-document.getElementById('tipo_servico_id').addEventListener('change', function() {
-    const tecnicoId = {{ tecnico_id }};
-    const tipoServicoId = this.value;
-    const container = document.getElementById('itens-container');
-    const btnEnviar = document.getElementById('btn-enviar');
-    btnEnviar.disabled = true;
-    container.innerHTML = '<p class="text-info">Carregando itens...</p>';
+          <div class="p-2 rounded bg-white border mb-2">
 
-    if (!tipoServicoId) return;
+            <div class="mb-2">
+              <strong>Cliente:</strong><br>
+              {{ baixa.cliente.razao_social if baixa.cliente else '-' }}
+            </div>
 
-    fetch(`/baixa_tecnico/api/itens/${tecnicoId}/${tipoServicoId}`)
-        .then(r => r.json())
-        .then(data => {
-            if (!data.itens.length) {
-                container.innerHTML = '<div class="alert alert-warning small">Nenhum item disponível para este serviço.</div>';
-                return;
-            }
-            let html = `
-                <table class="table table-bordered table-sm align-middle">
+            <div class="mb-2">
+              <strong>O.S:</strong><br>
+              {% if baixa.cliente and baixa.cliente.numero_os %}
+                {{ baixa.cliente.numero_os }}
+              {% else %}
+                -
+              {% endif %}
+            </div>
+
+            <div class="mb-2">
+              <strong>Tipo de Estoque:</strong><br>
+              {% if tipo_estoque_alerta == 'cliente' %}
+                Estoque Cliente
+              {% elif tipo_estoque_alerta == 'empresa' %}
+                Estoque Empresa
+              {% else %}
+                -
+              {% endif %}
+            </div>
+
+            <div class="mb-2">
+              <strong>Endereço:</strong><br>
+              {{ baixa.endereco or '-' }}
+            </div>
+
+            <div class="mb-2">
+              <strong>Tipo Serviço:</strong><br>
+              {{ baixa.tipo_servico.nome if baixa.tipo_servico else '-' }}
+            </div>
+
+            <div class="mb-2">
+              <strong>Motivo da devolução:</strong><br>
+              {{ baixa.motivo_recusa or 'A baixa foi devolvida para correção.' }}
+            </div>
+
+            <button
+              class="btn btn-outline-danger btn-sm w-100 text-start mb-2"
+              type="button"
+              data-bs-toggle="collapse"
+              data-bs-target="#itensDevolvidos{{ baixa.id }}"
+            >
+              📦 Ver itens devolvidos
+            </button>
+
+            <div class="collapse mb-2" id="itensDevolvidos{{ baixa.id }}">
+              <div class="table-responsive">
+                <table class="table table-sm table-bordered align-middle mb-0">
                   <thead class="table-light text-center">
                     <tr>
                       <th>Código</th>
                       <th>Descrição</th>
-                      <th>Unid.</th>
-                      <th>Saldo</th>
-                      <th>Qtd. Baixa</th>
+                      <th>Un.</th>
+                      <th>Qtd.</th>
                     </tr>
                   </thead>
+
                   <tbody>
-            `;
-            data.itens.forEach(i => {
-                html += `
+                    {% for item_baixa in baixa.itens %}
+                      {% if item_baixa.status in ['recusado', 'pendente_ajuste'] %}
+                      <tr>
+                        <td class="text-center">
+                          {{ item_baixa.item.codigo if item_baixa.item else '-' }}
+                        </td>
+                        <td>
+                          {{ item_baixa.item.descricao if item_baixa.item else '-' }}
+                        </td>
+                        <td class="text-center">
+                          {{ item_baixa.item.unidade if item_baixa.item else '-' }}
+                        </td>
+                        <td class="text-center fw-bold">
+                          {{ item_baixa.quantidade or 0 }}
+                        </td>
+                      </tr>
+                      {% endif %}
+                    {% endfor %}
+                  </tbody>
+                </table>
+              </div>
+            </div>
+
+            <button
+              type="button"
+              class="btn btn-danger btn-sm w-100"
+              onclick="corrigirBaixa{{ baixa.id }}()"
+            >
+              ✏️ Corrigir esta baixa
+            </button>
+
+            <a
+              href="{{ url_for('tecnico_mobile.home') }}"
+              class="btn btn-outline-secondary btn-sm w-100 mt-2"
+            >
+              <i class="bi bi-arrow-left"></i>
+              Voltar
+            </a>
+
+    <script>
+    function corrigirBaixa{{ baixa.id }}() {
+
+      modoCorrecaoBaixa = true;
+
+      document.getElementById('baixa_id_corrigir').value = '{{ baixa.id }}';
+
+      clienteId.value = '{{ baixa.cliente_id or "" }}';
+
+      tipoEstoque.value =
+        '{{ tipo_estoque_alerta if tipo_estoque_alerta != "-" else "" }}';
+
+      tipoServico.value =
+        '{{ baixa.tipo_servico_id or "" }}';
+
+      endereco.value =
+        `{{ baixa.endereco or "" }}`;
+
+      ordemServico.innerHTML = `
+        <option
+        value="{{ baixa.ordem_servico_id or '0' }}"
+        selected
+      >
+        {% if baixa.ordem_servico %}
+          {{ baixa.ordem_servico.numero_os }}
+        {% elif baixa.os_cliente %}
+          {{ baixa.os_cliente.split(' - ')[-1] }}
+        {% else %}
+          O.S selecionada
+        {% endif %}
+      </option>
+    `;
+
+      tbodyItens.innerHTML = '';
+      hiddenInputs.innerHTML = '';
+
+      tbodyResumo.innerHTML = `
+        <tr id="linhaVaziaResumo">
+          <td colspan="5" class="text-center text-muted">
+            Nenhum item adicionado
+          </td>
+        </tr>
+      `;
+
+      {% for item_baixa in baixa.itens %}
+        {% if item_baixa.status in ['recusado', 'pendente_ajuste'] %}
+          tbodyItens.innerHTML += `
+            <tr>
+              <td>{{ item_baixa.item.codigo if item_baixa.item else '-' }}</td>
+
+              <td>{{ item_baixa.item.descricao if item_baixa.item else '-' }}</td>
+
+              <td class="text-center">
+                {{ item_baixa.item.unidade if item_baixa.item else '-' }}
+              </td>
+
+              <td style="width:90px;">
+                <input
+                  type="number"
+                  class="form-control form-control-sm qtd"
+                  data-id="{{ item_baixa.item_id }}"
+                  data-codigo="{{ item_baixa.item.codigo if item_baixa.item else '' }}"
+                  data-descricao="{{ item_baixa.item.descricao if item_baixa.item else '' }}"
+                  data-tipo-estoque="{{ item_baixa.tipo_estoque }}"
+                  data-cliente-id="{{ item_baixa.cliente_estoque_id or '' }}"
+                  data-saldo="{{ item_baixa.quantidade or 0 }}"
+                  min="1"
+                  max="{{ item_baixa.quantidade or 0 }}"
+                  value="{{ item_baixa.quantidade or 0 }}"
+                >
+              </td>
+            </tr>
+          `;
+        {% endif %}
+      {% endfor %}
+
+      document.getElementById('btnEnviarBaixa').innerHTML =
+        '✅ Reenviar Correção';
+
+      document.getElementById('formBaixa').scrollIntoView({
+        behavior: 'smooth'
+      });
+
+    }
+
+    </script>
+
+          </div>
+
+          {% endfor %}
+
+        </div>
+      </div>
+      {% endif %}
+
+      <div class="card-body">
+
+        <form
+          id="formBaixa"
+          method="POST"
+          enctype="multipart/form-data"
+          action="{{ url_for('baixa_tecnico.registrar') }}"
+        >
+
+          <input type="hidden" name="tecnico_id" value="{{ tecnico_id }}">
+          <input type="hidden" name="baixa_id_corrigir" id="baixa_id_corrigir" value="">
+
+          <div class="mb-3">
+            <label class="form-label fw-bold">Técnico</label>
+            <input type="text" class="form-control" value="{{ tecnico_nome }}" readonly>
+          </div>
+
+          <div class="mb-3">
+            <label class="form-label fw-bold">Cliente</label>
+            <select class="form-select" name="cliente_id" id="cliente_id" required>
+              <option value="">Selecione</option>
+              {% for cliente in clientes %}
+              <option
+                value="{{ cliente.id }}"
+                data-endereco="{{ cliente.endereco or '' }}"
+                data-os="{{ cliente.numero_os or '' }}"
+              >
+                {{ cliente.razao_social }}
+              </option>
+              {% endfor %}
+            </select>
+          </div>
+
+          <div class="mb-3">
+            <label class="form-label fw-bold">O.S</label>
+
+            <select
+              class="form-select"
+              name="ordem_servico_id"
+              id="ordem_servico"
+              required
+            >
+              <option value="">Selecione a O.S</option>
+            </select>
+          </div>
+
+          <div class="mb-3">
+            <label class="form-label fw-bold">Tipo de Estoque</label>
+            <select class="form-select" id="tipo_estoque" required>
+              <option value="">Selecione</option>
+              <option value="empresa">Estoque Empresa</option>
+              <option value="cliente">Estoque Cliente</option>
+            </select>
+          </div>
+
+          <div class="mb-3">
+            <label class="form-label fw-bold">Tipo de Serviço</label>
+            <select class="form-select" name="tipo_servico_id" id="tipo_servico_id" required>
+              <option value="">Selecione</option>
+              {% for ts in tipos_servico %}
+              <option value="{{ ts.id }}">{{ ts.nome }}</option>
+              {% endfor %}
+            </select>
+          </div>
+
+          <div class="mb-3">
+            <label class="form-label fw-bold">Endereço</label>
+            <input
+              type="text"
+              class="form-control"
+              name="endereco"
+              id="endereco"
+              placeholder="Endereço da O.S"
+            >
+          </div>
+
+          <div class="mb-3">
+            <label class="form-label fw-bold">Observação</label>
+            <textarea
+              class="form-control"
+              name="observacao"
+              rows="2"
+              placeholder="Observações da baixa..."
+            ></textarea>
+          </div>
+
+          <div class="mt-4">
+            <h6 class="fw-bold text-success">Itens disponíveis</h6>
+
+            <div class="table-responsive">
+              <table class="table table-bordered table-sm align-middle">
+                <thead class="table-light text-center">
                   <tr>
-                    <td>${i.codigo}</td>
-                    <td>${i.descricao}</td>
-                    <td>${i.unidade}</td>
-                    <td class="text-center">${i.saldo}</td>
-                    <td class="text-center">
-                      <input type="number" name="quantidade[]" max="${i.saldo}" min="0" step="1"
-                             class="form-control form-control-sm">
-                      <input type="hidden" name="item_id[]" value="${i.item_id}">
+                    <th>Código</th>
+                    <th>Descrição</th>
+                    <th>Un.</th>                
+                    <th>Qtd.</th>
+                  </tr>
+                </thead>
+
+                <tbody id="tbodyItens">
+                  <tr>
+                    <td colspan="5" class="text-center text-muted">
+                      Selecione os filtros
                     </td>
                   </tr>
-                `;
-            });
-            html += '</tbody></table>';
-            container.innerHTML = html;
-            btnEnviar.disabled = false;
+                </tbody>
+              </table>
+            </div>
+
+            <button
+              type="button"
+              class="btn btn-outline-primary w-100 mt-2"
+              id="btnAdicionar"
+            >
+              + Adicionar à Baixa
+            </button>
+          </div>
+
+          <div class="mt-4">
+            <h6 class="fw-bold text-primary">Itens adicionados</h6>
+
+            <div class="table-responsive">
+              <table class="table table-bordered table-sm align-middle">
+                <thead class="table-light text-center">
+                  <tr>
+                    <th>Origem</th>
+                    <th>Código</th>
+                    <th>Descrição</th>
+                    <th>Qtd.</th>
+                    <th>Ação</th>
+                  </tr>
+                </thead>
+
+                <tbody id="tbodyResumo">
+                  <tr id="linhaVaziaResumo">
+                    <td colspan="5" class="text-center text-muted">
+                      Nenhum item adicionado
+                    </td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+          </div>
+
+          <div id="hiddenInputs"></div>
+
+    <!-- FOTOS -->
+    <div class="mt-4">
+      <h6 class="fw-bold text-primary">
+        📸 Fotos do Serviço
+      </h6>
+
+      <div id="containerFotos">
+
+        <div class="card border mb-2 p-2 foto-item">
+
+          <div class="mb-2">
+            <label class="form-label fw-bold">
+              Legenda da Foto
+            </label>
+
+            <input
+              type="text"
+              name="legenda_foto[]"
+              class="form-control"
+              placeholder="Ex: Caixa elétrica concluída"
+            >
+          </div>
+          
+          <div class="mb-2">
+            <input
+              type="file"
+              name="fotos[]"
+              accept="image/*"
+              capture="environment"
+              class="form-control foto-input"
+            >
+          </div>
+
+          <div class="preview-container text-center position-relative"></div>
+
+        </div>
+
+      </div>
+
+      <button
+        type="button"
+        class="btn btn-outline-secondary btn-sm w-100"
+        id="btnAdicionarFoto"
+      >
+        + Adicionar outra foto
+      </button>
+
+    </div>
+
+          <button
+            type="submit"
+            class="btn btn-success w-100 mt-3"
+            id="btnEnviarBaixa"
+          >
+            ✅ Enviar Baixa
+          </button>
+
+        </form>
+
+      </div>
+    </div>
+
+    <script>
+    let modoCorrecaoBaixa = false;
+
+    const tecnicoId = {{ tecnico_id }};
+
+    const tipoServico = document.getElementById('tipo_servico_id');
+    const tipoEstoque = document.getElementById('tipo_estoque');
+    const clienteId = document.getElementById('cliente_id');
+    const endereco = document.getElementById('endereco');
+    const ordemServico = document.getElementById('ordem_servico');
+
+    const tbodyItens = document.getElementById('tbodyItens');
+    const tbodyResumo = document.getElementById('tbodyResumo');
+    const hiddenInputs = document.getElementById('hiddenInputs');
+
+    function mensagemItens(texto, classe = 'text-muted') {
+      tbodyItens.innerHTML = `
+        <tr>
+          <td colspan="4" class="text-center ${classe}">
+            ${texto}
+          </td>
+        </tr>
+      `;
+    }
+
+    function preencherDadosCliente() {
+      const option = clienteId.options[clienteId.selectedIndex];
+
+      if (option) {
+        endereco.value = option.dataset.endereco || '';
+        ordemServico.value = option.dataset.os || '';
+      }
+    }
+
+    function carregarItens() {
+      if (modoCorrecaoBaixa) {
+        return;
+      }
+      const ts = tipoServico.value;
+      const estoque = tipoEstoque.value;
+      const cliente = clienteId.value;
+      const osId = ordemServico.value;
+
+      if (!cliente || !osId || !estoque || !ts) {
+        mensagemItens(
+          'Selecione Cliente, O.S, Tipo de Estoque e Tipo de Serviço'
+        );
+        return;
+      }
+
+      let url =
+        `/baixa_tecnico/api/itens?tecnico_id=${tecnicoId}` +
+        `&tipo_servico_id=${ts}` +
+        `&tipo_estoque=${estoque}` +
+        `&cliente_id=${cliente}` +
+        `&ordem_servico_id=${osId}`;
+
+      fetch(url)
+        .then(response => response.json())
+        .then(data => {
+          tbodyItens.innerHTML = '';
+
+          if (!data.itens || data.itens.length === 0) {
+            mensagemItens(
+              'Nenhum item encontrado para esse filtro',
+              'text-warning'
+            );
+            return;
+          }
+
+          data.itens.forEach(item => {
+            tbodyItens.innerHTML += `
+              <tr>
+                <td>${item.codigo || ''}</td>
+                <td>${item.descricao || ''}</td>
+                <td class="text-center">${item.unidade || ''}</td>
+                <td style="width:90px;">
+                  <input
+                    type="number"
+                    class="form-control form-control-sm qtd"
+                    data-id="${item.item_id}"
+                    data-codigo="${item.codigo || ''}"
+                    data-descricao="${item.descricao || ''}"
+                    data-saldo="${item.saldo || 0}"
+                    min="0"
+                    max="${item.saldo || 0}"
+                    value=""
+                  >
+                </td>
+              </tr>
+            `;
+          });
         })
         .catch(() => {
-            container.innerHTML = '<div class="alert alert-danger small">Erro ao carregar itens.</div>';
+          mensagemItens('Erro ao carregar itens', 'text-danger');
         });
+    }
+
+    function carregarOrdensServico() {
+      const cliente = clienteId.value;
+
+      
+
+      ordemServico.innerHTML = '<option value="">Selecione a O.S</option>';
+      endereco.value = '';
+      tipoServico.value = '';
+
+      mensagemItens('Selecione Cliente, O.S, Tipo de Estoque e Tipo de Serviço');
+
+      if (!cliente) {
+        return;
+      }
+
+      fetch(`/baixa_tecnico/api/os-por-cliente?tecnico_id=${tecnicoId}&cliente_id=${cliente}`)
+        .then(response => response.json())
+        .then(data => {
+          if (!data.ordens || data.ordens.length === 0) {
+            ordemServico.innerHTML = '<option value="">Nenhuma O.S com saldo</option>';
+            return;
+          }
+
+          data.ordens.forEach(os => {
+            const option = document.createElement('option');
+
+            option.value = os.ordem_servico_id;
+            option.textContent = os.numero_os;
+            option.dataset.endereco = os.endereco || '';
+            option.dataset.tipoServicoId = os.tipo_servico_id || '';
+
+            ordemServico.appendChild(option);
+          });
+        })
+        .catch(() => {
+          ordemServico.innerHTML = '<option value="">Erro ao carregar O.S</option>';
+        });
+    }
+
+    clienteId.addEventListener('change', () => {
+      carregarOrdensServico();
+    });
+
+    ordemServico.addEventListener('change', () => {
+      const option = ordemServico.options[ordemServico.selectedIndex];
+
+      endereco.value = option?.dataset?.endereco || '';
+
+      carregarItens();
+    });
+
+    tipoEstoque.addEventListener('change', carregarItens);
+    tipoServico.addEventListener('change', carregarItens);
+
+
+    document.getElementById('btnAdicionar').addEventListener('click', () => {
+      const inputs = document.querySelectorAll('.qtd');
+      const estoque = tipoEstoque.value;
+      const cliente = clienteId.value;
+      const osId = ordemServico.value;
+
+      let adicionou = false;
+
+      if (!modoCorrecaoBaixa && !cliente) {
+        alert('Selecione Cliente.');
+        return;
+      }
+
+      if (!modoCorrecaoBaixa && !osId) {
+        alert('Selecione a O.S.');
+        return;
+      }
+
+      if (!modoCorrecaoBaixa && !estoque) {
+        alert('Selecione Tipo de Estoque.');
+        return;
+      }
+
+      inputs.forEach(input => {
+        const qtd = parseInt(input.value || 0);
+        const saldo = parseInt(input.dataset.saldo || 0);
+
+        if (qtd <= 0) return;
+
+        if (!modoCorrecaoBaixa && qtd > saldo) {
+          alert(`Quantidade maior que o saldo do item ${input.dataset.codigo}.`);
+          return;
+        }
+
+        adicionou = true;
+
+        const linha = input.closest('tr');
+        if (linha) {
+          linha.remove();
+        }
+
+    document.getElementById('linhaVaziaResumo')?.remove();
+
+        document.getElementById('linhaVaziaResumo')?.remove();
+
+        const estoqueItem = modoCorrecaoBaixa
+        ? (input.getAttribute('data-tipo-estoque') || 'empresa')
+        : estoque;
+
+        const clienteItem = modoCorrecaoBaixa
+        ? (input.getAttribute('data-cliente-id') || '')
+        : (estoque === 'cliente' ? cliente : '');
+
+        const origemTexto =
+          estoqueItem === 'cliente'
+            ? 'Cliente'
+            : 'Empresa';
+
+        const badgeClass =
+          estoqueItem === 'cliente'
+            ? 'bg-warning text-dark'
+            : 'bg-primary';
+
+        tbodyResumo.innerHTML += `
+          <tr>
+            <td class="text-center">
+              <span class="badge ${badgeClass}">
+                ${origemTexto}
+              </span>
+            </td>
+            <td>${input.dataset.codigo}</td>
+            <td>${input.dataset.descricao}</td>
+            <td class="text-center">${qtd}</td>
+            <td class="text-center">
+              <button
+                type="button"
+                class="btn btn-sm btn-outline-danger"
+                onclick="removerItemResumo(this)"
+              >
+                Remover
+              </button>
+            </td>
+          </tr>
+        `;
+
+        hiddenInputs.innerHTML += `
+          <div class="hidden-item">
+            <input type="hidden" name="item_id[]" value="${input.dataset.id}">
+            <input type="hidden" name="quantidade[]" value="${qtd}">
+            <input type="hidden" name="tipo_estoque[]" value="${estoqueItem}">
+            <input type="hidden" name="cliente_estoque_id[]" value="${clienteItem}">
+          </div>
+        `;
+
+        input.value = '';
+      });
+
+      if (!adicionou) {
+        alert('Informe pelo menos uma quantidade.');
+      }
+    });
+    document.getElementById('formBaixa').addEventListener('submit', function(e) {
+      const itensAdicionados = document.querySelectorAll('input[name="item_id[]"]');
+
+      if (itensAdicionados.length === 0) {
+        e.preventDefault();
+        alert('Você precisa clicar em "+ Adicionar à Baixa" antes de enviar.');
+        return false;
+      }
+    });
+
+    document.getElementById('btnAdicionarFoto').addEventListener('click', function () {
+
+      const container = document.getElementById('containerFotos');
+
+      const bloco = document.createElement('div');
+
+      bloco.className = 'card border mb-2 p-2 foto-item position-relative';
+
+bloco.innerHTML = `
+  <button
+    type="button"
+    class="btn btn-sm btn-danger remover-bloco-foto"
+    style="
+      position:absolute;
+      top:6px;
+      right:6px;
+      width:26px;
+      height:26px;
+      padding:0;
+      border-radius:50%;
+      z-index:5;
+    "
+  >
+    ×
+  </button>
+
+  <div class="mb-2 mt-3">
+    <label class="form-label fw-bold">
+      Legenda da Foto
+    </label>
+
+    <input
+      type="text"
+      name="legenda_foto[]"
+      class="form-control"
+      placeholder="Ex: Inversor instalado"
+    >
+  </div>
+
+  <div class="mb-2">
+    <input
+      type="file"
+      name="fotos[]"
+      accept="image/*"
+      capture="environment"
+      class="form-control foto-input"
+    >
+  </div>
+
+  <div class="preview-container text-center position-relative"></div>
+`;
+
+container.appendChild(bloco);
+
 });
-</script>
-{% endblock %}
+    document.addEventListener('change', function (e) {
+
+      if (!e.target.classList.contains('foto-input')) return;
+
+      const file = e.target.files[0];
+
+      if (!file) return;
+
+      if (file.size > 5 * 1024 * 1024) {
+        alert('A foto deve ter no máximo 5MB.');
+        e.target.value = '';
+        return;
+      }
+
+      const reader = new FileReader();
+
+      reader.onload = function (ev) {
+
+        const preview = e.target
+          .closest('.foto-item')
+          .querySelector('.preview-container');
+
+      preview.innerHTML = `
+      <div class="position-relative d-inline-block">
+
+        <img
+          src="${ev.target.result}"
+          class="img-fluid rounded border mt-2"
+          style="max-height:200px;"
+        >
+
+        <button
+          type="button"
+          class="btn btn-danger btn-sm position-absolute remover-foto-preview"
+          style="
+            top:8px;
+            right:8px;
+            width:28px;
+            height:28px;
+            padding:0;
+            border-radius:50%;
+          "
+        >
+          ✕
+        </button>
+
+      </div>
+    `;
+      };
+
+      reader.readAsDataURL(file);
+
+    });
+
+    document.addEventListener('click', function(e){
+
+      if(!e.target.classList.contains('remover-foto-preview')){
+        return;
+      }
+
+      const bloco = e.target.closest('.foto-item');
+
+      bloco.querySelector('.foto-input').value = '';
+
+      const legenda = bloco.querySelector('input[name="legenda_foto[]"]');
+
+      if(legenda){
+        legenda.value = '';
+      }
+
+      bloco.querySelector('.preview-container').innerHTML = '';
+
+    });
+
+        document.addEventListener('click', function(e) {
+
+      if (!e.target.classList.contains('remover-bloco-foto')) {
+        return;
+      }
+
+      const bloco = e.target.closest('.foto-item');
+
+      if (bloco) {
+        bloco.remove();
+      }
+
+    });
+
+    function removerItemResumo(botao) {
+      const linha = botao.closest('tr');
+      const linhas = Array.from(tbodyResumo.querySelectorAll('tr'));
+      const index = linhas.indexOf(linha);
+
+      linha.remove();
+
+      const hidden = hiddenInputs.querySelectorAll('.hidden-item')[index];
+      if (hidden) {
+        hidden.remove();
+      }
+
+      if (tbodyResumo.querySelectorAll('tr').length === 0) {
+        tbodyResumo.innerHTML = `
+          <tr id="linhaVaziaResumo">
+            <td colspan="5" class="text-center text-muted">
+              Nenhum item adicionado
+            </td>
+          </tr>
+        `;
+      }
+    }
+
+    document.getElementById('formBaixa').addEventListener('submit', function () {
+
+      const btn = document.getElementById('btnEnviarBaixa');
+
+      btn.disabled = true;
+
+      btn.innerHTML = `
+        ⏳ Enviando baixa...
+      `;
+
+      const alerta = document.createElement('div');
+
+      alerta.className = 'alert alert-info mt-3 text-center fw-bold';
+
+      alerta.innerHTML = `
+        Aguarde alguns segundos...<br>
+        Não feche esta tela.
+      `;
+
+      btn.parentNode.insertBefore(alerta, btn);
+
+    });
+    </script>
+    {% endblock %}

@@ -1,38 +1,152 @@
 {% extends 'base.html' %}
 
 {% block content %}
-<div class="container mt-4">
-  <h2>Editar Item</h2>
-  
-  <!-- Mensagens flash -->
-  {% with messages = get_flashed_messages(with_categories=true) %}
-    {% if messages %}
-      {% for category, message in messages %}
-        <div class="alert alert-{{ category }}">{{ message }}</div>
-      {% endfor %}
-    {% endif %}
-  {% endwith %}
 
-  <form method="POST">
-    <div class="mb-3">
-      <label for="codigo" class="form-label">Código</label>
-      <input type="text" class="form-control" id="codigo" name="codigo" value="{{ item.codigo }}" readonly>
+<div class="container py-4">
+
+  <div class="card shadow-sm border-0">
+
+    <div class="card-header text-white" style="background:#002b55;">
+      <h6 class="mb-0">
+        <i class="bi bi-pencil-square me-2"></i>
+        Editar Item
+      </h6>
     </div>
-    <div class="mb-3">
-      <label for="descricao" class="form-label">Descrição</label>
-      <input type="text" class="form-control" id="descricao" name="descricao" value="{{ item.descricao }}" required>
+
+    <div class="card-body">
+
+      <form method="POST" action="{{ url_for('itens.editar', id=item.id) }}">
+
+        <div class="row g-3">
+
+          <div class="col-md-3">
+            <label for="codigo" class="form-label fw-semibold">
+              Código
+            </label>
+
+            <input
+              type="text"
+              class="form-control form-control-sm"
+              id="codigo"
+              name="codigo"
+              value="{{ item.codigo }}"
+              required
+            >
+          </div>
+
+          <div class="col-md-5">
+            <label for="descricao" class="form-label fw-semibold">
+              Descrição
+            </label>
+
+            <input
+              type="text"
+              class="form-control form-control-sm"
+              id="descricao"
+              name="descricao"
+              value="{{ item.descricao }}"
+              required
+            >
+          </div>
+
+          <div class="col-md-2">
+            <label for="unidade" class="form-label fw-semibold">
+              Unidade
+            </label>
+
+            <input
+              type="text"
+              class="form-control form-control-sm"
+              id="unidade"
+              name="unidade"
+              value="{{ item.unidade }}"
+              required
+            >
+          </div>
+
+          <div class="col-md-2">
+            <label for="valor" class="form-label fw-semibold">
+              Valor (R$)
+            </label>
+
+            <input
+              type="text"
+              class="form-control form-control-sm"
+              id="valor"
+              name="valor"
+              value="{{ '%.2f'|format(item.valor|float)|replace('.', ',') }}"
+              required
+            >
+          </div>
+
+          <div class="col-md-4">
+            <label for="categoria" class="form-label fw-semibold">
+              Categoria
+            </label>
+
+            <select
+              class="form-select form-select-sm"
+              id="categoria"
+              name="categoria"
+              required
+            >
+
+              <option
+                value="MATERIAL"
+                {% if item.categoria == 'MATERIAL' %}selected{% endif %}
+              >
+                MATERIAL
+              </option>
+
+              <option
+                value="FERRAMENTA"
+                {% if item.categoria == 'FERRAMENTA' %}selected{% endif %}
+              >
+                FERRAMENTA
+              </option>
+
+              <option
+                value="EPI"
+                {% if item.categoria == 'EPI' %}selected{% endif %}
+              >
+                EPI
+              </option>
+
+            </select>
+          </div>
+
+        </div>
+
+        <div class="alert alert-info mt-3 mb-0 py-2">
+          <i class="bi bi-info-circle me-1"></i>
+          A categoria define onde o item será utilizado no sistema.
+        </div>
+
+        <div class="d-flex justify-content-end mt-4">
+
+          <a
+            href="{{ url_for('estoque.listar_itens') }}"
+            class="btn btn-secondary btn-sm me-2"
+          >
+            Cancelar
+          </a>
+
+          <button
+            type="submit"
+            class="btn btn-success btn-sm px-4"
+          >
+            <i class="bi bi-save me-1"></i>
+            Salvar Alterações
+          </button>
+
+        </div>
+
+      </form>
+
     </div>
-    <div class="mb-3">
-      <label for="unidade" class="form-label">Unidade</label>
-      <input type="text" class="form-control" id="unidade" name="unidade" value="{{ item.unidade }}" required>
-    </div>
-    <div class="mb-3">
-      <label for="valor" class="form-label">Valor (R$)</label>
-      <input type="number" step="0.01" class="form-control" id="valor" name="valor" value="{{ item.valor }}" required>
-    </div>
-    <!-- Adicione outros campos aqui se necessário -->
-    <button type="submit" class="btn btn-success">Salvar</button>
-    <a href="{{ url_for('estoque.listar_itens') }}" class="btn btn-secondary">Cancelar</a>
-  </form>
+
+  </div>
+
 </div>
+
 {% endblock %}

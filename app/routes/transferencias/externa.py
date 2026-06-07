@@ -58,6 +58,9 @@ def registrar_transferencia_externa():
     retirado_por = data.get('retirado_por')
     tipo_servico_id = data.get('tipo_servico_id')
 
+    # <-- assinatura: captura
+    assinatura_base64 = data.get('assinatura')
+
     if not tipo_servico_id:
         flash('Tipo de serviço inválido.', 'danger')
         return redirect(url_for('transferencia_externa.nova_transferencia_externa'))
@@ -73,6 +76,10 @@ def registrar_transferencia_externa():
         tipo_servico_id=tipo_servico_id,
         data_hora=datetime.utcnow()
     )
+    # <-- assinatura: atribui (seguro mesmo se rodou antes da migration)
+    if hasattr(TransferenciaExterna, 'assinatura_base64'):
+        transferencia.assinatura_base64 = assinatura_base64
+
     db.session.add(transferencia)
     db.session.flush()
 

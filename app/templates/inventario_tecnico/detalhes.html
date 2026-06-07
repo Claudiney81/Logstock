@@ -1,65 +1,472 @@
 {% extends 'base.html' %}
+
 {% block content %}
+
+
 <div class="container mt-4" id="formulario-inventario">
-  <div class="d-flex justify-content-between align-items-center mb-3">
-    <h4>Detalhes do Inventário Técnico</h4>
-    <button class="btn btn-outline-primary btn-print" onclick="window.print()">
+
+  <!-- TOPO -->
+  <div class="d-flex justify-content-between align-items-center mb-4">
+
+    <h4 class="fw-semibold">
+      <i class="bi bi-clipboard-check me-2"></i>
+      Detalhes do Inventário Técnico
+    </h4>
+
+    <button
+      class="btn btn-outline-primary btn-print"
+      onclick="window.print()"
+    >
       🖨️ Imprimir
     </button>
+
   </div>
 
-  <div class="mb-4 border p-3 rounded bg-light small">
-    <p><strong>Técnico:</strong> {{ inventario.tecnico.nome }}</p>
-    <p><strong>Tipo de Serviço:</strong> {{ inventario.tipo_servico.nome }}</p>
-    <p><strong>Data:</strong> {{ inventario.data.strftime('%d/%m/%Y %H:%M') }}</p>
-    <p><strong>Responsável:</strong> {{ inventario.responsavel or '---' }}</p>
+  {% set categoria_inv = inventario.itens[0].item.categoria if inventario.itens and inventario.itens[0].item and inventario.itens[0].item.categoria else 'MATERIAL' %}
+
+  <!-- CABEÇALHO -->
+  <div class="border rounded bg-light p-3 mb-4 small shadow-sm">
+
+    <div class="row g-3">
+
+      <div class="col-md-3">
+        <strong>Técnico:</strong><br>
+        {{ inventario.tecnico.nome }}
+      </div>
+
+      <div class="col-md-3">
+        <strong>Categoria:</strong><br>
+
+        {% if categoria_inv == 'FERRAMENTA' %}
+
+          <span class="badge bg-warning text-dark">
+            FERRAMENTA
+          </span>
+
+        {% elif categoria_inv == 'EPI' %}
+
+          <span class="badge bg-info text-dark">
+            EPI
+          </span>
+
+        {% else %}
+
+          <span class="badge bg-secondary">
+            MATERIAL
+          </span>
+
+        {% endif %}
+      </div>
+
+      <div class="col-md-3">
+        <strong>Tipo de Serviço:</strong><br>
+
+        {% if inventario.tipo_servico %}
+
+          {{ inventario.tipo_servico.nome }}
+
+        {% else %}
+
+          Não se aplica
+
+        {% endif %}
+      </div>
+
+      <div class="col-md-3">
+        <strong>Data:</strong><br>
+        {{ inventario.data.strftime('%d/%m/%Y %H:%M') }}
+      </div>
+
+      <div class="col-md-4">
+        <strong>Responsável:</strong><br>
+        {{ inventario.responsavel or '---' }}
+      </div>
+
+    </div>
+
   </div>
 
-  <h6>Itens do Inventário</h6>
-  <div class="table-responsive">
-    <table class="table table-bordered table-sm mt-3" style="font-size: 11px">
-      <thead class="table-light">
+  <!-- TÍTULO -->
+ <!-- TÍTULO -->
+<div class="mb-2">
+    <h6 class="fw-bold mb-0">
+        Itens Inventariados
+    </h6>
+</div>
+
+  <!-- TABELA -->
+  <div class="table-responsive shadow-sm rounded">
+
+    <table
+      class="table table-bordered table-hover mt-2 align-middle mb-0 tabela-inventario"
+    >
+
+      <thead class="table-light text-center">
+
         <tr>
-          <th style="width: 10%">Código</th>
-          <th style="width: 45%">Descrição</th>
-          <th style="width: 10%">Unid.</th>
-          <th style="width: 10%">Qtd Contada</th>
+          <th>Código</th>
+          <th>Descrição</th>
+          <th>Categoria</th>
+          <th>Unidade</th>
+          <th>Qtd Existente</th>
+          <th>Qtd Contada</th>
+          <th>Diferença</th>
+          <th>Valor Unit.</th>
+          <th>Total Existente</th>
+          <th>Total Contado</th>
+          <th>Diferença R$</th>
         </tr>
-      </thead>
+
+        </thead>
+
       <tbody>
-        {% for item in inventario.itens %}
-        <tr>
-          <td>{{ item.item.codigo }}</td>
-          <td>{{ item.item.descricao }}</td>
-          <td>{{ item.item.unidade }}</td>
-          <td>{{ item.quantidade_contada }}</td>
-        </tr>
-        {% endfor %}
-      </tbody>
+
+{% for item in inventario.itens %}
+
+{% set existente = item.quantidade_existente or 0 %}
+{% set contada = item.quantidade_contada or 0 %}
+{% set diferenca = contada - existente %}
+
+{% set valor_unitario = item.item.valor or 0 %}
+{% set total_existente_item = existente * valor_unitario %}
+{% set total_contado_item = contada * valor_unitario %}
+{% set diferenca_financeira_item = total_contado_item - total_existente_item %}
+
+<tr>
+
+  <td class="text-center fw-semibold">
+    {{ item.item.codigo }}
+  </td>
+
+  <td>
+    {{ item.item.descricao }}
+  </td>
+
+  <td class="text-center">
+
+    {% if item.item.categoria == 'FERRAMENTA' %}
+      <span class="badge bg-warning text-dark">
+        FERRAMENTA
+      </span>
+
+    {% elif item.item.categoria == 'EPI' %}
+      <span class="badge bg-info text-dark">
+        EPI
+      </span>
+
+    {% else %}
+      <span class="badge bg-secondary">
+        MATERIAL
+      </span>
+    {% endif %}
+
+  </td>
+
+  <td class="text-center">
+    {{ item.item.unidade }}
+  </td>
+
+  <td class="text-center">
+    {{ existente }}
+  </td>
+
+  <td class="text-center">
+    {{ contada }}
+  </td>
+
+  <td class="text-center fw-bold">
+
+    {% if diferenca < 0 %}
+      <span class="badge bg-danger">
+        {{ diferenca }}
+      </span>
+
+    {% elif diferenca > 0 %}
+      <span class="badge bg-success">
+        +{{ diferenca }}
+      </span>
+
+    {% else %}
+      <span class="badge bg-dark">
+        0
+      </span>
+
+    {% endif %}
+
+  </td>
+
+  <td class="text-end">
+    R$ {{ "%.2f"|format(valor_unitario)|replace('.', ',') }}
+  </td>
+
+  <td class="text-end">
+    R$ {{ "%.2f"|format(total_existente_item)|replace('.', ',') }}
+  </td>
+
+  <td class="text-end">
+    R$ {{ "%.2f"|format(total_contado_item)|replace('.', ',') }}
+  </td>
+
+  <td class="text-end fw-bold">
+
+    {% if diferenca_financeira_item < 0 %}
+
+      <span class="text-danger">
+        R$ {{ "%.2f"|format(diferenca_financeira_item)|replace('.', ',') }}
+      </span>
+
+    {% elif diferenca_financeira_item > 0 %}
+
+      <span class="text-success">
+        +R$ {{ "%.2f"|format(diferenca_financeira_item)|replace('.', ',') }}
+      </span>
+
+    {% else %}
+
+      R$ 0,00
+
+    {% endif %}
+
+  </td>
+
+</tr>
+
+{% endfor %}
+
+</tbody>
+
     </table>
+
   </div>
 
-  <div class="mt-4 small">
-    <p><strong>Responsável / Técnico:</strong> _______________________________</p>
-    <p><strong>Data:</strong> ____/____/________</p>
-    <p><strong>Assinatura:</strong> _______________________________</p>
+  <div class="card-body">
+
+    <div class="row">
+
+      <div class="col-md-4">
+        <strong>Total Estoque Esperado</strong><br>
+        R$ {{ "%.2f"|format(total_existente)|replace('.', ',') }}
+      </div>
+
+      <div class="col-md-4">
+        <strong>Total Estoque Contado</strong><br>
+        R$ {{ "%.2f"|format(total_contado)|replace('.', ',') }}
+      </div>
+
+      <div class="col-md-4">
+
+        <strong>Diferença Financeira</strong><br>
+
+        {% if diferenca_financeira < 0 %}
+
+          <span class="text-danger fw-bold">
+            R$ {{ "%.2f"|format(diferenca_financeira)|replace('.', ',') }}
+          </span>
+
+        {% elif diferenca_financeira > 0 %}
+
+          <span class="text-success fw-bold">
+            +R$ {{ "%.2f"|format(diferenca_financeira)|replace('.', ',') }}
+          </span>
+
+        {% else %}
+
+          <span class="fw-bold">
+            R$ 0,00
+          </span>
+
+        {% endif %}
+
+      </div>
+
+    </div>
+
   </div>
 
-  <a href="{{ url_for('inventario_tecnico.historico_inventarios') }}"
-     class="btn btn-secondary mt-3 btn-print">Voltar</a>
+</div>
+
+<div class="alert alert-light border mt-4 text-center">
+
+  <strong>TERMO DE CIÊNCIA E RESPONSABILIDADE</strong>
+
+  <p class="mb-0 mt-2">
+    Declaro que os materiais, ferramentas e EPIs relacionados neste inventário
+    encontram-se sob minha responsabilidade, estando ciente das divergências
+    identificadas durante a conferência e dos respectivos valores patrimoniais.
+  </p>
+
+</div>
+
+  <!-- ASSINATURA -->
+  <div class="assinaturas-inventario">
+
+  <div class="row text-center">
+
+    <div class="col-md-6">
+
+      <div style="margin-top:20px;">
+        ________________________________________
+      </div>
+
+      <strong>Técnico</strong>
+
+    </div>
+
+    <div class="col-md-6">
+
+      <div style="margin-top:20px;">
+        ________________________________________
+      </div>
+
+      <strong>Responsável pela Conferência</strong>
+
+    </div>
+
+  </div>
+
+  <div class="text-center mt-3">
+    <strong>Data:</strong> ____/____/________
+  </div>
+
+<div class="text-center mt-4">
+
+    <a
+        href="{{ url_for('inventario_tecnico.devolver_estoque', id=inventario.id) }}"
+        class="btn btn-success btn-print px-4 me-2"
+    >
+        <i class="bi bi-arrow-return-left me-1"></i>
+        Devolver ao Estoque
+    </a>
+
+    <a
+        href="{{ url_for('inventario_tecnico.historico_inventarios') }}"
+        class="btn btn-secondary btn-print px-4"
+    >
+        Voltar
+    </a>
+
+</div>
+
 </div>
 
 <style>
-  td, th { padding: 3px 6px !important; vertical-align: middle; word-break: break-word; }
-  table.table tr { height: 24px; }
+  .tabela-inventario {
+    font-size: 14px;
+  }
+
+  .tabela-inventario th {
+    font-size: 13px;
+    font-weight: 700;
+    padding: 9px 10px !important;
+    vertical-align: middle;
+    white-space: normal;
+  }
+
+  .tabela-inventario td {
+    font-size: 13px;
+    padding: 8px 10px !important;
+    vertical-align: middle;
+    word-break: normal;
+  }
+
+  .badge-qtd {
+    font-size: 0.85rem;
+    padding: 6px 10px;
+    min-width: 42px;
+  }
 
   @media print {
-    body * { visibility: hidden; }
-    #formulario-inventario, #formulario-inventario * { visibility: visible; }
-    #formulario-inventario { position: absolute; left: 0; top: 0; width: 100%; }
-    .btn-print { display: none !important; }
-    table { table-layout: fixed !important; width: 100% !important; }
-    td, th { font-size: 10px !important; padding: 2px 4px !important; }
+  @page {
+    size: A4 landscape;
+    margin: 10mm;
   }
+
+  html,
+  body {
+    margin: 0 !important;
+    padding: 0 !important;
+    background: white !important;
+    overflow: visible !important;
+    font-size: 12px !important;
+  }
+
+  .btn-print,
+  nav,
+  footer,
+  .navbar,
+  .sidebar,
+  #sidebar,
+  .topbar,
+  .footer,
+  .rodape {
+    display: none !important;
+  }
+
+  #formulario-inventario,
+  .container {
+    width: 100% !important;
+    max-width: 100% !important;
+    margin: 0 !important;
+    padding: 0 !important;
+    background: white !important;
+  }
+
+  .table-responsive {
+    overflow: visible !important;
+    page-break-inside: auto !important;
+    break-inside: auto !important;
+  }
+
+  .tabela-inventario {
+    width: 100% !important;
+    table-layout: auto !important;
+    border-collapse: collapse !important;
+    page-break-inside: auto !important;
+    break-inside: auto !important;
+  }
+
+  .tabela-inventario thead {
+    display: table-header-group !important;
+  }
+
+  .tabela-inventario tbody {
+    display: table-row-group !important;
+  }
+
+  .tabela-inventario tr {
+    page-break-inside: avoid !important;
+    break-inside: avoid !important;
+    page-break-after: auto !important;
+  }
+
+  .tabela-inventario th,
+  .tabela-inventario td {
+    font-size: 11px !important;
+    padding: 6px 5px !important;
+    white-space: normal !important;
+    word-break: normal !important;
+    line-height: 1.25 !important;
+  }
+
+  .alert {
+    margin-top: 14px !important;
+    padding: 10px !important;
+    font-size: 11px !important;
+    page-break-inside: avoid !important;
+    break-inside: avoid !important;
+  }
+
+  .assinaturas-inventario {
+    display: block !important;
+    margin-top: 45px !important;
+    page-break-inside: avoid !important;
+    break-inside: avoid !important;
+  }
+
+  .assinaturas-inventario .row {
+    margin-top: 35px !important;
+  }
+}
 </style>
+
 {% endblock %}

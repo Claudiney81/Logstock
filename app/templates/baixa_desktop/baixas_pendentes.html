@@ -1,60 +1,237 @@
-{% extends 'base.html' %} {% block content %}
-<div class="container mt-4">
-  <h4 class="text-primary">
-    <i class="bi bi-hourglass-split"></i> Baixas Pendentes
-  </h4>
+{% extends 'base.html' %}
+{% block content %}
 
-  <style>
-    .tabela-container {
-      max-height: 65vh;
-      overflow-y: auto;
-    }
-    .tabela-container table thead th {
-      position: sticky;
-      top: 0;
-      z-index: 1000;
-      background: #002b55; /* cor azul padrão */
-      color: white;
-    }
-  </style>
+<style>
+  .table-baixas{
+    width:100%;
+    table-layout:fixed;
+    border-collapse:collapse;
+  }
 
-  <div class="tabela-container shadow-sm rounded">
-    <table class="table table-hover align-middle mb-0">
-      <thead>
-        <tr>
-          <th>Data</th>
-          <th>Técnico</th>
-          <th>Responsável</th>
-          <th>Observação</th>
-          <th>Ações</th>
-        </tr>
-      </thead>
-      <tbody>
-        {% for baixa in baixas %}
-        <tr>
-          <td>
-            {{ baixa.data_hora.strftime('%d/%m/%Y %H:%M') if baixa.data_hora
-            else '' }}
-          </td>
-          <td>{{ baixa.tecnico.nome }}</td>
-          <td>{{ baixa.responsavel }}</td>
-          <td>{{ baixa.observacao or '' }}</td>
-          <td>
-            <a
-              href="{{ url_for('baixa_desktop.detalhe_baixa', baixa_id=baixa.id) }}"
-              class="btn btn-sm btn-primary"
-            >
-              <i class="bi bi-eye"></i> Detalhes
-            </a>
-          </td>
-        </tr>
-        {% else %}
-        <tr>
-          <td colspan="5" class="text-center">Nenhuma baixa pendente.</td>
-        </tr>
-        {% endfor %}
-      </tbody>
-    </table>
+  .table-baixas th{
+    font-size:.88rem;
+    font-weight:600;
+    white-space:nowrap;
+    vertical-align:middle;
+    padding:12px 12px !important;
+  }
+
+  .table-baixas td{
+    font-size:.88rem;
+    vertical-align:middle;
+    padding:12px 12px !important;
+  }
+
+  .tabela-container{
+    max-height:68vh;
+    overflow-y:auto;
+  }
+
+  .tabela-container table thead th{
+    position:sticky;
+    top:0;
+    z-index:10;
+    background:#f8f9fa;
+  }
+
+  .linha-ajuste{
+    background:#fff8e8 !important;
+  }
+
+  .badge-soft{
+    display:inline-block;
+    min-width:130px;
+    padding:6px 12px;
+    border-radius:6px;
+    font-size:.76rem;
+    font-weight:700;
+    text-align:center;
+  }
+
+  .badge-soft-red{
+    background:#fdeeee;
+    color:#a94444;
+    border:1px solid #f3caca;
+  }
+
+  .badge-soft-orange{
+    background:#fff4e8;
+    color:#b35a00;
+    border:1px solid #ffd7a3;
+  }
+
+  .btn-icon-text{
+    height:32px;
+    padding:0 10px;
+    display:inline-flex;
+    align-items:center;
+    justify-content:center;
+    border-radius:6px;
+    font-size:.78rem;
+    font-weight:600;
+  }
+</style>
+
+<div class="container-fluid mt-4">
+
+  <div class="card shadow-sm border-0">
+
+    <div
+      class="card-header text-white d-flex justify-content-between align-items-center"
+      style="background:#002b55;"
+    >
+      <h5 class="mb-0 fw-semibold">
+        <i class="bi bi-hourglass-split me-2"></i>
+        Baixas Pendentes
+      </h5>
+
+      <span
+        class="badge bg-warning text-dark px-3 py-2"
+        id="pendCount"
+      >
+        {{ baixas|length }}
+      </span>
+    </div>
+
+    <div class="card-body p-0">
+
+      <div class="tabela-container table-responsive">
+
+        <table class="table table-hover table-baixas mb-0">
+
+          <thead class="table-light">
+            <tr>
+              <th style="width:70px;">ID</th>
+              <th style="width:150px;">Data</th>
+              <th style="width:150px;">Status</th>
+              <th style="width:220px;">Técnico</th>
+              <th style="width:220px;">Cliente</th>
+              <th style="width:140px;">O.S</th>
+              <th style="width:170px;">Tipo Serviço</th>
+              <th style="width:80px;">Itens</th>
+              <th style="width:180px;">Observação</th>
+              <th style="width:120px;">Ações</th>
+            </tr>
+          </thead>
+
+          <tbody>
+
+            {% for baixa in baixas %}
+            <tr class="{% if baixa.status == 'pendente_ajuste' %}linha-ajuste{% endif %}">
+
+              <td>{{ baixa.id }}</td>
+
+              <td>
+                {{ baixa.data_hora.strftime('%d/%m/%Y %H:%M') if baixa.data_hora else '-' }}
+              </td>
+
+              <td>
+                {% if baixa.status == 'pendente_ajuste' %}
+                  <span class="badge-soft badge-soft-orange">Retorno Ajuste</span>
+                {% else %}
+                  <span class="badge-soft badge-soft-red">Pendente</span>
+                {% endif %}
+              </td>
+
+              <td>
+                {{ baixa.tecnico.nome if baixa.tecnico else '-' }}
+              </td>
+
+              <td>
+                {{ baixa.cliente.razao_social if baixa.cliente else '-' }}
+              </td>
+
+              <td>
+                {% if baixa.ordem_servico %}
+                  {% set numero_os = baixa.ordem_servico.numero_os|string %}
+                  {% if numero_os.upper().startswith('OS-') %}
+                    {{ numero_os }}
+                  {% else %}
+                    OS-{{ numero_os }}
+                  {% endif %}
+                {% elif baixa.os_cliente %}
+                  {{ baixa.os_cliente.split(' - ')[-1] }}
+                {% else %}
+                  -
+                {% endif %}
+              </td>
+
+              <td>
+                {{ baixa.tipo_servico.nome if baixa.tipo_servico else '-' }}
+              </td>
+
+              <td>
+                {{ baixa.itens|length if baixa.itens else 0 }}
+              </td>
+
+              <td>
+                {% if baixa.observacao %}
+                  <span title="{{ baixa.observacao|e }}">
+                    {{ baixa.observacao[:50] }}
+                    {% if baixa.observacao|length > 50 %}...{% endif %}
+                  </span>
+                {% else %}
+                  <span class="text-muted">—</span>
+                {% endif %}
+              </td>
+
+              <td>
+                <a
+                  href="{{ url_for('baixa_desktop.detalhe_baixa', baixa_id=baixa.id) }}"
+                  class="btn btn-outline-primary btn-sm btn-icon-text"
+                >
+                  <i class="bi bi-eye me-1"></i>
+                  Detalhes
+                </a>
+              </td>
+
+            </tr>
+
+            {% else %}
+            <tr>
+              <td colspan="10" class="text-center text-muted py-4">
+                Nenhuma baixa pendente.
+              </td>
+            </tr>
+            {% endfor %}
+
+          </tbody>
+
+        </table>
+
+      </div>
+
+    </div>
+
   </div>
+
 </div>
+
+<script>
+document.querySelectorAll("[title]").forEach(function(el){
+  if(window.bootstrap && bootstrap.Tooltip){
+    new bootstrap.Tooltip(el);
+  }
+});
+
+async function refreshPendentes(){
+  try{
+    const r = await fetch(
+      "{{ url_for('baixa_desktop.api_baixas_pendentes_count') }}"
+    );
+
+    const j = await r.json();
+
+    const span = document.getElementById("pendCount");
+
+    if(span && typeof j.count === "number"){
+      span.textContent = j.count;
+    }
+
+  } catch(e){}
+}
+
+setInterval(refreshPendentes, 30000);
+</script>
+
 {% endblock %}

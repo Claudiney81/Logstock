@@ -1,0 +1,70 @@
+{% extends 'base.html' %}
+
+{% block content %}
+
+<div class="container mt-5" style="max-width:500px;">
+
+    <div class="card shadow border-0">
+
+        <div
+            class="card-header text-white"
+            style="background-color:#002b55;"
+        >
+            <h5 class="mb-0">
+                <i class="bi bi-key me-2"></i>
+                Redefinir Senha
+            </h5>
+        </div>
+
+        <div class="card-body">
+
+            <form method="POST">
+
+                <div class="mb-3">
+
+                    <label class="form-label">
+                        Nova senha
+                    </label>
+
+                    <input
+                        type="password"
+                        name="senha"
+                        class="form-control"
+                        required
+                        autofocus
+                    >
+
+                </div>
+
+                <div class="mb-4">
+
+                    <label class="form-label">
+                        Confirmar nova senha
+                    </label>
+
+                    <input
+                        type="password"
+                        name="confirmar_senha"
+                        class="form-control"
+                        required
+                    >
+
+                </div>
+
+                <button
+                    type="submit"
+                    class="btn btn-success w-100"
+                >
+                    <i class="bi bi-check-circle me-2"></i>
+                    Salvar Nova Senha
+                </button>
+
+            </form>
+
+        </div>
+
+    </div>
+
+</div>
+
+{% endblock %}

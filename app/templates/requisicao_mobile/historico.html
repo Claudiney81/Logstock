@@ -1,0 +1,280 @@
+{% extends "base.html" %}
+
+{% block content %}
+
+<style>
+  .tabela-container {
+    max-height: 70vh;
+    overflow-y: auto;
+  }
+
+  .tabela-container table thead th {
+    position: sticky;
+    top: 0;
+    z-index: 1000;
+    background: #f8f9fa;
+    color: #111827;
+  }
+
+  .table-req th,
+  .table-req td {
+    font-size: 0.88rem;
+    vertical-align: middle;
+    padding-left: 16px !important;
+    text-align: left;
+  }
+
+  .table-req th {
+    white-space: nowrap;
+  }
+
+  .table-req th:nth-child(1),
+  .table-req td:nth-child(1),
+  .table-req th:nth-child(4),
+  .table-req td:nth-child(4),
+  .table-req th:nth-child(5),
+  .table-req td:nth-child(5),
+  .table-req th:nth-child(6),
+  .table-req td:nth-child(6),
+  .table-req th:nth-child(7),
+  .table-req td:nth-child(7) {
+    text-align: center !important;
+  }
+
+  .card-filtros {
+    border: none;
+    border-radius: 12px;
+  }
+
+  .btn-search-custom {
+    background: #002b55;
+    color: #fff;
+    border: none;
+  }
+
+  .btn-search-custom:hover {
+    background: #01427f;
+    color: #fff;
+  }
+
+  .badge-soft {
+    display: inline-block;
+    min-width: 125px;
+    padding: 6px 12px;
+    border-radius: 6px;
+    font-size: 0.76rem;
+    font-weight: 700;
+    text-align: center;
+  }
+
+  .badge-soft-green {
+    background: #eaf7ee;
+    color: #2f6b43;
+    border: 1px solid #cfe8d6;
+  }
+
+  .badge-soft-red {
+    background: #fdeeee;
+    color: #a94444;
+    border: 1px solid #f3caca;
+  }
+
+  .badge-soft-gray {
+    background: #f3f4f6;
+    color: #374151;
+    border: 1px solid #d1d5db;
+  }
+
+  .badge-estoque {
+    display: inline-block;
+    min-width: 90px;
+    padding: 5px 10px;
+    border-radius: 6px;
+    background: #eef4ff;
+    color: #002b55;
+    border: 1px solid #cdddf6;
+    font-size: 0.76rem;
+    font-weight: 700;
+    text-align: center;
+  }
+
+  .btn-icon-text {
+    height: 32px;
+    padding: 0 10px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: 6px;
+    font-size: 0.78rem;
+    font-weight: 600;
+  }
+</style>
+
+<div class="container-fluid mt-4">
+
+  <div class="card shadow-sm border-0">
+
+    <div class="card-header text-white d-flex justify-content-between align-items-center"
+         style="background:#002b55;">
+      <h5 class="mb-0 fw-semibold">
+        <i class="bi bi-clock-history me-2"></i>
+        Histórico - Requisição Mobile
+      </h5>
+    </div>
+
+    <div class="card-body">
+
+      <div class="card shadow-sm card-filtros mb-4">
+        <div class="card-body">
+
+          <form method="GET">
+
+            <div class="row g-3 align-items-end">
+
+              <div class="col-md-4">
+                <label class="form-label fw-semibold">Técnico</label>
+                <input type="text"
+                       name="tecnico"
+                       class="form-control"
+                       placeholder="Pesquisar técnico..."
+                       value="{{ request.args.get('tecnico', '') }}">
+              </div>
+
+              <div class="col-md-3">
+                <label class="form-label fw-semibold">Status</label>
+                <select name="status" class="form-select">
+                  <option value="">Todos</option>
+
+                  <option value="pendente"
+                    {% if request.args.get('status') == 'pendente' %}selected{% endif %}>
+                    Pendente
+                  </option>
+
+                  <option value="material_entregue"
+                    {% if request.args.get('status') == 'material_entregue' %}selected{% endif %}>
+                    Entregue
+                  </option>
+                </select>
+              </div>
+
+              <div class="col-md-3">
+                <label class="form-label fw-semibold">Data</label>
+                <input type="date"
+                       name="data"
+                       class="form-control"
+                       value="{{ request.args.get('data', '') }}">
+              </div>
+
+              <div class="col-md-2 d-grid">
+                <button type="submit" class="btn btn-search-custom">
+                  <i class="bi bi-search me-1"></i>
+                  Pesquisar
+                </button>
+              </div>
+
+            </div>
+
+          </form>
+
+        </div>
+      </div>
+
+      <div class="tabela-container table-responsive">
+
+        <table class="table table-hover align-middle table-req">
+
+          <thead class="table-light">
+            <tr>
+              <th style="width:70px;">ID</th>
+              <th>Técnico</th>
+              <th style="width:140px;">Tipo Estoque</th>
+              <th style="width:170px;">Tipo de Serviço</th>
+              <th style="width:110px;">Qtd Itens</th>
+              <th style="width:150px;">Status</th>
+              <th style="width:150px;">Data/Hora</th>
+              <th style="width:120px;">Ações</th>
+            </tr>
+          </thead>
+
+          <tbody>
+
+            {% for req in requisicoes %}
+
+            <tr>
+
+              <td class="fw-semibold">
+                {{ req.id }}
+              </td>
+
+              <td>
+                {{ req.solicitante_tecnico or '-' }}
+              </td>
+
+              <td>
+                <span class="badge-estoque">
+                  {{ (req.tipo_estoque or 'empresa')|capitalize }}
+                </span>
+              </td>
+
+              <td>
+                {{ req.tipo_servico or '-' }}
+              </td>
+
+              <td>
+                {{ req.itens|length if req.itens is defined and req.itens else 0 }}
+              </td>
+
+              <td>
+                {% if req.status == 'material_entregue' %}
+                  <span class="badge-soft badge-soft-green">
+                    Entregue
+                  </span>
+                {% elif req.status == 'pendente' %}
+                  <span class="badge-soft badge-soft-red">
+                    Pendente
+                  </span>
+                {% else %}
+                  <span class="badge-soft badge-soft-gray">
+                    {{ req.status or '-' }}
+                  </span>
+                {% endif %}
+              </td>
+
+              <td>
+                {{ req.data_hora.strftime('%d/%m/%Y %H:%M') if req.data_hora else '-' }}
+              </td>
+
+              <td>
+                <a href="{{ url_for('requisicoes_tecnicos.historico_detalhes', requisicao_id=req.id) }}"
+                   class="btn btn-outline-primary btn-sm btn-icon-text"
+                   title="Ver detalhes">
+                  <i class="bi bi-eye me-1"></i>
+                  Detalhes
+                </a>
+              </td>
+
+            </tr>
+
+            {% else %}
+
+            <tr>
+              <td colspan="8" class="text-center text-muted py-4">
+                Nenhuma requisição encontrada.
+              </td>
+            </tr>
+
+            {% endfor %}
+
+          </tbody>
+
+        </table>
+
+      </div>
+
+    </div>
+
+  </div>
+
+</div>
+
+{% endblock %}

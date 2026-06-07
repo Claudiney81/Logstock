@@ -1,0 +1,568 @@
+{% extends 'base.html' %}
+{% block content %}
+
+<style>
+  .titulo-pagina-transferencia{
+    color:#0b2e59;
+    font-weight:700;
+  }
+
+  .header-transferencia{
+    background: linear-gradient(
+      90deg,
+      #082f5d 0%,
+      #0b3d75 100%
+    ) !important;
+    border:none;
+    font-size:1rem;
+    letter-spacing:.2px;
+  }
+
+  .card-header.bg-light{
+    background:#f6f8fb !important;
+    color:#0b2e59;
+    border-bottom:1px solid #dde5ef;
+    font-weight:600;
+  }
+
+  .btn-primary{
+    background:#0b2e59 !important;
+    border-color:#0b2e59 !important;
+  }
+
+  .btn-primary:hover{
+    background:#14447f !important;
+    border-color:#14447f !important;
+  }
+
+  .btn-outline-secondary{
+    border-color:#0b2e59;
+    color:#0b2e59;
+  }
+
+  .btn-outline-secondary:hover{
+    background:#0b2e59;
+    color:#fff;
+  }
+
+  .form-control:focus,
+  .form-select:focus{
+    border-color:#0b2e59;
+    box-shadow:0 0 0 .15rem rgba(11,46,89,.12);
+  }
+
+  .card{
+    border-radius:12px;
+    overflow:hidden;
+  }
+</style>
+
+<div class="container mt-4">
+
+  <div class="d-flex justify-content-between align-items-center mb-4">
+    <h2 class="fw-semibold mb-0 titulo-pagina-transferencia">
+      <i class="bi bi-tools me-2"></i>
+      Transferência - Ferramentas & EPIs
+    </h2>
+    
+  </div>
+
+  <div class="card shadow-sm border-0">
+    <div class="card-header header-transferencia text-white">
+      <strong>
+        <i class="bi bi-arrow-left-right me-2"></i>
+        Dados da Transferência
+      </strong>
+    </div>
+
+    <div class="card-body">
+
+      <form method="POST" autocomplete="off">
+
+        <div class="row g-3 mb-3">
+
+          <div class="col-md-3">
+            <label class="form-label fw-semibold">Tipo Transferência</label>
+            <select name="tipo_transferencia"
+                    id="tipo_transferencia"
+                    class="form-select shadow-sm"
+                    required>
+              <option value="saida">Saída → Empresa para Técnico</option>
+              <option value="retorno">Retorno → Técnico para Empresa</option>
+            </select>
+          </div>
+
+          <div class="col-md-4">
+            <label class="form-label fw-semibold">Técnico</label>
+            <select name="tecnico_id"
+                    id="tecnico_id"
+                    class="form-select shadow-sm"
+                    required>
+              <option value="">Selecione o técnico</option>
+              {% for tecnico in tecnicos %}
+              <option value="{{ tecnico.id }}">
+                {{ tecnico.nome }}
+                {% if tecnico.matricula %}
+                  ({{ tecnico.matricula }})
+                {% endif %}
+              </option>
+              {% endfor %}
+            </select>
+          </div>
+
+          <div class="col-md-5"
+               id="div_motivo"
+               style="display: none;">
+            <label class="form-label fw-semibold">Motivo do Retorno</label>
+            <select name="motivo_retorno"
+                    id="motivo_retorno"
+                    class="form-select shadow-sm">
+              <option value="">Selecione</option>
+              <option value="devolucao">Devolução</option>
+              <option value="troca">Troca</option>
+              <option value="extravio">Extravio</option>
+              <option value="perda">Perda</option>
+              <option value="desgaste">Desgaste</option>
+            </select>
+          </div>
+
+        </div>
+
+        <!-- ITENS -->
+        <div class="card border mb-4">
+
+          <div class="card-header bg-light">
+            <strong>
+              <i class="bi bi-box-seam me-2"></i>
+              Itens da Transferência
+            </strong>
+          </div>
+
+          <div class="card-body">
+
+            <div class="row g-3 align-items-end">
+
+              <div class="col-md-3">
+                <label class="form-label fw-semibold">Categoria</label>
+                <select id="categoria_item" class="form-select shadow-sm">
+                  <option value="">Todos</option>
+                  <option value="FERRAMENTA">Ferramenta</option>
+                  <option value="EPI">EPI</option>
+                </select>
+              </div>
+
+              <div class="col-md-3">
+                <label class="form-label fw-semibold">Item</label>
+                <select id="item_id" class="form-select shadow-sm">
+                  <option value="">Selecione o item</option>
+                </select>
+              </div>
+
+              <div class="col-md-2">
+                <label class="form-label fw-semibold">Quantidade</label>
+                <input type="number"
+                       id="quantidade"
+                       min="1"
+                       class="form-control shadow-sm">
+              </div>
+
+              <div class="col-md-2">
+                <label class="form-label fw-semibold">Saldo</label>
+                <input type="text"
+                       id="saldo_item"
+                       class="form-control bg-light shadow-sm"
+                       readonly>
+              </div>
+
+              <div class="col-md-2 d-grid">
+                <button type="button"
+                        id="btnAdicionar"
+                        class="btn btn-success shadow-sm">
+                  <i class="bi bi-plus-circle me-1"></i>
+                  Adicionar
+                </button>
+              </div>
+
+            </div>
+
+            <div class="table-responsive mt-4">
+              <table class="table table-bordered align-middle mb-0">
+                <thead class="table-light">
+                  <tr>
+                    <th>Código</th>
+                    <th>Descrição</th>
+                    <th>Categoria</th>
+                    <th width="120">Quantidade</th>
+                    <th width="80">Ação</th>
+                  </tr>
+                </thead>
+                <tbody id="tabelaItens"></tbody>
+              </table>
+            </div>
+
+          </div>
+        </div>
+
+        <!-- OBSERVAÇÃO -->
+        <div class="mb-3">
+          <label class="form-label fw-semibold">Observação</label>
+          <textarea name="observacao"
+                    rows="3"
+                    class="form-control shadow-sm"
+                    placeholder="Observações da transferência..."></textarea>
+        </div>
+
+        <!-- ASSINATURAS -->
+        <div class="row g-4 mb-4">
+
+          <div class="col-md-6">
+            <label class="form-label fw-semibold">Assinatura do Técnico</label>
+
+            <div class="border rounded bg-white p-2 shadow-sm">
+              <canvas id="signature-pad-tecnico"
+                      style="width:100%; height:180px; border:1px dashed #ccc; border-radius:6px;"></canvas>
+            </div>
+
+            <input type="hidden"
+                   name="assinatura_tecnico"
+                   id="assinatura_tecnico">
+
+            <div class="mt-2">
+              <button type="button"
+                      class="btn btn-outline-secondary btn-sm"
+                      id="clear-signature-tecnico">
+                <i class="bi bi-eraser me-1"></i>
+                Limpar Assinatura
+              </button>
+            </div>
+          </div>
+
+          <div class="col-md-6">
+            <label class="form-label fw-semibold">
+              Assinatura Almoxarifado / Logística
+            </label>
+
+            <div class="border rounded bg-white p-2 shadow-sm">
+              <canvas id="signature-pad-logistica"
+                      style="width:100%; height:180px; border:1px dashed #ccc; border-radius:6px;"></canvas>
+            </div>
+
+            <input type="hidden"
+                   name="assinatura_logistica"
+                   id="assinatura_logistica">
+
+            <div class="mt-2">
+              <button type="button"
+                      class="btn btn-outline-secondary btn-sm"
+                      id="clear-signature-logistica">
+                <i class="bi bi-eraser me-1"></i>
+                Limpar Assinatura
+              </button>
+            </div>
+          </div>
+
+        </div>
+
+        <!-- BOTÕES -->
+        <div class="d-flex gap-2">
+          <button type="submit"
+                  class="btn btn-primary shadow-sm">
+            <i class="bi bi-save me-1"></i>
+            Registrar Transferência
+          </button>
+
+          <a href="{{ url_for('ferramentas_epis.saldo_tecnico') }}"
+             class="btn btn-outline-dark shadow-sm">
+            <i class="bi bi-person-workspace me-1"></i>
+            Saldo Técnico
+          </a>
+        </div>
+
+      </form>
+
+    </div>
+  </div>
+
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/signature_pad@4.0.0/dist/signature_pad.umd.min.js"></script>
+
+<script>
+const tipoTransferencia = document.getElementById("tipo_transferencia");
+const tecnicoSelect = document.getElementById("tecnico_id");
+const itemSelect = document.getElementById("item_id");
+const categoriaSelect = document.getElementById("categoria_item");
+const motivoDiv = document.getElementById("div_motivo");
+const motivoSelect = document.getElementById("motivo_retorno");
+const saldoInput = document.getElementById("saldo_item");
+const quantidadeInput = document.getElementById("quantidade");
+const tabelaItens = document.getElementById("tabelaItens");
+
+let itensCache = [];
+
+// ======================================
+// TIPO TRANSFERÊNCIA
+// ======================================
+function atualizarTipoTransferencia() {
+  const tipo = tipoTransferencia.value;
+
+  tabelaItens.innerHTML = "";
+  saldoInput.value = "";
+  quantidadeInput.value = "";
+
+  if (tipo === "retorno") {
+    motivoDiv.style.display = "block";
+    motivoSelect.required = true;
+  } else {
+    motivoDiv.style.display = "none";
+    motivoSelect.required = false;
+    motivoSelect.value = "";
+  }
+
+  carregarItens();
+}
+
+// ======================================
+// CARREGAR ITENS
+// ======================================
+async function carregarItens() {
+  const tecnicoId = tecnicoSelect.value;
+  const tipo = tipoTransferencia.value;
+
+  itemSelect.innerHTML = '<option value="">Carregando...</option>';
+  saldoInput.value = "";
+  quantidadeInput.value = "";
+  itensCache = [];
+
+  let url = "";
+
+  if (tipo === "saida") {
+    url = "/ferramentas-epis/api/itens-empresa";
+  } else {
+    if (!tecnicoId) {
+      itemSelect.innerHTML = '<option value="">Selecione o técnico</option>';
+      return;
+    }
+
+    url = `/ferramentas-epis/api/itens-tecnico/${tecnicoId}`;
+  }
+
+  try {
+    const response = await fetch(url);
+    const data = await response.json();
+
+    itensCache = data || [];
+
+    itemSelect.innerHTML = '<option value="">Selecione o item</option>';
+
+    const categoriaSelecionada = categoriaSelect.value;
+
+  itensCache
+  .filter(item => {
+    if (!categoriaSelecionada) return true;
+    return (item.categoria || "").toUpperCase() === categoriaSelecionada;
+  })
+  .forEach(item => {
+    const option = document.createElement("option");
+    option.value = item.item_id;
+    option.textContent = `${item.codigo} - ${item.descricao}`;
+    itemSelect.appendChild(option);
+  });
+
+  } catch (e) {
+    itemSelect.innerHTML = '<option value="">Erro ao carregar</option>';
+  }
+}
+
+// ======================================
+// ATUALIZAR SALDO
+// ======================================
+function atualizarDadosItem() {
+  const itemId = itemSelect.value;
+
+  const item = itensCache.find(
+    i => String(i.item_id) === String(itemId)
+  );
+
+  if (!item) {
+    saldoInput.value = "";
+    return;
+  }
+
+  saldoInput.value = item.quantidade || 0;
+}
+
+// ======================================
+// ADICIONAR ITEM NA TABELA
+// ======================================
+document.getElementById("btnAdicionar")
+.addEventListener("click", () => {
+  const itemId = itemSelect.value;
+  const quantidade = parseInt(quantidadeInput.value || 0);
+
+  if (!itemId || quantidade <= 0) {
+    alert("Selecione item e quantidade.");
+    return;
+  }
+
+  const item = itensCache.find(
+    i => String(i.item_id) === String(itemId)
+  );
+
+  if (!item) {
+    alert("Item inválido.");
+    return;
+  }
+
+  const saldo = parseInt(item.quantidade || 0);
+
+  if (quantidade > saldo) {
+    alert("Quantidade maior que o saldo disponível.");
+    return;
+  }
+
+  const itemJaAdicionado = tabelaItens.querySelector(
+    `input[name="item_id[]"][value="${item.item_id}"]`
+  );
+
+  if (itemJaAdicionado) {
+    alert("Este item já foi adicionado.");
+    return;
+  }
+
+  const tr = document.createElement("tr");
+
+  tr.innerHTML = `
+    <td>
+      ${item.codigo}
+      <input type="hidden" name="item_id[]" value="${item.item_id}">
+    </td>
+
+    <td>${item.descricao}</td>
+
+    <td>${item.categoria || ""}</td>
+
+    <td>
+      ${quantidade}
+      <input type="hidden" name="quantidade[]" value="${quantidade}">
+    </td>
+
+    <td class="text-center">
+      <button type="button" class="btn btn-sm btn-danger btnRemover">
+        <i class="bi bi-trash"></i>
+      </button>
+    </td>
+  `;
+
+  tabelaItens.appendChild(tr);
+
+  itemSelect.value = "";
+  saldoInput.value = "";
+  quantidadeInput.value = "";
+});
+
+// ======================================
+// REMOVER ITEM
+// ======================================
+document.addEventListener("click", function(e) {
+  if (e.target.closest(".btnRemover")) {
+    e.target.closest("tr").remove();
+  }
+});
+
+// ======================================
+// EVENTOS
+// ======================================
+tipoTransferencia.addEventListener("change", atualizarTipoTransferencia);
+
+tecnicoSelect.addEventListener("change", () => {
+  tabelaItens.innerHTML = "";
+  carregarItens();
+});
+
+itemSelect.addEventListener("change", atualizarDadosItem);
+
+categoriaSelect.addEventListener("change", () => {
+  itemSelect.value = "";
+  saldoInput.value = "";
+  quantidadeInput.value = "";
+  carregarItens();
+});
+
+atualizarTipoTransferencia();
+
+
+atualizarTipoTransferencia();
+
+// ======================================
+// ASSINATURAS
+// ======================================
+const canvasTecnico = document.getElementById("signature-pad-tecnico");
+const canvasLogistica = document.getElementById("signature-pad-logistica");
+
+const signaturePadTecnico = new SignaturePad(canvasTecnico);
+const signaturePadLogistica = new SignaturePad(canvasLogistica);
+
+function resizeCanvas(canvas, pad) {
+  const ratio = Math.max(window.devicePixelRatio || 1, 1);
+
+  canvas.width = canvas.offsetWidth * ratio;
+  canvas.height = canvas.offsetHeight * ratio;
+
+  canvas.getContext("2d").scale(ratio, ratio);
+
+  pad.clear();
+}
+
+function ajustarCanvasAssinaturas() {
+  resizeCanvas(canvasTecnico, signaturePadTecnico);
+  resizeCanvas(canvasLogistica, signaturePadLogistica);
+}
+
+window.addEventListener("resize", ajustarCanvasAssinaturas);
+ajustarCanvasAssinaturas();
+
+document.getElementById("clear-signature-tecnico")
+.addEventListener("click", () => {
+  signaturePadTecnico.clear();
+});
+
+document.getElementById("clear-signature-logistica")
+.addEventListener("click", () => {
+  signaturePadLogistica.clear();
+});
+
+// ======================================
+// SUBMIT
+// ======================================
+document.querySelector("form")
+.addEventListener("submit", function(e) {
+
+  if (tabelaItens.children.length === 0) {
+    e.preventDefault();
+    alert("Adicione pelo menos um item à transferência.");
+    return;
+  }
+
+  if (signaturePadTecnico.isEmpty()) {
+    e.preventDefault();
+    alert("A assinatura do técnico é obrigatória.");
+    return;
+  }
+
+  if (signaturePadLogistica.isEmpty()) {
+    e.preventDefault();
+    alert("A assinatura da logística é obrigatória.");
+    return;
+  }
+
+  document.getElementById("assinatura_tecnico").value =
+    signaturePadTecnico.toDataURL();
+
+  document.getElementById("assinatura_logistica").value =
+    signaturePadLogistica.toDataURL();
+
+});
+</script>
+
+{% endblock %}

@@ -1,18 +1,54 @@
-{% extends 'base.html' %} {% block content %}
+{% extends 'base.html' %}
+
+{% block content %}
+
 <div
   class="container d-flex flex-column justify-content-center align-items-center text-center"
-  style="flex: 1; height: 100%; padding-top: 40px"
+  style="flex: 1; min-height: 75vh;"
 >
-  <div style="transform: translateY(-60px)">
-    <i class="bi bi-box-seam" style="font-size: 3rem; color: #1e3a8a"></i>
-    <h1 class="mt-3 fw-bold">Bem-vindo ao LogStock</h1>
-    <p class="lead text-muted">Gestão de Materiais</p>
-    <a
-      href="{{ url_for('estoque.saldo_estoque') }}"
-      class="btn btn-primary mt-3 px-4 py-2"
-    >
-      Ver Saldo de Estoque
-    </a>
+
+  <div style="transform: translateY(-60px);">
+
+    <!-- Logo -->
+    <div class="mb-4">
+
+      <img
+        src="{{ url_for('static', filename='img/logo.png') }}"
+        alt="LogiStock"
+        style="
+          width: 240px;
+          max-width: 100%;
+          height: auto;
+        "
+      >
+
+    </div>
+
+    <!-- Título -->
+<h1
+  class="fw-bold mb-2"
+  style="
+    font-size: 2.5rem;
+    color: #1f2937;
+    letter-spacing: -1px;
+  "
+>
+  
+Gestão de Materiais
+</h1>
+
+<p
+  class="text-secondary mb-0"
+  style="
+    font-size: 0.95rem;
+    letter-spacing: 2px;
+  "
+>
+  CONTROLE OPERACIONAL E LOGÍSTICO
+</p>
+
   </div>
+
 </div>
+
 {% endblock %}

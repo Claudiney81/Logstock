@@ -1,0 +1,341 @@
+{% extends 'base.html' %}
+
+{% block content %}
+
+<style>
+  .page-header {
+    background: linear-gradient(135deg, #002b55, #163b63);
+    color: white;
+    border-radius: 14px;
+    padding: 22px 26px;
+    margin-bottom: 24px;
+    box-shadow: 0 6px 18px rgba(0,43,85,.18);
+  }
+
+  .page-header h4 {
+    margin: 0;
+    font-weight: 700;
+  }
+
+  .table-card,
+  .summary-card {
+    background: #fff;
+    border-radius: 14px;
+    border: 1px solid #e5e7eb;
+    box-shadow: 0 6px 18px rgba(15,39,66,.08);
+  }
+
+  .summary-card {
+    padding: 18px;
+    height: 100%;
+  }
+
+  .summary-title {
+    font-size: .78rem;
+    text-transform: uppercase;
+    color: #64748b;
+    font-weight: 700;
+    margin-bottom: 6px;
+  }
+
+  .summary-value {
+    font-size: 1.6rem;
+    font-weight: 800;
+    color: #002b55;
+  }
+
+  .summary-icon {
+    width: 42px;
+    height: 42px;
+    border-radius: 12px;
+    background: #eef6ff;
+    color: #002b55;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 1.25rem;
+  }
+
+  .table thead th {
+    background: #002b55;
+    color: white;
+    text-align: center;
+    vertical-align: middle;
+    font-size: .86rem;
+    white-space: nowrap;
+  }
+
+  .table tbody td {
+    vertical-align: middle;
+    text-align: center;
+    font-size: .88rem;
+  }
+
+  .placa-box {
+    display: inline-block;
+    background: #f8fafc;
+    border: 1px solid #cbd5e1;
+    border-radius: 8px;
+    padding: 5px 10px;
+    font-weight: 800;
+    color: #111827;
+  }
+
+  .doc-badge {
+    display: inline-block;
+    min-width: 105px;
+    padding: 6px 10px;
+    border-radius: 8px;
+    background: #eef6ff;
+    color: #002b55;
+    font-weight: 700;
+    font-size: .78rem;
+  }
+
+  .file-name {
+    max-width: 240px;
+    display: inline-block;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    vertical-align: middle;
+  }
+
+  .btn-elegant {
+    background: #002b55;
+    color: white;
+    border: none;
+    font-weight: 600;
+  }
+
+  .btn-elegant:hover {
+    background: #001f3f;
+    color: white;
+  }
+
+  .empty-box {
+    padding: 45px 20px;
+    text-align: center;
+    color: #64748b;
+  }
+</style>
+
+<div class="container-fluid mt-4">
+
+  {% set total_documentos = documentos|length %}
+  {% set total_validade = namespace(qtd=0) %}
+
+  {% for documento in documentos %}
+    {% if documento.data_validade %}
+      {% set total_validade.qtd = total_validade.qtd + 1 %}
+    {% endif %}
+  {% endfor %}
+
+  <div class="page-header d-flex justify-content-between align-items-center flex-wrap gap-2">
+
+    <div>
+      <h4>
+        <i class="bi bi-folder2-open me-2"></i>
+        Documentos da Frota
+      </h4>
+
+      <small>
+        Arquivos vinculados aos veículos: CNH, CRLV, IPVA, seguros, multas, fotos e comprovantes.
+      </small>
+    </div>
+
+    <a
+      href="{{ url_for('frota.novo_documento') }}"
+      class="btn btn-light fw-semibold"
+    >
+      <i class="bi bi-plus-circle me-1"></i>
+      Novo Documento
+    </a>
+
+  </div>
+
+  <div class="row g-3 mb-4">
+
+    <div class="col-md-4">
+      <div class="summary-card d-flex justify-content-between align-items-center">
+        <div>
+          <div class="summary-title">Total de Documentos</div>
+          <div class="summary-value">{{ total_documentos }}</div>
+        </div>
+        <div class="summary-icon">
+          <i class="bi bi-folder2-open"></i>
+        </div>
+      </div>
+    </div>
+
+    <div class="col-md-4">
+      <div class="summary-card d-flex justify-content-between align-items-center">
+        <div>
+          <div class="summary-title">Com Data de Validade</div>
+          <div class="summary-value">{{ total_validade.qtd }}</div>
+        </div>
+        <div class="summary-icon">
+          <i class="bi bi-calendar-check"></i>
+        </div>
+      </div>
+    </div>
+
+    <div class="col-md-4">
+      <div class="summary-card d-flex justify-content-between align-items-center">
+        <div>
+          <div class="summary-title">Sem Validade Informada</div>
+          <div class="summary-value">{{ total_documentos - total_validade.qtd }}</div>
+        </div>
+        <div class="summary-icon">
+          <i class="bi bi-calendar-x"></i>
+        </div>
+      </div>
+    </div>
+
+  </div>
+
+  <div class="card table-card">
+    <div class="card-body p-4">
+
+      {% if documentos %}
+
+        <div class="d-flex justify-content-between align-items-center flex-wrap gap-2 mb-3">
+          <h6 class="mb-0 fw-bold text-primary">
+            <i class="bi bi-list-ul me-1"></i>
+            Relação de Documentos
+          </h6>
+
+          <small class="text-muted">
+            {{ documentos|length }} documento(s) encontrado(s)
+          </small>
+        </div>
+
+        <div class="table-responsive">
+
+          <table class="table table-hover table-bordered align-middle">
+
+            <thead>
+              <tr>
+                <th>Veículo</th>
+                <th>Tipo Documento</th>
+                <th>Descrição</th>
+                <th>Arquivo</th>
+                <th>Emissão</th>
+                <th>Validade</th>
+                <th width="150">Ações</th>
+              </tr>
+            </thead>
+
+            <tbody>
+
+              {% for documento in documentos %}
+                <tr>
+
+                  <td>
+                    <span class="placa-box">
+                      {{ documento.veiculo.placa }}
+                    </span>
+                    <br>
+                    <small class="text-muted">
+                      {{ documento.veiculo.marca }}
+                      {{ documento.veiculo.modelo }}
+                    </small>
+                  </td>
+
+                  <td>
+                    <span class="doc-badge">
+                      {{ documento.tipo_documento }}
+                    </span>
+                  </td>
+
+                  <td class="text-start">
+                    {{ documento.descricao or '-' }}
+                  </td>
+
+                  <td>
+                    <span
+                      class="file-name"
+                      title="{{ documento.nome_arquivo }}"
+                    >
+                      {{ documento.nome_arquivo }}
+                    </span>
+                  </td>
+
+                  <td>
+                    {{ documento.data_emissao.strftime('%d/%m/%Y') if documento.data_emissao else '-' }}
+                  </td>
+
+                  <td>
+                    {% if documento.data_validade %}
+                      <strong>
+                        {{ documento.data_validade.strftime('%d/%m/%Y') }}
+                      </strong>
+                    {% else %}
+                      <span class="text-muted">-</span>
+                    {% endif %}
+                  </td>
+
+                  <td>
+                    <div class="d-flex justify-content-center gap-2">
+
+                      <a
+                        href="{{ url_for('static', filename=documento.caminho_arquivo) }}"
+                        target="_blank"
+                        class="btn btn-sm btn-outline-primary"
+                        title="Visualizar documento"
+                      >
+                        <i class="bi bi-eye"></i>
+                      </a>
+
+                      <form
+                        method="POST"
+                        action="{{ url_for('frota.excluir_documento', documento_id=documento.id) }}"
+                        onsubmit="return confirm('Deseja excluir este documento?');"
+                      >
+                        <button
+                          type="submit"
+                          class="btn btn-sm btn-outline-danger"
+                          title="Excluir documento"
+                        >
+                          <i class="bi bi-trash"></i>
+                        </button>
+                      </form>
+
+                    </div>
+                  </td>
+
+                </tr>
+              {% endfor %}
+
+            </tbody>
+
+          </table>
+
+        </div>
+
+      {% else %}
+
+        <div class="empty-box">
+          <i class="bi bi-folder fs-1 d-block mb-3"></i>
+          <h6 class="fw-bold">Nenhum documento cadastrado</h6>
+          <p class="mb-3">
+            Envie documentos da frota para manter o histórico organizado.
+          </p>
+
+          <a
+            href="{{ url_for('frota.novo_documento') }}"
+            class="btn btn-elegant"
+          >
+            <i class="bi bi-plus-circle me-1"></i>
+            Enviar Documento
+          </a>
+        </div>
+
+      {% endif %}
+
+    </div>
+  </div>
+
+</div>
+
+{% endblock %}

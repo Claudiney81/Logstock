@@ -1,0 +1,178 @@
+{% extends "base.html" %}
+
+{% block content %}
+
+<div class="container mt-4">
+
+  <div class="card shadow-sm border-0">
+
+    <div
+      class="card-header text-white"
+      style="background:#002b55;"
+    >
+      <h5 class="mb-0">
+        <i class="bi bi-pencil-square me-2"></i>
+        Editar Ordem de Serviço
+      </h5>
+    </div>
+
+    <div class="card-body">
+
+      <div class="alert alert-light border">
+
+        <strong>Cliente:</strong>
+        {{ cliente.razao_social }}
+
+        <br>
+
+        <strong>O.S:</strong>
+        {{ os.numero_os }}
+
+      </div>
+
+      <form method="POST">
+
+        <div class="row g-3">
+
+          <!-- TIPO SERVIÇO -->
+          <div class="col-md-6">
+
+            <label class="form-label fw-semibold">
+              Tipo de Serviço
+            </label>
+
+            <select
+              name="tipo_servico_id"
+              class="form-select"
+            >
+
+              <option value="">
+                Selecione
+              </option>
+
+              {% for tipo in tipos_servico %}
+              <option
+                value="{{ tipo.id }}"
+                {% if os.tipo_servico_id == tipo.id %}selected{% endif %}
+              >
+                {{ tipo.nome }}
+              </option>
+              {% endfor %}
+
+            </select>
+
+          </div>
+
+          <!-- STATUS -->
+          <div class="col-md-6">
+
+            <label class="form-label fw-semibold">
+              Status
+            </label>
+
+            <select
+              name="status"
+              class="form-select"
+            >
+              <option
+                value="aberta"
+                {% if os.status == 'aberta' %}selected{% endif %}
+              >
+                Aberta
+              </option>
+
+              <option
+                value="em_andamento"
+                {% if os.status == 'em_andamento' %}selected{% endif %}
+              >
+                Em andamento
+              </option>
+
+              <option
+                value="concluida"
+                {% if os.status == 'concluida' %}selected{% endif %}
+              >
+                Concluída
+              </option>
+
+            </select>
+
+          </div>
+
+          <!-- RESPONSÁVEL -->
+          <div class="col-md-6">
+
+            <label class="form-label fw-semibold">
+              Responsável
+            </label>
+
+            <input
+              type="text"
+              name="responsavel"
+              class="form-control"
+              value="{{ os.responsavel or '' }}"
+            >
+
+          </div>
+
+          <!-- ENDEREÇO -->
+          <div class="col-md-6">
+
+            <label class="form-label fw-semibold">
+              Endereço
+            </label>
+
+            <input
+              type="text"
+              name="endereco"
+              class="form-control"
+              value="{{ os.endereco or '' }}"
+            >
+
+          </div>
+
+          <!-- OBS -->
+          <div class="col-12">
+
+            <label class="form-label fw-semibold">
+              Observação
+            </label>
+
+            <textarea
+              name="observacao"
+              rows="4"
+              class="form-control"
+            >{{ os.observacao or '' }}</textarea>
+
+          </div>
+
+        </div>
+
+        <div class="mt-4 d-flex gap-2">
+
+          <button
+            type="submit"
+            class="btn btn-primary"
+          >
+            <i class="bi bi-check-circle me-1"></i>
+            Salvar Alterações
+          </button>
+
+          <a
+            href="{{ url_for('empresas.listar_os_cliente', cliente_id=cliente.id) }}"
+            class="btn btn-secondary"
+          >
+            Voltar
+          </a>
+
+        </div>
+
+      </form>
+
+    </div>
+
+  </div>
+
+</div>
+
+{% endblock %}

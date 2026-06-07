@@ -1,0 +1,348 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+<meta charset="utf-8">
+<title>Nota {{ nota.numero_nf or nota.id }}</title>
+
+<style>
+
+@page {
+  size: A4;
+  margin: 14mm;
+}
+
+body {
+  font-family: Arial, Helvetica, sans-serif;
+  font-size: 13px;
+  color: #1f2937;
+  margin: 0;
+}
+
+/* ===================================================== */
+/* TOPO */
+/* ===================================================== */
+
+.topo {
+  display: table;
+  width: 100%;
+  border-bottom: 3px solid #002b55;
+  padding-bottom: 14px;
+  margin-bottom: 22px;
+}
+
+.logo-box {
+  display: table-cell;
+  width: 30%;
+  vertical-align: middle;
+}
+
+.logo {
+  height: 68px;
+  object-fit: contain;
+}
+
+.titulo-box {
+  display: table-cell;
+  width: 70%;
+  text-align: right;
+  vertical-align: middle;
+}
+
+.titulo {
+  font-size: 30px;
+  font-weight: 800;
+  color: #002b55;
+  text-transform: uppercase;
+  margin: 0;
+  line-height: 1;
+}
+
+.subinfo {
+  margin-top: 8px;
+  font-size: 11px;
+  color: #6b7280;
+  line-height: 1.5;
+}
+
+/* ===================================================== */
+/* CARD DADOS */
+/* ===================================================== */
+
+.card-dados {
+  border: 1px solid #d1d5db;
+  border-radius: 8px;
+  overflow: hidden;
+  margin-bottom: 20px;
+}
+
+.card-title {
+  background: #002b55;
+  color: white;
+  padding: 11px 14px;
+  font-size: 13px;
+  font-weight: bold;
+  text-transform: uppercase;
+}
+
+.dados-nota {
+  width: 100%;
+  border-collapse: collapse;
+}
+
+.dados-nota td {
+  padding: 11px 12px;
+  border-bottom: 1px solid #e5e7eb;
+  font-size: 12.5px;
+  vertical-align: middle;
+}
+
+.dados-nota tr:last-child td {
+  border-bottom: none;
+}
+
+.label {
+  width: 18%;
+  font-weight: bold;
+  color: #002b55;
+  white-space: nowrap;
+  background: #f8fafc;
+}
+
+.valor {
+  width: 32%;
+  color: #111827;
+  font-weight: 600;
+}
+
+/* ===================================================== */
+/* SEÇÃO */
+/* ===================================================== */
+
+.secao {
+  background: #002b55;
+  color: white;
+  padding: 11px 14px;
+  border-radius: 8px 8px 0 0;
+  margin-top: 18px;
+  font-size: 13px;
+  font-weight: bold;
+  text-transform: uppercase;
+}
+
+/* ===================================================== */
+/* TABELA */
+/* ===================================================== */
+
+.table-wrap {
+  border: 1px solid #d1d5db;
+  border-top: none;
+  border-radius: 0 0 8px 8px;
+  overflow: hidden;
+}
+
+.tabela-itens {
+  width: 100%;
+  border-collapse: collapse;
+  table-layout: fixed;
+}
+
+.tabela-itens th {
+  background: #002b55;
+  color: white;
+  padding: 10px 7px;
+  font-size: 11px;
+  text-align: center;
+  text-transform: uppercase;
+}
+
+.tabela-itens td {
+  padding: 10px 7px;
+  border-top: 1px solid #d1d5db;
+  font-size: 11.5px;
+  vertical-align: middle;
+}
+
+.tabela-itens tbody tr:nth-child(even) {
+  background: #f8fafc;
+}
+
+.descricao-item {
+  text-align: left;
+  line-height: 1.4;
+  word-break: break-word;
+}
+
+.center {
+  text-align: center;
+}
+
+.num {
+  text-align: right;
+  white-space: nowrap;
+}
+
+/* ===================================================== */
+/* TOTAL */
+/* ===================================================== */
+
+.total-final {
+  margin-top: 18px;
+  width: 100%;
+  border-collapse: collapse;
+}
+
+.total-label {
+  text-align: right;
+  font-size: 15px;
+  font-weight: bold;
+  color: #002b55;
+  padding-right: 16px;
+}
+
+.total-valor {
+  width: 210px;
+  background: #002b55;
+  color: white;
+  text-align: center;
+  padding: 14px;
+  font-size: 22px;
+  font-weight: bold;
+  border-radius: 8px;
+}
+
+/* ===================================================== */
+/* RODAPÉ */
+/* ===================================================== */
+
+.rodape {
+  margin-top: 38px;
+  text-align: center;
+  font-size: 10px;
+  color: #6b7280;
+}
+
+</style>
+</head>
+
+<body>
+
+{% set categoria_nota = itens[0].categoria if itens and itens[0].categoria else 'MATERIAL' %}
+
+<div class="topo">
+  <div class="logo-box">
+    <img class="logo" src="{{ url_for('static', filename='img/start_logo.png', _external=True) }}">
+  </div>
+
+  <div class="titulo-box">
+    <h1 class="titulo">Nota Fiscal de Entrada</h1>
+    <div class="subinfo">
+      Documento fiscal de entrada de materiais
+    </div>
+  </div>
+</div>
+
+<div class="card-dados">
+  <div class="card-title">DADOS DA NOTA FISCAL</div>
+
+  <table class="dados-nota">
+    <tr>
+      <td class="label">Número NF:</td>
+      <td class="valor">{{ nota.numero_nf if nota.numero_nf else 'SEM NÚMERO' }}</td>
+
+      <td class="label">Data Registro:</td>
+      <td class="valor">
+        {{ nota.data_hora.strftime('%d/%m/%Y %H:%M') if nota.data_hora else '—' }}
+      </td>
+    </tr>
+
+    <tr>
+      <td class="label">Fornecedor:</td>
+      <td class="valor">{{ nota.fornecedor or '—' }}</td>
+
+      <td class="label">Registrado por:</td>
+      <td class="valor">{{ nota.usuario.nome if nota.usuario else '—' }}</td>
+    </tr>
+
+    <tr>
+      <td class="label">Tipo Estoque:</td>
+      <td class="valor">{{ nota.tipo_estoque|capitalize if nota.tipo_estoque else '—' }}</td>
+
+      <td class="label">Cliente:</td>
+      <td class="valor">{{ nota.cliente.razao_social if nota.cliente else '—' }}</td>
+    </tr>
+
+    <tr>
+      <td class="label">Categoria:</td>
+      <td class="valor">{{ categoria_nota }}</td>
+
+      <td class="label">Tipo Serviço:</td>
+      <td class="valor">
+        {% if categoria_nota in ['FERRAMENTA', 'EPI'] %}
+          Não se aplica
+        {% else %}
+          {{ nota.tipo_servico_ref.nome if nota.tipo_servico_ref else nota.tipo_servico or '—' }}
+        {% endif %}
+      </td>
+    </tr>
+
+    <tr>
+      <td class="label">Observação:</td>
+      <td class="valor" colspan="3">{{ nota.observacao or '—' }}</td>
+    </tr>
+  </table>
+</div>
+
+<div class="secao">Itens da Nota</div>
+
+<div class="table-wrap">
+<table class="tabela-itens">
+  <thead>
+    <tr>
+      <th style="width: 12%;">Código</th>
+      <th style="width: 34%;">Descrição</th>
+      <th style="width: 12%;">Categoria</th>
+      <th style="width: 8%;">Un.</th>
+      <th style="width: 8%;">Qtd</th>
+      <th style="width: 13%;">Valor Unit.</th>
+      <th style="width: 13%;">Total</th>
+    </tr>
+  </thead>
+
+  <tbody>
+    {% set ns = namespace(total_geral=0) %}
+
+    {% for it in itens %}
+      {% set q = (it.quantidade or 0) %}
+      {% set vu = (it.valor_unit or it.valor_unitario or 0) %}
+      {% set vt = q * vu %}
+      {% set ns.total_geral = ns.total_geral + vt %}
+
+      <tr>
+        <td class="center">{{ it.codigo or '—' }}</td>
+        <td class="descricao-item">{{ it.descricao or '—' }}</td>
+        <td class="center">{{ it.categoria or 'MATERIAL' }}</td>
+        <td class="center">{{ it.unidade or '—' }}</td>
+        <td class="num">{{ q }}</td>
+        <td class="num">R$ {{ '%.2f'|format(vu)|replace('.', ',') }}</td>
+        <td class="num">R$ {{ '%.2f'|format(vt)|replace('.', ',') }}</td>
+      </tr>
+    {% endfor %}
+  </tbody>
+</table>
+</div>
+
+<table class="total-final">
+  <tr>
+    <td class="total-label">TOTAL DA NOTA:</td>
+    <td class="total-valor">
+      R$ {{ '%.2f'|format(ns.total_geral|float)|replace('.', ',') }}
+    </td>
+  </tr>
+</table>
+
+<div class="rodape">
+  Documento gerado automaticamente pelo LogiStock.
+</div>
+
+</body>
+</html>

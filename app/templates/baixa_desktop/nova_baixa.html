@@ -1,112 +1,823 @@
 {% extends 'base.html' %}
+
 {% block content %}
 <div class="container mt-4">
-  <h4 class="text-primary">
-    <i class="bi bi-download"></i> Nova Baixa Técnica
-  </h4>
 
-  <!-- Seleção do técnico e tipo de serviço -->
-  <form method="GET" action="{{ url_for('baixa_desktop.nova_baixa') }}">
-    <div class="row mb-3">
-      <div class="col-md-4">
-        <label for="tecnico_id" class="form-label">Técnico</label>
-        <select class="form-select" name="tecnico_id" id="tecnico_id" onchange="this.form.submit()" required>
-          <option value="">Selecione</option>
-          {% for tecnico in tecnicos %}
-          <option value="{{ tecnico.id }}" {% if tecnico.id == tecnico_id %}selected{% endif %}>
-            {{ tecnico.nome }}
-          </option>
-          {% endfor %}
-        </select>
-      </div>
-      <div class="col-md-4">
-        <label for="tipo_servico_id" class="form-label">Tipo de Serviço</label>
-        <select class="form-select" name="tipo_servico_id" id="tipo_servico_id" onchange="this.form.submit()" required>
-          <option value="">Selecione</option>
-          {% for ts in tipos_servico %}
-          <option value="{{ ts.id }}" {% if ts.id == tipo_servico_id %}selected{% endif %}>
-            {{ ts.nome }}
-          </option>
-          {% endfor %}
-        </select>
-      </div>
-    </div>
-  </form>
-
-  {% if tecnico_id and tipo_servico_id %}
-  <form method="POST" action="{{ url_for('baixa_desktop.nova_baixa') }}" id="formBaixa">
-    <input type="hidden" name="tecnico_id" value="{{ tecnico_id }}">
-    <input type="hidden" name="tipo_servico_id" value="{{ tipo_servico_id }}">
-
-    <div class="row mb-3">
-      <div class="col-md-6">
-        <label class="form-label">Responsável</label>
-        <input type="text" class="form-control" name="responsavel" required>
-      </div>
-      <div class="col-md-6">
-        <label class="form-label">Observação</label>
-        <input type="text" class="form-control" name="observacao" placeholder="Opcional">
-      </div>
+  <div class="card shadow-sm border-0">
+    <div class="card-header text-white" style="background:#002b55;">
+      <strong>
+        <i class="bi bi-tools me-2"></i>
+        Nova Baixa Técnica Manual
+      </strong>
     </div>
 
-    <div class="table-responsive mt-4">
-      <table class="table table-bordered table-sm align-middle text-center">
-        <thead class="table-light">
-          <tr>
-            <th>Código</th>
-            <th>Descrição</th>
-            <th>Unidade</th>
-            <th>Saldo</th>
-            <th>Qtd. Baixa</th>
-          </tr>
-        </thead>
-        <tbody>
-          {% for i in itens %}
-          <tr>
-            <td>{{ i.item.codigo }}</td>
-            <td class="text-start">{{ i.item.descricao }}</td>
-            <td>{{ i.item.unidade }}</td>
-            <td class="saldo">{{ i.quantidade }}</td>
-            <td>
-              <input type="number" name="quantidade[]" class="form-control form-control-sm quantidade"
-                     max="{{ i.quantidade }}" min="0" step="1" required>
-              <input type="hidden" name="item_id[]" value="{{ i.item_id }}">
-            </td>
-          </tr>
-          {% endfor %}
-        </tbody>
-      </table>
-    </div>
+    <div class="card-body">
 
-    <div class="text-center mt-3">
-      <button type="submit" class="btn btn-success px-4">
-        <i class="bi bi-check-circle"></i> Enviar Baixa
-      </button>
+      {% if baixas_recusadas %}
+      <div class="alert alert-danger shadow-sm border-0 mb-4">
+        <div class="fw-bold mb-2">
+          ⚠ Baixas manuais devolvidas para ajuste
+        </div>
+
+        {% for baixa in baixas_recusadas %}
+        <div class="bg-white border rounded p-3 mb-2">
+          <div class="row g-2 align-items-end">
+            <div class="col-md-3">
+              <small class="text-muted">Técnico</small><br>
+              <strong>{{ baixa.tecnico.nome if baixa.tecnico else '-' }}</strong>
+            </div>
+
+            <div class="col-md-3">
+              <small class="text-muted">Cliente</small><br>
+              <strong>{{ baixa.cliente.razao_social if baixa.cliente else '-' }}</strong>
+            </div>
+
+            <div class="col-md-2">
+              <small class="text-muted">O.S</small><br>
+              <strong>
+                {% if baixa.ordem_servico %}
+                  {{ baixa.ordem_servico.numero_os }}
+                {% elif baixa.os_cliente %}
+                  {{ baixa.os_cliente.split(' - ')[-1] }}
+                {% else %}
+                  -
+                {% endif %}
+              </strong>
+            </div>
+
+            <div class="col-md-2">
+              <small class="text-muted">Data</small><br>
+              <strong>
+                {{ baixa.data_hora.strftime('%d/%m/%Y %H:%M') if baixa.data_hora else '-' }}
+              </strong>
+            </div>
+
+            <div class="col-md-2 text-end">
+              <button
+                type="button"
+                class="btn btn-danger btn-sm w-100"
+                onclick="corrigirBaixa{{ baixa.id }}()"
+              >
+                Corrigir
+              </button>
+            </div>
+          </div>
+
+          <div class="mt-2">
+            <small class="text-muted">Motivo da devolução:</small><br>
+            <strong>{{ baixa.motivo_recusa or 'A baixa foi devolvida para correção.' }}</strong>
+          </div>
+        </div>
+        {% endfor %}
+      </div>
+      {% endif %}
+
+      <form id="formBaixaDesktop" method="POST" action="{{ url_for('baixa_desktop.nova_baixa') }}">
+        <input type="hidden" name="baixa_id_corrigir" id="baixa_id_corrigir" value="">
+
+        <div class="row g-3 mb-4">
+
+          <div class="col-md-3">
+            <label class="form-label fw-bold">Técnico</label>
+            <select name="tecnico_id" id="tecnico_id" class="form-select" required>
+              <option value="">Selecione</option>
+              {% for tecnico in tecnicos %}
+              <option value="{{ tecnico.id }}">
+                {{ tecnico.nome }}
+              </option>
+              {% endfor %}
+            </select>
+          </div>
+
+          <div class="col-md-3">
+            <label class="form-label fw-bold">Tipo de Serviço</label>
+            <select name="tipo_servico_id" id="tipo_servico_id" class="form-select" required>
+              <option value="">Selecione</option>
+              {% for ts in tipos_servico %}
+              <option value="{{ ts.id }}">
+                {{ ts.nome }}
+              </option>
+              {% endfor %}
+            </select>
+          </div>
+
+          <div class="col-md-3">
+            <label class="form-label fw-bold">Tipo de Estoque</label>
+            <select id="tipo_estoque" class="form-select" required>
+              <option value="">Selecione</option>
+              <option value="empresa">Estoque Empresa</option>
+              <option value="cliente">Estoque Cliente</option>
+            </select>
+            <small class="text-muted">
+              Empresa busca saldo geral. Cliente busca saldo por O.S.
+            </small>
+          </div>
+
+          <div class="col-md-3">
+            <label class="form-label fw-bold">Cliente</label>
+            <select name="cliente_id" id="cliente_id" class="form-select" required>
+              <option value="">Selecione</option>
+              {% for c in clientes %}
+              <option value="{{ c.id }}">
+                {{ c.razao_social }}
+              </option>
+              {% endfor %}
+            </select>
+          </div>
+
+          <div class="col-md-3">
+            <label class="form-label fw-bold">O.S</label>
+            <select name="ordem_servico_id" id="ordem_servico_id" class="form-select" required>
+              <option value="">Selecione o cliente primeiro</option>
+            </select>
+          </div>
+
+          <div class="col-md-5">
+            <label class="form-label fw-bold">Endereço</label>
+            <input
+              type="text"
+              name="endereco"
+              id="endereco"
+              class="form-control"
+              readonly
+            >
+          </div>
+
+          <div class="col-md-4">
+            <label class="form-label fw-bold">Observação</label>
+            <input
+              type="text"
+              name="observacao"
+              id="observacao"
+              class="form-control"
+              placeholder="Observações da baixa..."
+            >
+          </div>
+        </div>
+
+        <div class="alert alert-info py-2 mb-3">
+          <strong>Fluxo:</strong>
+          selecione a origem do saldo, carregue os itens, adicione ao resumo e depois pode trocar de
+          <strong>Empresa</strong> para <strong>Cliente</strong> sem perder os itens já adicionados.
+          A baixa será enviada para aprovação.
+        </div>
+
+        <div class="mb-3 d-flex flex-wrap gap-2">
+          <button type="button" class="btn btn-outline-primary" onclick="carregarSaldo()">
+            <i class="bi bi-search"></i>
+            Carregar Itens do Saldo Técnico
+          </button>
+        </div>
+
+        <hr>
+
+        <h5 class="fw-bold text-primary mb-3">
+          Itens disponíveis para baixa
+        </h5>
+
+        <div class="table-responsive mb-4">
+          <table class="table table-bordered table-sm align-middle">
+            <thead class="table-light text-center">
+              <tr>
+                <th style="width:120px;">Código</th>
+                <th>Descrição</th>
+                <th style="width:80px;">Un.</th>
+                <th style="width:90px;">Saldo</th>
+                <th style="width:150px;">Qtd. Baixa</th>
+              </tr>
+            </thead>
+
+            <tbody id="tbodyItensDisponiveis">
+              <tr>
+                <td colspan="5" class="text-center text-muted">
+                  Selecione os filtros e clique em
+                  <strong>Carregar Itens do Saldo Técnico</strong>.
+                </td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+
+        <div class="mb-4">
+          <button type="button" class="btn btn-primary w-100" onclick="adicionarItensInformadosAoResumo()">
+            <i class="bi bi-plus-circle"></i>
+            Inserir itens com quantidade no resumo
+          </button>
+        </div>
+
+        <h5 class="fw-bold text-success mb-3">
+          Resumo da Baixa
+        </h5>
+
+        <div class="table-responsive">
+          <table class="table table-bordered table-sm align-middle">
+            <thead class="table-light text-center">
+              <tr>
+                <th style="width:110px;">Origem</th>
+                <th style="width:120px;">Código</th>
+                <th>Descrição</th>
+                <th style="width:80px;">Un.</th>
+                <th style="width:100px;">Quantidade</th>
+              </tr>
+            </thead>
+
+            <tbody id="tbodyResumoBaixa">
+              <tr id="linhaVaziaResumo">
+                <td colspan="5" class="text-center text-muted">
+                  Nenhum item adicionado ao resumo.
+                </td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+
+        <div class="mt-3">
+          <button type="button" class="btn btn-outline-danger w-100" onclick="limparResumoBaixa()">
+            <i class="bi bi-trash"></i>
+            Remover todos os itens do resumo
+          </button>
+        </div>
+
+        <div id="hiddenInputsResumo"></div>
+
+        <div class="mt-4 d-flex flex-wrap gap-2">
+          <button type="submit" class="btn btn-success" id="btnRegistrarBaixa">
+            <i class="bi bi-check-circle"></i>
+            Registrar Baixa para Aprovação
+          </button>
+
+          <a href="{{ url_for('baixa_desktop.baixas_pendentes') }}" class="btn btn-outline-secondary">
+            <i class="bi bi-hourglass-split"></i>
+            Baixas Pendentes
+          </a>
+        </div>
+
+      </form>
+
     </div>
-  </form>
-  {% endif %}
+  </div>
 </div>
 
 <script>
-document.getElementById('formBaixa').addEventListener('submit', function(e) {
-  let valido = true;
-  document.querySelectorAll('tr').forEach(function(row) {
-    const input = row.querySelector('.quantidade');
-    const saldo = parseInt(row.querySelector('.saldo')?.innerText || '0');
-    if (input) {
-      const valor = parseInt(input.value || 0);
-      if (valor > saldo) {
-        input.classList.add('is-invalid');
-        valido = false;
-      } else {
-        input.classList.remove('is-invalid');
-      }
+const tecnicoId = document.getElementById("tecnico_id");
+const tipoServico = document.getElementById("tipo_servico_id");
+const tipoEstoque = document.getElementById("tipo_estoque");
+const clienteId = document.getElementById("cliente_id");
+const ordemServico = document.getElementById("ordem_servico_id");
+const endereco = document.getElementById("endereco");
+const observacao = document.getElementById("observacao");
+const baixaIdCorrigir = document.getElementById("baixa_id_corrigir");
+const btnRegistrarBaixa = document.getElementById("btnRegistrarBaixa");
+
+const tbodyItensDisponiveis = document.getElementById("tbodyItensDisponiveis");
+const tbodyResumoBaixa = document.getElementById("tbodyResumoBaixa");
+const hiddenInputsResumo = document.getElementById("hiddenInputsResumo");
+
+let resumoBaixa = [];
+let modoCorrecaoBaixa = false;
+
+function origemTexto(origem) {
+  return origem === "cliente" ? "Cliente" : "Empresa";
+}
+
+function atualizarEndereco() {
+  const option = ordemServico.options[ordemServico.selectedIndex];
+  endereco.value = option ? (option.dataset.endereco || "") : "";
+}
+
+function limparItensDisponiveis() {
+  tbodyItensDisponiveis.innerHTML = `
+    <tr>
+      <td colspan="5" class="text-center text-muted">
+        Selecione os filtros e clique em
+        <strong>Carregar Itens do Saldo Técnico</strong>.
+      </td>
+    </tr>
+  `;
+}
+
+function validarBaseCarregamento() {
+  const tecnico = tecnicoId.value;
+  const tipoServicoId = tipoServico.value;
+  const estoque = tipoEstoque.value;
+  const cliente = clienteId.value;
+  const os = ordemServico.value;
+
+  if (!tecnico || !tipoServicoId || !estoque) {
+    alert("Selecione Técnico, Tipo de Serviço e Tipo de Estoque.");
+    return false;
+  }
+
+  if (estoque === "cliente" && (!cliente || !os)) {
+    alert("Para Estoque Cliente, selecione Cliente e O.S.");
+    return false;
+  }
+
+  return true;
+}
+
+async function carregarOrdensServico() {
+  const cliente = clienteId.value;
+
+  ordemServico.innerHTML = '<option value="">Carregando...</option>';
+  endereco.value = "";
+
+  if (!cliente) {
+    ordemServico.innerHTML = '<option value="">Selecione o cliente</option>';
+    return;
+  }
+
+  const url = `{{ url_for('baixa_desktop.api_ordens_servico') }}?cliente_id=${cliente}`;
+
+  try {
+    const resposta = await fetch(url);
+    const dados = await resposta.json();
+
+    ordemServico.innerHTML = '<option value="">Selecione a O.S</option>';
+
+    if (!dados.ordens || dados.ordens.length === 0) {
+      ordemServico.innerHTML = '<option value="">Nenhuma O.S cadastrada</option>';
+      return;
     }
+
+    dados.ordens.forEach(os => {
+      const option = document.createElement("option");
+      option.value = os.id;
+      option.textContent = os.numero_os;
+      option.dataset.endereco = os.endereco || "";
+      ordemServico.appendChild(option);
+    });
+
+  } catch (erro) {
+    console.error(erro);
+    ordemServico.innerHTML = '<option value="">Erro ao carregar O.S</option>';
+  }
+}
+
+async function carregarSaldo() {
+  if (!validarBaseCarregamento()) {
+    return;
+  }
+
+  const tecnico = tecnicoId.value;
+  const tipoServicoId = tipoServico.value;
+  const estoque = tipoEstoque.value;
+  const cliente = clienteId.value;
+  const os = ordemServico.value;
+
+  let url = `{{ url_for('baixa_desktop.api_itens_saldo') }}`;
+  url += `?tecnico_id=${tecnico}`;
+  url += `&tipo_servico_id=${tipoServicoId}`;
+  url += `&tipo_estoque=${estoque}`;
+
+  if (estoque === "cliente") {
+    url += `&cliente_id=${cliente}`;
+    url += `&ordem_servico_id=${os}`;
+  }
+
+  tbodyItensDisponiveis.innerHTML = `
+    <tr>
+      <td colspan="5" class="text-center text-muted">
+        Carregando itens...
+      </td>
+    </tr>
+  `;
+
+  try {
+    const resposta = await fetch(url);
+    const dados = await resposta.json();
+
+    if (!dados.itens || dados.itens.length === 0) {
+      tbodyItensDisponiveis.innerHTML = `
+        <tr>
+          <td colspan="5" class="text-center text-muted">
+            Nenhum saldo disponível para os filtros selecionados.
+          </td>
+        </tr>
+      `;
+      return;
+    }
+
+    tbodyItensDisponiveis.innerHTML = "";
+
+    dados.itens.forEach(item => {
+      const chave = `${estoque}_${item.item_id}`;
+      const jaAdicionado = resumoBaixa.find(l => l.chave === chave);
+      const saldoDisponivelTela = item.quantidade - (jaAdicionado ? jaAdicionado.quantidade : 0);
+
+      if (saldoDisponivelTela <= 0) {
+        return;
+      }
+
+      const tr = document.createElement("tr");
+      tr.dataset.itemId = item.item_id;
+      tr.dataset.codigo = item.codigo || "";
+      tr.dataset.descricao = item.descricao || "";
+      tr.dataset.unidade = item.unidade || "-";
+      tr.dataset.quantidade = saldoDisponivelTela;
+      tr.dataset.tipoEstoque = estoque;
+
+      tr.innerHTML = `
+        <td class="text-center">${item.codigo}</td>
+        <td>${item.descricao}</td>
+        <td class="text-center">${item.unidade || "-"}</td>
+        <td class="text-center fw-bold">${saldoDisponivelTela}</td>
+        <td>
+          <input
+            type="number"
+            class="form-control form-control-sm text-center qtd-disponivel"
+            min="0"
+            max="${saldoDisponivelTela}"
+            value="0"
+          >
+        </td>
+      `;
+
+      tbodyItensDisponiveis.appendChild(tr);
+    });
+
+    if (!tbodyItensDisponiveis.innerHTML.trim()) {
+      tbodyItensDisponiveis.innerHTML = `
+        <tr>
+          <td colspan="5" class="text-center text-muted">
+            Todos os itens desse saldo já foram adicionados ao resumo.
+          </td>
+        </tr>
+      `;
+    }
+
+  } catch (erro) {
+    console.error(erro);
+    tbodyItensDisponiveis.innerHTML = `
+      <tr>
+        <td colspan="5" class="text-center text-danger">
+          Erro ao carregar itens do saldo.
+        </td>
+      </tr>
+    `;
+  }
+}
+
+function adicionarItensInformadosAoResumo() {
+  const linhas = tbodyItensDisponiveis.querySelectorAll("tr[data-item-id]");
+
+  if (!linhas.length) {
+    alert("Carregue os itens do saldo antes de adicionar.");
+    return;
+  }
+
+  let adicionou = false;
+  let erros = [];
+
+  linhas.forEach(tr => {
+    const inputQtd = tr.querySelector(".qtd-disponivel");
+    const quantidade = parseInt(inputQtd.value || 0);
+
+    // Campo vazio, zero ou inválido não passa para o resumo.
+    if (!quantidade || quantidade <= 0) {
+      return;
+    }
+
+    const saldoDisponivelTela = parseInt(tr.dataset.quantidade || 0);
+
+    if (quantidade > saldoDisponivelTela) {
+      erros.push(`${tr.dataset.codigo}: quantidade maior que o saldo disponível (${saldoDisponivelTela}).`);
+      return;
+    }
+
+    const origem = tr.dataset.tipoEstoque;
+    const itemId = parseInt(tr.dataset.itemId);
+    const chave = `${origem}_${itemId}`;
+    const existente = resumoBaixa.find(l => l.chave === chave);
+
+    if (existente) {
+      existente.quantidade += quantidade;
+    } else {
+      resumoBaixa.push({
+        chave: chave,
+        item_id: itemId,
+        codigo: tr.dataset.codigo,
+        descricao: tr.dataset.descricao,
+        unidade: tr.dataset.unidade || "-",
+        quantidade: quantidade,
+        tipo_estoque: origem
+      });
+    }
+
+    adicionou = true;
   });
-  if (!valido) {
+
+  if (erros.length > 0) {
+    alert(erros.join("\n"));
+  }
+
+  if (!adicionou) {
+    alert("Informe quantidade maior que zero em pelo menos um item.");
+    return;
+  }
+
+  renderizarResumo();
+
+  if (!modoCorrecaoBaixa) {
+    carregarSaldo();
+  }
+}
+
+function limparResumoBaixa() {
+  if (resumoBaixa.length === 0) {
+    return;
+  }
+
+  const ok = confirm("Deseja remover todos os itens do resumo da baixa?");
+
+  if (!ok) {
+    return;
+  }
+
+  resumoBaixa = [];
+  renderizarResumo();
+
+  if (!modoCorrecaoBaixa) {
+    carregarSaldo();
+  }
+}
+
+function renderizarResumo() {
+  tbodyResumoBaixa.innerHTML = "";
+  hiddenInputsResumo.innerHTML = "";
+
+  if (resumoBaixa.length === 0) {
+    tbodyResumoBaixa.innerHTML = `
+      <tr id="linhaVaziaResumo">
+        <td colspan="5" class="text-center text-muted">
+          Nenhum item adicionado ao resumo.
+        </td>
+      </tr>
+    `;
+    return;
+  }
+
+  resumoBaixa.forEach(linha => {
+    const tr = document.createElement("tr");
+    tr.innerHTML = `
+      <td class="text-center fw-bold">${origemTexto(linha.tipo_estoque)}</td>
+      <td class="text-center">${linha.codigo}</td>
+      <td>${linha.descricao}</td>
+      <td class="text-center">${linha.unidade}</td>
+      <td class="text-center fw-bold">${linha.quantidade}</td>
+    `;
+    tbodyResumoBaixa.appendChild(tr);
+
+    hiddenInputsResumo.innerHTML += `
+      <input type="hidden" name="resumo_item_id[]" value="${linha.item_id}">
+      <input type="hidden" name="resumo_quantidade[]" value="${linha.quantidade}">
+      <input type="hidden" name="resumo_tipo_estoque[]" value="${linha.tipo_estoque}">
+    `;
+  });
+}
+
+function bloquearAlteracaoComResumo(evento) {
+  if (resumoBaixa.length === 0) {
+    return;
+  }
+
+  const ok = confirm(
+    "Você já adicionou itens ao resumo. Se alterar Técnico, Tipo de Serviço, Cliente ou O.S, o resumo será limpo. Deseja continuar?"
+  );
+
+  if (!ok) {
+    evento.preventDefault();
+    window.location.reload();
+    return;
+  }
+
+  resumoBaixa = [];
+  renderizarResumo();
+  limparItensDisponiveis();
+}
+
+tecnicoId.addEventListener("change", async function (e) {
+  bloquearAlteracaoComResumo(e);
+  await carregarOrdensServico();
+});
+
+tipoServico.addEventListener("change", function (e) {
+  bloquearAlteracaoComResumo(e);
+  limparItensDisponiveis();
+});
+
+clienteId.addEventListener("change", async function (e) {
+  bloquearAlteracaoComResumo(e);
+  await carregarOrdensServico();
+});
+
+ordemServico.addEventListener("change", function (e) {
+  bloquearAlteracaoComResumo(e);
+  atualizarEndereco();
+  limparItensDisponiveis();
+});
+
+tipoEstoque.addEventListener("change", function () {
+  limparItensDisponiveis();
+
+  if (tipoEstoque.value === "empresa") {
+    clienteId.value = "";
+    ordemServico.innerHTML = '<option value="">Estoque empresa não usa O.S</option>';
+    endereco.value = "";
+  }
+
+  if (tipoEstoque.value === "cliente") {
+    carregarOrdensServico();
+  }
+}); 
+
+async function selecionarOrdemServicoPorId(osId, numeroOs = "", enderecoOs = "") {
+  await carregarOrdensServico();
+
+  if (osId) {
+    ordemServico.value = String(osId);
+  }
+
+  if (osId && ordemServico.value !== String(osId)) {
+    const option = document.createElement("option");
+    option.value = String(osId);
+    option.textContent = numeroOs || "O.S selecionada";
+    option.dataset.endereco = enderecoOs || "";
+    option.selected = true;
+    ordemServico.appendChild(option);
+  }
+
+  atualizarEndereco();
+}
+
+function renderizarItensCorrecao(baixa) {
+  const itens = baixa.itens || [];
+
+  if (!itens.length) {
+    tbodyItensDisponiveis.innerHTML = `
+      <tr>
+        <td colspan="5" class="text-center text-warning">
+          Nenhum item devolvido para ajuste nesta baixa.
+        </td>
+      </tr>
+    `;
+    return;
+  }
+
+  tbodyItensDisponiveis.innerHTML = "";
+
+  itens.forEach(item => {
+    const origem = item.tipo_estoque || "empresa";
+    const quantidadeDevolvida = parseInt(item.quantidade || 0);
+    const saldoReal = parseInt(item.saldo_real || 0);
+
+    if (quantidadeDevolvida <= 0) {
+      return;
+    }
+
+    const tr = document.createElement("tr");
+
+    tr.dataset.itemId = item.item_id;
+    tr.dataset.codigo = item.codigo || "";
+    tr.dataset.descricao = item.descricao || "";
+    tr.dataset.unidade = item.unidade || "-";
+    tr.dataset.quantidade = saldoReal;
+    tr.dataset.tipoEstoque = origem;
+
+    tr.innerHTML = `
+      <td class="text-center">
+        <span class="badge ${origem === "cliente" ? "bg-warning text-dark" : "bg-primary"} mb-1">
+          ${origemTexto(origem)}
+        </span><br>
+        ${item.codigo || ""}
+      </td>
+      <td>${item.descricao || ""}</td>
+      <td class="text-center">${item.unidade || "-"}</td>
+      <td class="text-center fw-bold ${saldoReal <= 0 ? "text-danger" : ""}">
+        ${saldoReal}
+      </td>
+      <td>
+        <input
+          type="number"
+          class="form-control form-control-sm text-center qtd-disponivel"
+          min="0"
+          max="${saldoReal}"
+          value="${quantidadeDevolvida > saldoReal ? saldoReal : quantidadeDevolvida}"
+          ${saldoReal <= 0 ? "disabled" : ""}
+        >
+      </td>
+    `;
+
+    tbodyItensDisponiveis.appendChild(tr);
+  });
+
+  if (!tbodyItensDisponiveis.innerHTML.trim()) {
+    tbodyItensDisponiveis.innerHTML = `
+      <tr>
+        <td colspan="5" class="text-center text-warning">
+          Nenhum item com saldo disponível para correção.
+        </td>
+      </tr>
+    `;
+  }
+}
+
+function entrarModoCorrecao(baixa) {
+  modoCorrecaoBaixa = true;
+  resumoBaixa = [];
+  renderizarResumo();
+
+  baixaIdCorrigir.value = baixa.id || "";
+  tecnicoId.value = baixa.tecnico_id || "";
+  tipoServico.value = baixa.tipo_servico_id || "";
+  clienteId.value = baixa.cliente_id || "";
+  observacao.value = baixa.observacao || "";
+
+  const primeiroItem = (baixa.itens || [])[0];
+  tipoEstoque.value = primeiroItem ? (primeiroItem.tipo_estoque || "") : "";
+
+  selecionarOrdemServicoPorId(baixa.ordem_servico_id, baixa.numero_os || "", baixa.endereco || "").then(() => {
+    endereco.value = baixa.endereco || endereco.value || "";
+  });
+
+  renderizarItensCorrecao(baixa);
+
+  btnRegistrarBaixa.innerHTML = `
+    <i class="bi bi-arrow-repeat"></i>
+    Reenviar Correção para Aprovação
+  `;
+
+  const aviso = document.createElement("div");
+  aviso.className = "alert alert-warning mt-3";
+  aviso.id = "avisoModoCorrecao";
+  aviso.innerHTML = `
+    <strong>Modo correção ativo:</strong>
+    os itens abaixo são somente os devolvidos nesta baixa. A coluna <strong>Saldo</strong> mostra o saldo real atual.
+    Ajuste as quantidades, clique em <strong>Inserir itens com quantidade no resumo</strong> e depois em
+    <strong>Reenviar Correção para Aprovação</strong>.
+  `;
+
+  document.getElementById("avisoModoCorrecao")?.remove();
+  tbodyItensDisponiveis.closest(".table-responsive").insertAdjacentElement("beforebegin", aviso);
+
+  document.getElementById("formBaixaDesktop").scrollIntoView({
+    behavior: "smooth",
+    block: "start"
+  });
+}
+
+document.getElementById("formBaixaDesktop").addEventListener("submit", function (e) {
+  if (!tecnicoId.value || !tipoServico.value || !clienteId.value || !ordemServico.value) {
     e.preventDefault();
-    alert('A quantidade informada não pode ser maior que o saldo disponível.');
+    alert("Preencha Técnico, Tipo de Serviço, Cliente e O.S antes de enviar.");
+    return false;
+  }
+
+  if (resumoBaixa.length === 0) {
+    e.preventDefault();
+    alert("Adicione pelo menos um item ao resumo da baixa.");
+    return false;
   }
 });
+
+renderizarResumo();
+
+// Carrega as O.S do cliente que já estiver selecionado ao abrir a tela.
+if (clienteId.value) {
+  carregarOrdensServico();
+}
+{% if baixas_recusadas %}
+{% for baixa in baixas_recusadas %}
+function corrigirBaixa{{ baixa.id }}() {
+  entrarModoCorrecao({
+    id: {{ baixa.id }},
+    tecnico_id: {{ baixa.tecnico_id or 'null' }},
+    tipo_servico_id: {{ baixa.tipo_servico_id or 'null' }},
+    cliente_id: {{ baixa.cliente_id or 'null' }},
+    ordem_servico_id: {{ baixa.ordem_servico_id or 'null' }},
+    numero_os: {{ (baixa.ordem_servico.numero_os if baixa.ordem_servico else '')|tojson }},
+    endereco: {{ (baixa.endereco or '')|tojson }},
+    observacao: {{ (baixa.observacao or '')|tojson }},
+    itens: [
+      {% for item_baixa in baixa.itens %}
+        {% if item_baixa.status in ['pendente_ajuste', 'recusado', 'pendente'] %}
+        {
+          item_id: {{ item_baixa.item_id }},
+          codigo: {{ (item_baixa.item.codigo if item_baixa.item else '')|tojson }},
+          descricao: {{ (item_baixa.item.descricao if item_baixa.item else '')|tojson }},
+          unidade: {{ (item_baixa.item.unidade if item_baixa.item else '-')|tojson }},
+          quantidade: {{ item_baixa.quantidade or 0 }},
+          saldo_real: {{ item_baixa.saldo_real_corrigir or 0 }},
+          tipo_estoque: {{ (item_baixa.tipo_estoque or 'empresa')|tojson }}
+        },
+        {% endif %}
+      {% endfor %}
+    ]
+  });
+}
+{% endfor %}
+{% endif %}
+
 </script>
+
 {% endblock %}

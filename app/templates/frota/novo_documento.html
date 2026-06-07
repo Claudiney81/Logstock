@@ -1,0 +1,214 @@
+{% extends 'base.html' %}
+
+{% block content %}
+
+<style>
+  .page-header {
+    background: linear-gradient(135deg, #002b55, #163b63);
+    color: #fff;
+    border-radius: 14px;
+    padding: 22px 26px;
+    margin-bottom: 24px;
+    box-shadow: 0 6px 18px rgba(0, 43, 85, .18);
+  }
+
+  .page-header h4 {
+    margin: 0;
+    font-weight: 700;
+  }
+
+  .page-header small {
+    opacity: .9;
+  }
+
+  .form-card {
+    background: #fff;
+    border-radius: 14px;
+    border: 1px solid #e5e7eb;
+    box-shadow: 0 6px 18px rgba(15, 39, 66, .08);
+  }
+
+  .section-title {
+    font-size: .9rem;
+    font-weight: 700;
+    color: #002b55;
+    text-transform: uppercase;
+    border-bottom: 1px solid #e5e7eb;
+    padding-bottom: 8px;
+    margin-bottom: 18px;
+  }
+
+  .info-box {
+    background: #f8fafc;
+    border: 1px solid #dbe4ee;
+    border-left: 4px solid #002b55;
+    border-radius: 10px;
+    padding: 14px 16px;
+    font-size: .9rem;
+    color: #334155;
+  }
+
+  .btn-elegant {
+    background: #002b55;
+    color: #fff;
+    border: none;
+    font-weight: 600;
+  }
+
+  .btn-elegant:hover {
+    background: #001f3f;
+    color: #fff;
+  }
+
+  .form-label {
+    font-weight: 600;
+    color: #1f2937;
+  }
+
+  .text-help {
+    font-size: .8rem;
+    color: #6b7280;
+    margin-top: 4px;
+  }
+</style>
+
+<div class="container-fluid mt-4">
+
+  <div class="page-header">
+    <h4>
+      <i class="bi bi-folder2-open me-2"></i>
+      Enviar Documento da Frota
+    </h4>
+    <small>
+      Cadastro de documentos vinculados ao veículo, como CNH, CRLV, IPVA, multas, seguros e comprovantes.
+    </small>
+  </div>
+
+  <div class="card form-card">
+    <div class="card-body p-4">
+
+      <div class="info-box mb-4">
+        <strong>Orientação:</strong>
+        selecione o veículo, informe o tipo do documento e envie um ou mais arquivos.
+        Formatos aceitos: PDF, JPG, JPEG, PNG e WEBP.
+      </div>
+
+      <form method="POST" enctype="multipart/form-data">
+
+        <div class="section-title">
+          Dados do Documento
+        </div>
+
+        <div class="row g-3">
+
+          <div class="col-md-4">
+            <label class="form-label">Veículo *</label>
+            <select name="veiculo_id" class="form-select" required>
+              <option value="">Selecione</option>
+
+              {% for veiculo in veiculos %}
+                <option value="{{ veiculo.id }}">
+                  {{ veiculo.placa }} - {{ veiculo.marca }} {{ veiculo.modelo }}
+                </option>
+              {% endfor %}
+            </select>
+          </div>
+
+          <div class="col-md-4">
+            <label class="form-label">Tipo Documento *</label>
+            <select name="tipo_documento" class="form-select" required>
+              <option value="">Selecione</option>
+              <option>CNH</option>
+              <option>CRLV</option>
+              <option>Licenciamento</option>
+              <option>IPVA</option>
+              <option>Seguro</option>
+              <option>Multa</option>
+              <option>Comprovante</option>
+              <option>Foto do Veículo</option>
+              <option>Outros</option>
+            </select>
+          </div>
+
+          <div class="col-md-4">
+            <label class="form-label">Arquivo *</label>
+            <input
+              type="file"
+              name="arquivos"
+              class="form-control"
+              accept=".pdf,.jpg,.jpeg,.png,.webp"
+              multiple
+              required
+            >
+            <div class="text-help">
+              É possível selecionar mais de um arquivo.
+            </div>
+          </div>
+
+          <div class="col-md-6">
+            <label class="form-label">Descrição</label>
+            <input
+              type="text"
+              name="descricao"
+              class="form-control"
+              placeholder="Ex: CRLV 2026, comprovante de seguro, multa paga..."
+            >
+          </div>
+
+          <div class="col-md-3">
+            <label class="form-label">Data Emissão</label>
+            <input
+              type="date"
+              name="data_emissao"
+              class="form-control"
+            >
+          </div>
+
+          <div class="col-md-3">
+            <label class="form-label">Data Validade</label>
+            <input
+              type="date"
+              name="data_validade"
+              class="form-control"
+            >
+          </div>
+
+          <div class="col-12">
+            <label class="form-label">Observação</label>
+            <textarea
+              name="observacao"
+              rows="4"
+              class="form-control"
+              placeholder="Informe detalhes importantes sobre este documento, vencimento, pendências ou situação atual."
+            ></textarea>
+          </div>
+
+        </div>
+
+        <hr class="my-4">
+
+        <div class="d-flex justify-content-between align-items-center gap-2 flex-wrap">
+
+          <a
+            href="{{ url_for('frota.historico_documentos') }}"
+            class="btn btn-outline-secondary"
+          >
+            <i class="bi bi-arrow-left me-1"></i>
+            Voltar
+          </a>
+
+          <button type="submit" class="btn btn-elegant">
+            <i class="bi bi-upload me-1"></i>
+            Enviar Documento
+          </button>
+
+        </div>
+
+      </form>
+
+    </div>
+  </div>
+
+</div>
+
+{% endblock %}

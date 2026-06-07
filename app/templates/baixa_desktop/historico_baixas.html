@@ -1,90 +1,311 @@
-{% extends 'base.html' %}
-{% block content %}
-<div class="container mt-4">
-  <h4 class="text-primary">
-    <i class="bi bi-clock-history"></i> Histórico de Baixas
-  </h4>
+  {% extends 'base.html' %}
+  {% block content %}
 
-  <!-- Filtro por Técnico e Período -->
-  <form method="GET" class="row g-3 mb-3">
-    <div class="col-md-4">
-      <label class="form-label">Técnico</label>
-      <select name="tecnico_id" class="form-select">
-        <option value="">Todos</option>
-        {% for t in tecnicos %}
-        <option value="{{ t.id }}" {% if tecnico_id == t.id %}selected{% endif %}>{{ t.nome }}</option>
-        {% endfor %}
-      </select>
-    </div>
-    <div class="col-md-4">
-      <label class="form-label">Período</label>
-      <input type="date" name="data_inicio" class="form-control" value="{{ data_inicio }}">
-      <input type="date" name="data_fim" class="form-control mt-1" value="{{ data_fim }}">
-    </div>
-    <div class="col-md-4 align-self-end">
-      <button type="submit" class="btn btn-primary w-100">
-        <i class="bi bi-search"></i> Filtrar
-      </button>
-    </div>
-  </form>
-
-  <!-- Tabela com cabeçalho fixo -->
   <style>
+    .table-baixas th,
+    .table-baixas td {
+      font-size: 0.88rem;
+      text-align: center;
+      vertical-align: middle;
+      white-space: nowrap;
+    }
+
     .tabela-container {
-      max-height: 65vh;
+      max-height: 70vh;
       overflow-y: auto;
     }
-    .tabela-container table thead th {
+
+    .tabela-container thead th {
       position: sticky;
       top: 0;
-      z-index: 1000;
-      background: #002b55;  /* Azul padrão do sistema */
-      color: white;
+      z-index: 10;
+      background: #f8f9fa;
+      border-bottom: 1px solid #dee2e6;
+    }
+
+    .badge-soft {
+      display: inline-block;
+      min-width: 135px;
+      padding: 6px 12px;
+      border-radius: 6px;
+      font-size: .76rem;
+      font-weight: 700;
+      text-align: center;
+    }
+
+    .badge-soft-green{
+      background:#eaf7ee;
+      color:#2f6b43;
+      border:1px solid #cfe8d6;
+    }
+
+    .badge-soft-red{
+      background:#fdeeee;
+      color:#b42318;
+      border:1px solid #f3caca;
+    }
+
+    .badge-soft-yellow{
+      background:#fff7e6;
+      color:#9a6700;
+      border:1px solid #f1d28a;
+    }
+
+    .badge-soft-blue{
+      background:#e8f1fb;
+      color:#24527a;
+      border:1px solid #c8ddf2;
+    }
+
+    .badge-soft-gray{
+      background:#f3f4f6;
+      color:#374151;
+      border:1px solid #d1d5db;
+    }
+
+    .btn-icon-text{
+      height:32px;
+      padding:0 12px;
+      display:inline-flex;
+      align-items:center;
+      justify-content:center;
+      gap:6px;
+      border-radius:6px;
+      font-size:.78rem;
+      font-weight:600;
+    }
+
+    .valor-total{
+      color:#198754;
+      font-weight:700;
     }
   </style>
 
-  <div class="tabela-container shadow-sm rounded">
-    <table class="table table-hover align-middle mb-0">
-      <thead>
-        <tr class="text-center">
-          <th>ID</th>
-          <th>Data</th>
-          <th>Técnico</th>
-          <th>Responsável</th>
-          <th>Status</th>
-          <th>Ações</th>
-        </tr>
-      </thead>
-      <tbody>
-        {% for baixa in historico %}
-        <tr>
-          <td class="text-center">{{ baixa.id }}</td>
-          <td class="text-center">{{ baixa.data_hora.strftime('%d/%m/%Y %H:%M') if baixa.data_hora else '' }}</td>
-          <td>{{ baixa.tecnico.nome }}</td>
-          <td>{{ baixa.responsavel }}</td>
-          <td class="text-center">
-            {% if baixa.status == 'confirmado' %}
-              <span class="badge bg-success">Confirmado</span>
-            {% elif baixa.status == 'pendente' %}
-              <span class="badge bg-warning text-dark">Pendente</span>
-            {% else %}
-              <span class="badge bg-danger">Recusado</span>
-            {% endif %}
-          </td>
-          <td class="text-center">
-            <a href="{{ url_for('baixa_desktop.detalhe_baixa', baixa_id=baixa.id) }}" 
-               class="btn btn-sm btn-primary" target="_blank">
-              Detalhes
+  <div class="container-fluid mt-4">
+
+    <div class="card shadow-sm border-0">
+
+      <div
+        class="card-header text-white"
+        style="background:#002b55;"
+      >
+        <h5 class="mb-0 fw-semibold">
+          <i class="bi bi-clock-history me-2"></i>
+          Histórico de Baixas
+        </h5>
+      </div>
+
+      <div class="card-body">
+
+        <form method="GET" class="row g-3 mb-4 align-items-end">
+
+          <div class="col-md-3">
+            <label class="form-label fw-semibold">Técnico</label>
+            <select name="tecnico_id" class="form-select" onchange="this.form.submit()">
+              <option value="">Todos</option>
+              {% for t in tecnicos %}
+              <option value="{{ t.id }}" {% if tecnico_id == t.id %}selected{% endif %}>
+                {{ t.nome }}
+              </option>
+              {% endfor %}
+            </select>
+          </div>
+
+          <div class="col-md-3">
+            <label class="form-label fw-semibold">Cliente</label>
+            <select name="cliente_id" class="form-select" onchange="this.form.submit()">
+              <option value="">Todos</option>
+              {% for cliente in clientes %}
+              <option value="{{ cliente.id }}" {% if cliente_id == cliente.id %}selected{% endif %}>
+                {{ cliente.razao_social }}
+              </option>
+              {% endfor %}
+            </select>
+          </div>
+
+          <div class="col-md-2">
+            <label class="form-label fw-semibold">Tipo Serviço</label>
+            <select name="tipo_servico_id" class="form-select" onchange="this.form.submit()">
+              <option value="">Todos</option>
+              {% for ts in tipos_servico %}
+              <option value="{{ ts.id }}" {% if tipo_servico_id == ts.id %}selected{% endif %}>
+                {{ ts.nome }}
+              </option>
+              {% endfor %}
+            </select>
+          </div>
+
+          <div class="col-md-2">
+            <label class="form-label fw-semibold">Tipo Estoque</label>
+            <select name="tipo_estoque" class="form-select" onchange="this.form.submit()">
+              <option value="">Todos</option>
+              <option value="empresa" {% if tipo_estoque == 'empresa' %}selected{% endif %}>Empresa</option>
+              <option value="cliente" {% if tipo_estoque == 'cliente' %}selected{% endif %}>Cliente</option>
+            </select>
+          </div>
+
+          <div class="col-md-2">
+            <label class="form-label fw-semibold">Status</label>
+            <select name="status" class="form-select" onchange="this.form.submit()">
+              <option value="">Todos</option>
+              <option value="pendente" {% if status == 'pendente' %}selected{% endif %}>Pendente</option>
+              <option value="pendente_ajuste" {% if status == 'pendente_ajuste' %}selected{% endif %}>Retorno Ajuste</option>
+              <option value="confirmado" {% if status == 'confirmado' %}selected{% endif %}>Confirmado</option>
+              <option value="recusado" {% if status == 'recusado' %}selected{% endif %}>Recusado</option>
+              <option value="aprovada_parcial" {% if status == 'aprovada_parcial' %}selected{% endif %}>Aprovada Parcial</option>
+            </select>
+          </div>
+
+          <div class="col-md-2">
+            <label class="form-label fw-semibold">De</label>
+            <input type="date" name="data_inicio" class="form-control"
+                  value="{{ data_inicio or '' }}" onchange="this.form.submit()">
+          </div>
+
+          <div class="col-md-2">
+            <label class="form-label fw-semibold">Até</label>
+            <input type="date" name="data_fim" class="form-control"
+                  value="{{ data_fim or '' }}" onchange="this.form.submit()">
+          </div>
+
+          <div class="col-md-2 d-grid">
+            <a class="btn btn-outline-secondary"
+              href="{{ url_for('baixa_desktop.historico_baixas') }}">
+              Limpar
             </a>
-          </td>
-        </tr>
-        {% else %}
-        <tr>
-          <td colspan="6" class="text-center">Nenhuma baixa encontrada.</td>
-        </tr>
-        {% endfor %}
-      </tbody>
-    </table>
+          </div>
+
+        </form>
+
+        <div class="tabela-container table-responsive">
+
+          <table class="table table-hover table-baixas align-middle">
+
+            <thead>
+              <tr>
+                <th>ID</th>
+                <th>Data</th>
+                <th>Técnico</th>
+                <th>Cliente</th>
+                <th>O.S</th>
+                <th>Tipo Serviço</th>
+                <th>Tipo Estoque</th>
+                <th>Itens</th>
+                <th>Valor Total</th>
+                <th>Status</th>
+                <th>Ações</th>
+              </tr>
+            </thead>
+
+            <tbody>
+
+              {% for baixa in historico %}
+              <tr>
+
+                <td>{{ baixa.id }}</td>
+
+                <td>
+                  {{ baixa.data_hora.strftime('%d/%m/%Y %H:%M') if baixa.data_hora else '-' }}
+                </td>
+
+                <td>
+                  {{ baixa.tecnico.nome if baixa.tecnico else '-' }}
+                </td>
+
+                <td>
+                  {{ baixa.cliente.razao_social if baixa.cliente else '-' }}
+                </td>
+
+                <td>
+                  {{ baixa.ordem_servico.numero_os if baixa.ordem_servico else baixa.os_cliente or '-' }}
+                </td>
+
+                <td>
+                  {{ baixa.tipo_servico.nome if baixa.tipo_servico else '-' }}
+                </td>
+
+                <td>
+                  {% set tipos = baixa.itens | map(attribute='tipo_estoque') | list %}
+                  {% if 'empresa' in tipos and 'cliente' in tipos %}
+                    <span class="badge-soft badge-soft-blue">Empresa / Cliente</span>
+                  {% elif 'empresa' in tipos %}
+                    <span class="badge-soft badge-soft-blue">Empresa</span>
+                  {% elif 'cliente' in tipos %}
+                    <span class="badge-soft badge-soft-green">Cliente</span>
+                  {% else %}
+                    <span class="badge-soft badge-soft-gray">—</span>
+                  {% endif %}
+                </td>
+
+                <td>
+                  {{ baixa.itens|length if baixa.itens is not none else 0 }}
+                </td>
+
+                <td class="valor-total">
+                  {% set total = namespace(valor=0) %}
+                  {% for item in baixa.itens %}
+                    {% set total.valor = total.valor + (item.valor_total or 0)|float %}
+                  {% endfor %}
+                  R$ {{ '%.2f'|format(total.valor)|replace('.', ',') }}
+                </td>
+
+                <td>
+                  {% if baixa.status == 'confirmado' %}
+                    <span class="badge-soft badge-soft-green">Confirmado</span>
+                  {% elif baixa.status == 'pendente' %}
+                    <span class="badge-soft badge-soft-red">Pendente</span>
+                  {% elif baixa.status == 'pendente_ajuste' %}
+                    <span class="badge-soft badge-soft-yellow">Retorno Ajuste</span>
+                  {% elif baixa.status == 'recusado' %}
+                    <span class="badge-soft badge-soft-gray">Recusado</span>
+                  {% else %}
+                    <span class="badge-soft badge-soft-blue">
+                      {{ baixa.status }}
+                    </span>
+                  {% endif %}
+                </td>
+
+                <td>
+                  <a
+                    href="{{ url_for('baixa_desktop.detalhe_baixa', baixa_id=baixa.id) }}"
+                    class="btn btn-outline-primary btn-sm btn-icon-text"
+                    target="_blank"
+                  >
+                    <i class="bi bi-eye"></i>
+                    Detalhes
+                  </a>
+                </td>
+
+              </tr>
+
+              {% else %}
+
+              <tr>
+                <td colspan="11" class="text-center text-muted py-4">
+                  Nenhuma baixa encontrada.
+                </td>
+              </tr>
+
+              {% endfor %}
+
+            </tbody>
+
+          </table>
+
+        </div>
+
+      </div>
+
+    </div>
+
   </div>
-</div>
-{% endblock %}
+
+  <script>
+  document.querySelectorAll('[data-bs-toggle="tooltip"]').forEach(function(el){
+    if(window.bootstrap && bootstrap.Tooltip){
+      new bootstrap.Tooltip(el);
+    }
+  });
+  </script>
+
+  {% endblock %}

@@ -1,0 +1,312 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+<meta charset="UTF-8">
+<title>Formulário de Vistoria de Veículo</title>
+
+<style>
+  *{
+    box-sizing:border-box;
+  }
+
+  body{
+    font-family: Arial, sans-serif;
+    font-size:12px;
+    color:#111;
+    margin:24px;
+  }
+
+  .btn-print{
+    margin-bottom:15px;
+    padding:9px 16px;
+    background:#002b55;
+    color:white;
+    border:none;
+    border-radius:6px;
+    cursor:pointer;
+    font-weight:bold;
+  }
+
+  .cabecalho{
+    display:flex;
+    justify-content:space-between;
+    align-items:center;
+    border-bottom:3px solid #002b55;
+    padding-bottom:12px;
+    margin-bottom:16px;
+  }
+
+  .cabecalho img{
+    height:68px;
+    object-fit:contain;
+  }
+
+  .cabecalho-titulo{
+    text-align:right;
+  }
+
+  .cabecalho-titulo h2{
+    margin:0;
+    font-size:21px;
+    color:#002b55;
+    letter-spacing:.3px;
+  }
+
+  .cabecalho-titulo p{
+    margin:5px 0 0 0;
+    font-size:12px;
+    color:#555;
+  }
+
+  .secao-titulo{
+    background:#002b55;
+    color:#fff;
+    font-weight:bold;
+    padding:7px 10px;
+    margin:14px 0 8px 0;
+    border-radius:4px;
+    text-transform:uppercase;
+    font-size:12px;
+  }
+
+  .linha{
+    display:flex;
+    gap:8px;
+    margin-bottom:8px;
+  }
+
+  .campo{
+    flex:1;
+    border:1px solid #999;
+    min-height:34px;
+    padding:7px 8px;
+    border-radius:4px;
+  }
+
+  .campo-maior{
+    flex:2;
+  }
+
+  .label{
+    font-weight:bold;
+    color:#002b55;
+  }
+
+  table{
+    width:100%;
+    border-collapse:collapse;
+    margin-top:8px;
+  }
+
+  th, td{
+    border:1px solid #555;
+    padding:6px;
+    text-align:left;
+    vertical-align:middle;
+  }
+
+  th{
+    background:#e9eef5;
+    color:#002b55;
+    font-weight:bold;
+    text-transform:uppercase;
+    font-size:11px;
+  }
+
+  .text-center{
+    text-align:center;
+  }
+
+  .obs-geral{
+    border:1px solid #555;
+    height:95px;
+    padding:8px;
+    border-radius:4px;
+  }
+
+  .declaracao{
+    margin-top:18px;
+    border:1px solid #999;
+    padding:10px;
+    border-radius:4px;
+    font-size:11.5px;
+    line-height:1.45;
+    background:#fafafa;
+  }
+
+  .assinaturas{
+    display:flex;
+    gap:50px;
+    margin-top:55px;
+  }
+
+  .assinatura{
+    flex:1;
+    text-align:center;
+    border-top:1px solid #000;
+    padding-top:7px;
+    font-weight:bold;
+  }
+
+  .assinatura span{
+    display:block;
+    font-weight:normal;
+    font-size:11px;
+    margin-top:3px;
+    color:#444;
+  }
+
+  .rodape{
+    margin-top:26px;
+    text-align:center;
+    font-size:10px;
+    color:#555;
+    border-top:1px solid #ddd;
+    padding-top:8px;
+  }
+
+  @media print{
+    body{
+      margin:12mm;
+    }
+
+    .btn-print{
+      display:none;
+    }
+
+    .secao-titulo{
+      -webkit-print-color-adjust:exact;
+      print-color-adjust:exact;
+    }
+
+    th{
+      -webkit-print-color-adjust:exact;
+      print-color-adjust:exact;
+    }
+  }
+</style>
+</head>
+
+<body>
+
+<button class="btn-print" onclick="window.print()">
+  Imprimir Formulário
+</button>
+
+<div class="cabecalho">
+  <img
+    src="{{ url_for('static', filename='img/start_logo.png') }}"
+    alt="START Energia e Inovação"
+  >
+
+  <div class="cabecalho-titulo">
+    <h2>TERMO DE VISTORIA DE VEÍCULO</h2>
+    <p>Entrega / Devolução de Veículo</p>
+  </div>
+</div>
+
+<div class="secao-titulo">Dados da Vistoria</div>
+
+<div class="linha">
+  <div class="campo">
+    <span class="label">Tipo:</span>
+    ☐ Entrega&nbsp;&nbsp;&nbsp; ☐ Devolução
+  </div>
+
+  <div class="campo">
+    <span class="label">Data:</span>
+  </div>
+
+  <div class="campo">
+    <span class="label">Hora:</span>
+  </div>
+</div>
+
+<div class="secao-titulo">Dados do Veículo</div>
+
+<div class="linha">
+  <div class="campo campo-maior">
+    <span class="label">Veículo:</span>
+  </div>
+
+  <div class="campo">
+    <span class="label">Placa:</span>
+  </div>
+
+  <div class="campo">
+    <span class="label">KM:</span>
+  </div>
+</div>
+
+<div class="linha">
+  <div class="campo">
+    <span class="label">Técnico / Condutor:</span>
+  </div>
+
+  <div class="campo">
+    <span class="label">Responsável Frota:</span>
+  </div>
+</div>
+
+<div class="linha">
+  <div class="campo">
+    <span class="label">Combustível:</span>
+    ☐ Reserva&nbsp;&nbsp;
+    ☐ 1/4&nbsp;&nbsp;
+    ☐ 1/2&nbsp;&nbsp;
+    ☐ 3/4&nbsp;&nbsp;
+    ☐ Cheio
+  </div>
+</div>
+
+<div class="secao-titulo">Checklist de Vistoria</div>
+
+<table>
+  <thead>
+    <tr>
+      <th>Item Verificado</th>
+      <th class="text-center" style="width:90px;">Conforme</th>
+      <th class="text-center" style="width:110px;">Não Conforme</th>
+      <th>Observação</th>
+    </tr>
+  </thead>
+
+  <tbody>
+    {% for item in checklist %}
+    <tr>
+      <td>{{ item }}</td>
+      <td class="text-center">☐</td>
+      <td class="text-center">☐</td>
+      <td></td>
+    </tr>
+    {% endfor %}
+  </tbody>
+</table>
+
+<div class="secao-titulo">Observações Gerais</div>
+
+<div class="obs-geral"></div>
+
+<div class="declaracao">
+  Declaro que recebi/devolvi o veículo nas condições descritas neste termo,
+  estando ciente das informações registradas no checklist e nas observações acima.
+</div>
+
+<div class="assinaturas">
+  <div class="assinatura">
+    Técnico / Condutor
+    <span>Assinatura e identificação</span>
+  </div>
+
+  <div class="assinatura">
+    Responsável pela Frota
+    <span>Assinatura e identificação</span>
+  </div>
+</div>
+
+<div class="rodape">
+  START Energia e Inovação • LogiStock • Controle de Frota
+</div>
+
+</body>
+</html>

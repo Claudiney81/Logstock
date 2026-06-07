@@ -1,27 +1,19 @@
-{% extends 'base.html' %} {% block content %}
-<div class="container mt-4">
-  <h2 class="mb-4">✏️ Editar Tipo de Serviço</h2>
+{% extends 'base.html' %} 
+{% block content %}
 
-  {% with messages = get_flashed_messages(with_categories=true) %} {% if
-  messages %} {% for category, message in messages %}
-  <div
-    class="alert alert-{{ category }} alert-dismissible fade show"
-    role="alert"
-  >
-    {{ message }}
-    <button
-      type="button"
-      class="btn-close"
-      data-bs-dismiss="alert"
-      aria-label="Fechar"
-    ></button>
-  </div>
-  {% endfor %} {% endif %} {% endwith %}
+<div class="container mt-4">
+  <h2 class="mb-4 text-primary">
+    <i class="bi bi-pencil-square me-2"></i>
+    Editar Tipo de Serviço
+  </h2>
 
   <div class="card shadow-sm rounded p-4">
     <form method="POST">
+      
       <div class="mb-3">
-        <label for="nome" class="form-label">Nome do Tipo de Serviço</label>
+        <label for="nome" class="form-label fw-semibold">
+          Nome do Tipo de Serviço
+        </label>
         <input
           type="text"
           name="nome"
@@ -33,28 +25,45 @@
       </div>
 
       <div class="mb-3">
-        <label for="empresa" class="form-label"
-          >Empresa (registro interno)</label
+        <label for="tipo_estoque" class="form-label fw-semibold">
+          Tipo de Estoque
+        </label>
+
+        <select
+          name="tipo_estoque"
+          id="tipo_estoque"
+          class="form-select"
+          required
         >
-        <input
-          type="text"
-          name="empresa"
-          id="empresa"
-          class="form-control"
-          value="{{ tipo.empresa }}"
-        />
+          <option value="">Selecione o Tipo de Estoque</option>
+
+          <option value="empresa" {% if tipo.tipo_estoque == 'empresa' %}selected{% endif %}>
+            Empresa
+          </option>
+
+          <option value="cliente" {% if tipo.tipo_estoque == 'cliente' %}selected{% endif %}>
+            Cliente
+          </option>
+        </select>
       </div>
 
       <div class="d-flex justify-content-between">
-        <a
-          href="{{ url_for('tipo_servico.cadastrar_tipo_servico') }}"
+        <a 
+          href="{{ url_for('tipo_servico.cadastrar_tipo_servico') }}" 
           class="btn btn-secondary"
         >
-          ← Voltar
+          <i class="bi bi-arrow-left me-1"></i>
+          Voltar
         </a>
-        <button type="submit" class="btn btn-primary">Salvar Alterações</button>
+
+        <button type="submit" class="btn btn-primary">
+          <i class="bi bi-save me-1"></i>
+          Salvar Alterações
+        </button>
       </div>
+
     </form>
   </div>
 </div>
+
 {% endblock %}

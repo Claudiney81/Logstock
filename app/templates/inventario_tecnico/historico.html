@@ -1,52 +1,192 @@
 {% extends 'base.html' %}
+
 {% block content %}
-<div class="container mt-4">
-  <h2>Histórico de Inventários Técnicos</h2>
 
-  <div class="text-end mb-3">
-    <a href="{{ url_for('inventario_tecnico.registrar_inventario') }}" class="btn btn-primary">
-      + Novo Inventário
-    </a>
+<style>
+  .table-inv th {
+    font-size: 0.88rem;
+    white-space: nowrap;
+    color: #111827;
+  }
+
+  .table-inv td {
+    font-size: 0.88rem;
+    vertical-align: middle;
+  }
+
+  .badge-soft {
+    display: inline-block;
+    min-width: 135px;
+    padding: 6px 12px;
+    border-radius: 6px;
+    font-size: 0.76rem;
+    font-weight: 700;
+    text-align: center;
+  }
+
+  .badge-soft-blue {
+    background: #e8f1fb;
+    color: #24527a;
+    border: 1px solid #c8ddf2;
+  }
+
+  .badge-soft-green {
+    background: #eaf7ee;
+    color: #2f6b43;
+    border: 1px solid #cfe8d6;
+  }
+
+  .badge-soft-gray {
+    background: #f3f4f6;
+    color: #374151;
+    border: 1px solid #d1d5db;
+  }
+
+  .badge-soft-yellow {
+    background: #fff7e6;
+    color: #8a5a00;
+    border: 1px solid #f1d28a;
+  }
+
+  .btn-icon-text {
+    height: 32px;
+    padding: 0 10px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: 6px;
+    font-size: 0.78rem;
+    font-weight: 600;
+  }
+</style>
+
+<div class="container-fluid mt-4">
+
+  <div class="card shadow-sm border-0">
+
+    <div class="card-header text-white d-flex justify-content-between align-items-center"
+         style="background-color: #002b55;">
+
+      <h5 class="mb-0 fw-semibold">
+        <i class="bi bi-clock-history me-2"></i>
+        Histórico de Inventários Técnicos
+      </h5>
+
+      <a href="{{ url_for('inventario_tecnico.registrar_inventario') }}"
+         class="btn btn-light btn-sm">
+        <i class="bi bi-plus-circle me-1"></i>
+        Novo Inventário
+      </a>
+
+    </div>
+
+    <div class="card-body">
+
+      {% if inventarios %}
+
+      <div class="table-responsive">
+
+        <table class="table table-hover align-middle table-inv">
+
+          <thead class="table-light text-center">
+            <tr>
+              <th style="width:70px;">#</th>
+              <th>Técnico</th>
+              <th style="width:170px;">Categoria</th>
+              <th style="width:220px;">Tipo de Serviço</th>
+              <th style="width:180px;">Data</th>
+              <th>Responsável</th>
+              <th style="width:150px;">Ações</th>
+            </tr>
+          </thead>
+
+          <tbody>
+
+            {% for inv in inventarios %}
+            {% set categoria_inv = inv.itens[0].item.categoria if inv.itens and inv.itens[0].item and inv.itens[0].item.categoria else 'MATERIAL' %}
+
+            <tr>
+
+              <td class="text-center fw-semibold">
+                {{ inv.id }}
+              </td>
+
+              <td>
+                {{ inv.tecnico.nome if inv.tecnico else '-' }}
+              </td>
+
+              <td class="text-center">
+                {% if categoria_inv == 'FERRAMENTA' %}
+                  <span class="badge-soft badge-soft-yellow">FERRAMENTA</span>
+                {% elif categoria_inv == 'EPI' %}
+                  <span class="badge-soft badge-soft-blue">EPI</span>
+                {% else %}
+                  <span class="badge-soft badge-soft-gray">MATERIAL</span>
+                {% endif %}
+              </td>
+
+              <td class="text-center">
+                {% if inv.tipo_servico %}
+                  <span class="badge-soft badge-soft-blue">
+                    {{ inv.tipo_servico.nome }}
+                  </span>
+                {% else %}
+                  <span class="badge-soft badge-soft-gray">
+                    Estoque Geral
+                  </span>
+                {% endif %}
+              </td>
+
+              <td class="text-center">
+                {{ inv.data.strftime('%d/%m/%Y %H:%M') if inv.data else '-' }}
+              </td>
+
+              <td>
+                {{ inv.responsavel or '---' }}
+              </td>
+
+              <td class="text-center">
+                <div class="d-flex justify-content-center align-items-center gap-1">
+
+                  <a href="{{ url_for('inventario_tecnico.detalhes_inventario', id=inv.id) }}"
+                     class="btn btn-outline-primary btn-sm btn-icon-text"
+                     title="Detalhes">
+                    <i class="bi bi-eye me-1"></i>
+                    Detalhes
+                  </a>
+
+                  <a href="{{ url_for('inventario_tecnico.exportar_inventario', id=inv.id) }}"
+                     class="btn btn-outline-success btn-sm btn-icon-text"
+                     title="Exportar">
+                    <i class="bi bi-file-earmark-excel me-1"></i>
+                    Exportar
+                  </a>
+
+                </div>
+              </td>
+
+            </tr>
+
+            {% endfor %}
+
+          </tbody>
+
+        </table>
+
+      </div>
+
+      {% else %}
+
+      <div class="alert alert-info mb-0">
+        Nenhum inventário registrado até o momento.
+      </div>
+
+      {% endif %}
+
+    </div>
+
   </div>
 
-  {% if inventarios %}
-  <table class="table table-bordered table-hover mt-3">
-    <thead class="table-light">
-      <tr>
-        <th>#</th>
-        <th>Técnico</th>
-        <th>Tipo de Serviço</th>
-        <th>Data</th>
-        <th>Responsável</th>
-        <th>Local</th>
-        <th>Ações</th>
-      </tr>
-    </thead>
-    <tbody>
-      {% for inv in inventarios %}
-      <tr>
-        <td>{{ inv.id }}</td>
-        <td>{{ inv.tecnico.nome }}</td>
-        <td>{{ inv.tipo_servico.nome }}</td>
-        <td>{{ inv.data.strftime('%d/%m/%Y %H:%M') }}</td>
-        <td>{{ inv.responsavel or '---' }}</td>
-        <td>{{ inv.local or '---' }}</td>
-        <td>
-          <a href="{{ url_for('inventario_tecnico.detalhes_inventario', id=inv.id) }}" class="btn btn-sm btn-outline-primary">
-            Detalhes
-          </a>
-          <a href="{{ url_for('inventario_tecnico.exportar_inventario', id=inv.id) }}" class="btn btn-sm btn-success">
-            Exportar
-          </a>
-        </td>
-      </tr>
-      {% endfor %}
-    </tbody>
-  </table>
-  {% else %}
-  <div class="alert alert-info mt-3">
-    Nenhum inventário registrado até o momento.
-  </div>
-  {% endif %}
 </div>
+
 {% endblock %}

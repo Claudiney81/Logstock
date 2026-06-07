@@ -1,0 +1,246 @@
+{% extends 'base.html' %}
+
+{% block content %}
+
+<style>
+  .obs-col {
+    max-width: 180px;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+
+  .table-mov th {
+    font-size: 0.88rem;
+    white-space: nowrap;
+    color: #111827;
+  }
+
+  .table-mov td {
+    font-size: 0.88rem;
+    vertical-align: middle;
+  }
+
+  .badge-soft {
+    display: inline-block;
+    min-width: 105px;
+    padding: 6px 12px;
+    border-radius: 6px;
+    font-size: 0.76rem;
+    font-weight: 700;
+    text-align: center;
+  }
+
+  .badge-soft-blue {
+    background: #e8f1fb;
+    color: #24527a;
+    border: 1px solid #c8ddf2;
+  }
+
+  .badge-soft-green {
+    background: #eaf7ee;
+    color: #2f6b43;
+    border: 1px solid #cfe8d6;
+  }
+
+  .badge-soft-yellow {
+    background: #fff7e6;
+    color: #8a5a00;
+    border: 1px solid #f1d28a;
+  }
+
+  .badge-soft-gray {
+    background: #f3f4f6;
+    color: #374151;
+    border: 1px solid #d1d5db;
+  }
+
+  .btn-icon {
+    width: 34px;
+    height: 34px;
+    padding: 0;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: 6px;
+  }
+</style>
+
+<div class="container-fluid mt-4">
+
+  <div class="card shadow-sm border-0">
+
+    <div class="card-header text-white d-flex justify-content-between align-items-center"
+         style="background-color:#002b55;">
+
+      <h5 class="mb-0 fw-semibold">
+        <i class="bi bi-clock-history me-2"></i>
+        Histórico de Movimentações de Estoque
+      </h5>
+
+      <a href="{{ url_for('movimentacao_estoque.nova_movimentacao') }}"
+         class="btn btn-light btn-sm">
+        <i class="bi bi-plus-circle me-1"></i>
+        Nova Movimentação
+      </a>
+
+    </div>
+
+    <div class="card-body">
+
+      <div class="table-responsive">
+
+        <table class="table table-hover align-middle table-mov">
+
+          <thead class="table-light text-center">
+            <tr>
+              <th style="width:60px;">ID</th>
+              <th style="width:110px;">Origem</th>
+              <th style="width:110px;">Destino</th>
+              <th style="width:160px;">Técnico</th>
+              <th style="width:190px;">Cliente O.S</th>
+              <th style="width:150px;">Tipo Serviço</th>
+              <th style="width:130px;">Data/Hora</th>
+              <th style="width:130px;">Assinatura</th>
+              <th style="width:120px;">E-mail</th>
+              <th style="width:180px;">Observação</th>
+              <th style="width:80px;">Ações</th>
+            </tr>
+          </thead>
+
+          <tbody>
+
+            {% for m in movimentacoes %}
+            <tr>
+
+              <td class="text-center fw-semibold">
+                {{ m.id }}
+              </td>
+
+              <td class="text-center">
+                {% if m.origem_tipo == 'empresa' %}
+                  <span class="badge-soft badge-soft-blue">Empresa</span>
+                {% elif m.origem_tipo == 'cliente' %}
+                  <span class="badge-soft badge-soft-yellow">Cliente</span>
+                {% elif m.origem_tipo == 'tecnico' %}
+                  <span class="badge-soft badge-soft-green">Técnico</span>
+                {% else %}
+                  <span class="badge-soft badge-soft-gray">-</span>
+                {% endif %}
+              </td>
+
+              <td class="text-center">
+                {% if m.destino_tipo == 'empresa' %}
+                  <span class="badge-soft badge-soft-blue">Empresa</span>
+                {% elif m.destino_tipo == 'tecnico' %}
+                  <span class="badge-soft badge-soft-green">Técnico</span>
+                {% else %}
+                  <span class="badge-soft badge-soft-gray">-</span>
+                {% endif %}
+              </td>
+
+              <td class="text-center">
+                {% if m.destino_tipo == 'tecnico' %}
+                  {{ tecnicos_dict.get(m.destino_id|int, '-') }}
+                {% elif m.origem_tipo == 'tecnico' %}
+                  {{ tecnicos_dict.get(m.origem_id|int, '-') }}
+                {% else %}
+                  -
+                {% endif %}
+              </td>
+
+             <td class="text-center">
+
+                {% if m.origem_tipo == 'cliente' %}
+
+                  {{ m.cliente.razao_social if m.cliente else empresas_dict.get(m.origem_id|int, '-') }}
+
+                {% elif m.origem_tipo == 'empresa'
+                      and m.destino_tipo == 'tecnico'
+                      and m.cliente_id %}
+
+                  {{ empresas_dict.get(m.cliente_id|int, '-') }}
+                  {% if m.ordem_servico %}
+                    - {{ m.ordem_servico.numero_os }}
+                  {% endif %}
+
+                {% elif m.destino_tipo == 'tecnico'
+                      and m.origem_tipo == 'empresa' %}
+
+                  Empresa
+
+                {% elif m.origem_tipo == 'tecnico'
+                      and m.destino_tipo == 'empresa' %}
+
+                  Não se aplica
+
+                {% else %}
+                  -
+
+                {% endif %}
+
+              </td>
+
+              <td class="text-center">
+                {{ m.tipo_servico.nome if m.tipo_servico else '—' }}
+              </td>
+
+              <td class="text-center">
+                {{ m.data_hora.strftime('%d/%m/%Y %H:%M') if m.data_hora else '-' }}
+              </td>
+
+              <td class="text-center">
+                {% if m.assinatura %}
+                  <span class="badge-soft badge-soft-green">Assinado</span>
+                {% else %}
+                  <span class="badge-soft badge-soft-gray">Sem assinatura</span>
+                {% endif %}
+              </td>
+
+              <td class="text-center">
+                {% if m.email_enviado %}
+                  <span class="badge-soft badge-soft-green">Enviado</span>
+                {% else %}
+                  <span class="badge-soft badge-soft-yellow">Pendente</span>
+                {% endif %}
+              </td>
+
+              <td class="obs-col"
+                  title="{{ m.observacao or '-' }}">
+                {{ m.observacao or '-' }}
+              </td>
+
+              <td class="text-center">
+                <a href="{{ url_for('movimentacao_estoque.detalhes', id=m.id) }}"
+                   class="btn btn-outline-primary btn-sm btn-icon"
+                   title="Abrir documento">
+                  <i class="bi bi-file-earmark-text"></i>
+                </a>
+              </td>
+
+            </tr>
+
+            {% else %}
+
+            <tr>
+              <td colspan="11" class="text-center text-muted py-4">
+                <i class="bi bi-info-circle me-1"></i>
+                Nenhuma movimentação encontrada.
+              </td>
+            </tr>
+
+            {% endfor %}
+
+          </tbody>
+
+        </table>
+
+      </div>
+
+    </div>
+
+  </div>
+
+</div>
+
+{% endblock %}

@@ -1,0 +1,345 @@
+{% extends "base.html" %}
+{% block content %}
+
+<div class="container-fluid mt-4">
+
+  <div class="d-flex justify-content-between align-items-center mb-4">
+    <h2 class="text-primary fw-semibold mb-0">
+      <i class="bi bi-tools me-2"></i>
+      Transferência - Ferramentas & EPIs
+    </h2>
+
+    <a href="{{ url_for('ferramentas_epis.historico') }}"
+       class="btn btn-outline-secondary">
+      <i class="bi bi-clock-history me-1"></i>
+      Histórico
+    </a>
+  </div>
+
+  <div class="card shadow-sm border-0">
+
+    <div class="card-header bg-primary text-white">
+      <strong>
+        <i class="bi bi-arrow-left-right me-2"></i>
+        Dados da Transferência
+      </strong>
+    </div>
+
+    <div class="card-body">
+
+      <form method="POST" id="formTransferencia" autocomplete="off">
+
+        <div class="row g-3 mb-3">
+
+          <div class="col-md-4">
+            <label class="form-label fw-semibold">Tipo de Transferência</label>
+            <select name="tipo_transferencia"
+                    id="tipo_transferencia"
+                    class="form-select"
+                    required>
+              <option value="saida">Saída → Empresa para Técnico</option>
+              <option value="retorno">Retorno → Técnico para Empresa</option>
+            </select>
+          </div>
+
+          <div class="col-md-4">
+            <label class="form-label fw-semibold">Técnico</label>
+            <select name="tecnico_id"
+                    id="tecnico_id"
+                    class="form-select"
+                    required>
+              <option value="">Selecione</option>
+              {% for tecnico in tecnicos %}
+              <option value="{{ tecnico.id }}">
+                {{ tecnico.nome }}
+                {% if tecnico.matricula %}({{ tecnico.matricula }}){% endif %}
+              </option>
+              {% endfor %}
+            </select>
+          </div>
+
+          <div class="col-md-4" id="box_motivo" style="display:none;">
+            <label class="form-label fw-semibold">Motivo do Retorno</label>
+            <select name="motivo_retorno"
+                    id="motivo_retorno"
+                    class="form-select">
+              <option value="">Selecione</option>
+              <option value="devolucao">Devolução</option>
+              <option value="troca">Troca</option>
+              <option value="extravio">Extravio</option>
+              <option value="perda">Perda</option>
+              <option value="desgaste">Desgaste</option>
+              <option value="dano">Dano / Mau uso</option>
+            </select>
+          </div>
+
+        </div>
+
+        <div class="row g-3 mb-3">
+
+          <div class="col-md-6">
+            <label class="form-label fw-semibold">Item</label>
+            <select name="item_id"
+                    id="item_id"
+                    class="form-select"
+                    required>
+              <option value="">Selecione</option>
+            </select>
+          </div>
+
+          <div class="col-md-2">
+            <label class="form-label fw-semibold">Quantidade</label>
+            <input type="number"
+                   name="quantidade"
+                   id="quantidade"
+                   class="form-control"
+                   min="1"
+                   required>
+          </div>
+
+          <div class="col-md-2">
+            <label class="form-label fw-semibold">Saldo</label>
+            <input type="text"
+                   id="saldo_item"
+                   class="form-control bg-light"
+                   readonly>
+          </div>
+
+          <div class="col-md-2">
+            <label class="form-label fw-semibold">Categoria</label>
+            <input type="text"
+                   id="categoria_item"
+                   class="form-control bg-light"
+                   readonly>
+          </div>
+
+        </div>
+
+        <div class="mb-4">
+          <label class="form-label fw-semibold">Observação</label>
+          <textarea name="observacao"
+                    rows="3"
+                    class="form-control"
+                    placeholder="Observações da transferência..."></textarea>
+        </div>
+
+        <div class="row g-4 mb-4">
+
+          <div class="col-md-6">
+            <div class="card border-0 shadow-sm h-100">
+              <div class="card-header bg-light fw-semibold">
+                Assinatura do Técnico
+              </div>
+
+              <div class="card-body">
+                <canvas id="assinaturaTecnico"
+                        class="assinatura-canvas"></canvas>
+
+                <input type="hidden"
+                       name="assinatura_tecnico"
+                       id="assinatura_tecnico">
+
+                <button type="button"
+                        class="btn btn-outline-secondary btn-sm mt-2"
+                        onclick="limparCanvas('tecnico')">
+                  Limpar
+                </button>
+              </div>
+            </div>
+          </div>
+
+          <div class="col-md-6">
+            <div class="card border-0 shadow-sm h-100">
+              <div class="card-header bg-light fw-semibold">
+                Assinatura Almoxarifado / Logística
+              </div>
+
+              <div class="card-body">
+                <canvas id="assinaturaLogistica"
+                        class="assinatura-canvas"></canvas>
+
+                <input type="hidden"
+                       name="assinatura_logistica"
+                       id="assinatura_logistica">
+
+                <button type="button"
+                        class="btn btn-outline-secondary btn-sm mt-2"
+                        onclick="limparCanvas('logistica')">
+                  Limpar
+                </button>
+              </div>
+            </div>
+          </div>
+
+        </div>
+
+        <div class="d-flex gap-2">
+
+          <button type="submit"
+                  class="btn btn-primary">
+            <i class="bi bi-save me-1"></i>
+            Registrar Transferência
+          </button>
+
+          <a href="{{ url_for('ferramentas_epis.saldo_tecnico') }}"
+             class="btn btn-outline-dark">
+            <i class="bi bi-person-lines-fill me-1"></i>
+            Saldo Técnico
+          </a>
+
+        </div>
+
+      </form>
+
+    </div>
+
+  </div>
+
+</div>
+
+<style>
+.assinatura-canvas {
+  width: 100%;
+  height: 170px;
+  border: 1px dashed #bbb;
+  background: #fff;
+  border-radius: 8px;
+}
+</style>
+
+<script src="https://cdn.jsdelivr.net/npm/signature_pad@4.0.0/dist/signature_pad.umd.min.js"></script>
+
+<script>
+const tipoTransferencia = document.getElementById("tipo_transferencia");
+const tecnicoSelect = document.getElementById("tecnico_id");
+const itemSelect = document.getElementById("item_id");
+const motivoBox = document.getElementById("box_motivo");
+const motivoSelect = document.getElementById("motivo_retorno");
+const saldoInput = document.getElementById("saldo_item");
+const categoriaInput = document.getElementById("categoria_item");
+
+let itensCache = [];
+
+function atualizarTipo() {
+  const tipo = tipoTransferencia.value;
+
+  if (tipo === "retorno") {
+    motivoBox.style.display = "block";
+    motivoSelect.required = true;
+  } else {
+    motivoBox.style.display = "none";
+    motivoSelect.required = false;
+    motivoSelect.value = "";
+  }
+
+  carregarItens();
+}
+
+async function carregarItens() {
+  const tipo = tipoTransferencia.value;
+  const tecnicoId = tecnicoSelect.value;
+
+  itemSelect.innerHTML = '<option value="">Carregando...</option>';
+  saldoInput.value = "";
+  categoriaInput.value = "";
+
+  let url = "";
+
+  if (tipo === "saida") {
+    url = "/ferramentas-epis/api/itens-empresa";
+  } else {
+    if (!tecnicoId) {
+      itemSelect.innerHTML = '<option value="">Selecione o técnico</option>';
+      return;
+    }
+    url = `/ferramentas-epis/api/itens-tecnico/${tecnicoId}`;
+  }
+
+  try {
+    const response = await fetch(url);
+    const data = await response.json();
+
+    itensCache = data;
+    itemSelect.innerHTML = '<option value="">Selecione</option>';
+
+    data.forEach(item => {
+      const opt = document.createElement("option");
+      opt.value = item.item_id;
+      opt.textContent = `${item.codigo} - ${item.descricao}`;
+      itemSelect.appendChild(opt);
+    });
+
+  } catch (e) {
+    itemSelect.innerHTML = '<option value="">Erro ao carregar itens</option>';
+  }
+}
+
+function atualizarItem() {
+  const itemId = itemSelect.value;
+  const item = itensCache.find(i => String(i.item_id) === String(itemId));
+
+  if (!item) {
+    saldoInput.value = "";
+    categoriaInput.value = "";
+    return;
+  }
+
+  saldoInput.value = item.quantidade || 0;
+  categoriaInput.value = item.categoria || "";
+}
+
+tipoTransferencia.addEventListener("change", atualizarTipo);
+tecnicoSelect.addEventListener("change", carregarItens);
+itemSelect.addEventListener("change", atualizarItem);
+
+atualizarTipo();
+
+const canvasTecnico = document.getElementById("assinaturaTecnico");
+const canvasLogistica = document.getElementById("assinaturaLogistica");
+
+const padTecnico = new SignaturePad(canvasTecnico);
+const padLogistica = new SignaturePad(canvasLogistica);
+
+function resizeCanvas(canvas, pad) {
+  const ratio = Math.max(window.devicePixelRatio || 1, 1);
+  canvas.width = canvas.offsetWidth * ratio;
+  canvas.height = canvas.offsetHeight * ratio;
+  canvas.getContext("2d").scale(ratio, ratio);
+  pad.clear();
+}
+
+function ajustarAssinaturas() {
+  resizeCanvas(canvasTecnico, padTecnico);
+  resizeCanvas(canvasLogistica, padLogistica);
+}
+
+window.addEventListener("resize", ajustarAssinaturas);
+ajustarAssinaturas();
+
+function limparCanvas(tipo) {
+  if (tipo === "tecnico") {
+    padTecnico.clear();
+  } else {
+    padLogistica.clear();
+  }
+}
+
+document.getElementById("formTransferencia").addEventListener("submit", function(e) {
+  if (padTecnico.isEmpty()) {
+    e.preventDefault();
+    alert("A assinatura do técnico é obrigatória.");
+    return;
+  }
+
+  if (padLogistica.isEmpty()) {
+    e.preventDefault();
+    alert("A assinatura do almoxarifado/logística é obrigatória.");
+    return;
+  }
+
+  document.getElementById("assinatura_tecnico").value = padTecnico.toDataURL();
+  document.getElementById("assinatura_logistica").value = padLogistica.toDataURL();
+});
+</script>
+
+{% endblock %}

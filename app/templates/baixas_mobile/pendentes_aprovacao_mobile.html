@@ -1,0 +1,246 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+  <meta charset="UTF-8">
+  <title>Baixas Pendentes</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons/font/bootstrap-icons.css" rel="stylesheet">
+</head>
+
+<body>
+
+<div class="mobile-page">
+
+  <div class="mobile-header">
+    <div>
+      <h5>
+        <i class="bi bi-hourglass-split me-2"></i>
+        Baixas Pendentes
+      </h5>
+      <small>Aprovação mobile</small>
+    </div>
+
+    <a href="{{ url_for('baixa_tecnico.login_aprovador_mobile') }}" class="btn-sair">
+      Sair
+    </a>
+  </div>
+
+  {% if baixas %}
+    {% for baixa in baixas %}
+
+    {% set tipos = baixa.itens | map(attribute='tipo_estoque') | list %}
+
+    <div class="baixa-card">
+
+      <div class="d-flex justify-content-between align-items-start mb-3">
+        <div>
+          <div class="fw-bold fs-5">
+            {{ baixa.tecnico.nome if baixa.tecnico else '-' }}
+          </div>
+
+          <small class="text-muted">
+            {{ baixa.data_hora.strftime('%d/%m/%Y %H:%M') if baixa.data_hora else '-' }}
+          </small>
+        </div>
+
+        <span class="badge-pendente">Pendente</span>
+      </div>
+
+      <div class="dados-grid-lista">
+
+        <div>
+          <span class="label-info">Cliente</span>
+          <strong>
+            {{ baixa.cliente.razao_social if baixa.cliente else '-' }}
+          </strong>
+        </div>
+
+        <div>
+          <span class="label-info">O.S</span>
+          <strong>
+            {% if baixa.ordem_servico %}
+              {{ baixa.ordem_servico.numero_os }}
+            {% elif baixa.os_cliente %}
+              {{ baixa.os_cliente.split(' - ')[-1] }}
+            {% else %}
+              -
+            {% endif %}
+          </strong>
+        </div>
+
+        <div>
+          <span class="label-info">Tipo de Estoque</span>
+          <strong>
+            {% if 'empresa' in tipos and 'cliente' in tipos %}
+              Empresa / Cliente
+            {% elif 'empresa' in tipos %}
+              Empresa
+            {% elif 'cliente' in tipos %}
+              Cliente
+            {% else %}
+              -
+            {% endif %}
+          </strong>
+        </div>
+
+      </div>
+
+      <p>
+        <strong>Tipo Serviço:</strong>
+        {{ baixa.tipo_servico.nome if baixa.tipo_servico else '-' }}
+      </p>
+
+      <p>
+        <strong>Endereço:</strong>
+        {{ baixa.endereco or '-' }}
+      </p>
+
+      <a
+        href="{{ url_for('baixa_tecnico.detalhe_pendente_mobile', baixa_id=baixa.id) }}"
+        class="btn btn-primary w-100 btn-mobile"
+      >
+        Ver Detalhes / Aprovar
+      </a>
+
+    </div>
+
+    {% endfor %}
+  {% else %}
+    <div class="empty-card">
+      Nenhuma baixa pendente no momento.
+    </div>
+  {% endif %}
+
+</div>
+
+<style>
+body{
+  margin:0;
+  background:#eef2f7;
+  font-family:Arial,sans-serif;
+}
+
+.mobile-page{
+  min-height:100vh;
+  padding:12px;
+}
+
+.mobile-header{
+  background:#002b55;
+  color:white;
+  border-radius:16px;
+  padding:14px;
+  margin-bottom:14px;
+  display:flex;
+  justify-content:space-between;
+  align-items:center;
+}
+
+.mobile-header h5{
+  margin:0;
+  font-weight:700;
+}
+
+.mobile-header small{
+  color:rgba(255,255,255,.75);
+}
+
+.btn-sair{
+  background:rgba(255,255,255,.15);
+  color:white;
+  text-decoration:none;
+  padding:7px 12px;
+  border-radius:10px;
+  font-size:13px;
+}
+
+.baixa-card{
+  background:white;
+  border-radius:16px;
+  padding:14px;
+  margin-bottom:12px;
+  box-shadow:0 4px 14px rgba(0,0,0,.08);
+}
+
+.dados-grid-lista{
+  display:grid;
+  grid-template-columns:repeat(3,1fr);
+  gap:12px;
+  margin:10px 0 12px;
+}
+
+.label-info{
+  display:block;
+  font-size:12px;
+  color:#6c757d;
+  font-weight:600;
+  margin-bottom:4px;
+}
+
+.dados-grid-lista strong{
+  display:block;
+  font-size:14px;
+  line-height:1.2;
+  color:#212529;
+}
+
+.baixa-card p{
+  margin-bottom:6px;
+  font-size:14px;
+}
+
+.badge-pendente{
+  background:rgba(255,193,7,.18);
+  color:#8a6d00;
+  border:1px solid rgba(255,193,7,.35);
+  border-radius:999px;
+  padding:6px 12px;
+  font-size:12px;
+  font-weight:600;
+}
+
+.btn-mobile{
+  border-radius:12px;
+  padding:11px;
+  font-weight:600;
+  margin-top:10px;
+}
+
+.empty-card{
+  background:white;
+  border-radius:16px;
+  padding:20px;
+  text-align:center;
+  color:#555;
+  box-shadow:0 4px 14px rgba(0,0,0,.08);
+}
+
+@media(max-width:768px){
+  .dados-grid-lista{
+    grid-template-columns:1fr 1fr;
+    gap:10px 12px;
+  }
+
+  .label-info{
+    font-size:11px;
+    margin-bottom:2px;
+  }
+
+  .dados-grid-lista strong{
+    font-size:13px;
+  }
+
+  .baixa-card{
+    padding:12px;
+  }
+
+  .baixa-card p{
+    font-size:13px;
+  }
+}
+</style>
+
+</body>
+</html>

@@ -1,67 +1,208 @@
-{% extends "base.html" %} {% block content %}
-<div class="card shadow-sm mt-4">
-  <div class="card-body">
-    <h2 class="mb-4">🏢 Empresas Cadastradas</h2>
+{% extends "base.html" %}
 
-    <!-- Formulário de busca -->
-    <form method="get" class="row g-3 mb-4">
+{% block content %}
+
+<div class="card shadow-sm mt-4 border-0">
+  <div class="card-body">
+
+    <div class="d-flex justify-content-between align-items-center flex-wrap mb-4">
+      <h2 class="mb-2 mb-md-0 fw-semibold">
+        <i class="bi bi-buildings me-2"></i>
+        {{ titulo if titulo else 'Empresas / Parceiros' }}
+      </h2>
+
+      <div class="d-flex gap-2 flex-wrap">
+        {% if tipo_lista == 'cliente' %}
+          <a href="{{ url_for('empresas.cadastrar_cliente') }}" class="btn btn-primary btn-sm">
+            <i class="bi bi-person-plus-fill me-1"></i>
+            Novo Cliente
+          </a>
+        {% elif tipo_lista == 'fornecedor' %}
+          <a href="{{ url_for('empresas.cadastrar_fornecedor') }}" class="btn btn-success btn-sm">
+            <i class="bi bi-truck me-1"></i>
+            Novo Fornecedor
+          </a>
+        {% else %}
+          <a href="{{ url_for('empresas.cadastrar_cliente') }}" class="btn btn-primary btn-sm">
+            <i class="bi bi-person-plus-fill me-1"></i>
+            Novo Cliente
+          </a>
+
+          <a href="{{ url_for('empresas.cadastrar_fornecedor') }}" class="btn btn-success btn-sm">
+            <i class="bi bi-truck me-1"></i>
+            Novo Fornecedor
+          </a>
+        {% endif %}
+      </div>
+    </div>
+
+    <form method="GET" class="row g-3 mb-4">
       <div class="col-md-5">
         <input
           type="text"
           name="busca"
-          class="form-control"
+          class="form-control shadow-sm"
           placeholder="🔎 Buscar por Razão Social ou CNPJ"
           value="{{ request.args.get('busca', '') }}"
-        />
+        >
       </div>
+
       <div class="col-md-auto">
-        <button type="submit" class="btn btn-primary">Buscar</button>
+        <button type="submit" class="btn btn-dark shadow-sm">
+          <i class="bi bi-search me-1"></i>
+          Buscar
+        </button>
       </div>
     </form>
 
     {% if empresas %}
+
     <div class="table-responsive">
-      <table
-        class="table table-bordered table-hover table-striped align-middle"
-        style="font-size: 0.95rem"
-      >
-        <thead class="table-dark text-center">
+      <table class="table table-hover align-middle" style="font-size:0.94rem;">
+        <thead class="text-white" style="background:#002b55;">
           <tr>
-            <th style="min-width: 180px">Razão Social</th>
+            <th>Razão Social</th>
             <th>CNPJ</th>
-            <th style="min-width: 160px">Endereço</th>
+            <th>Tipo</th>
+            <th>Endereço</th>
             <th>Contato</th>
-            <th>Serviço</th>
-            <th style="min-width: 200px">Observações</th>
+            <th>Email</th>
+            <th>Observações</th>
             <th class="text-center">Ações</th>
           </tr>
         </thead>
+
         <tbody>
           {% for empresa in empresas %}
           <tr>
-            <td>{{ empresa.razao_social }}</td>
-            <td class="text-nowrap">{{ empresa.cnpj }}</td>
-            <td>{{ empresa.endereco or '-' }}</td>
-            <td class="text-nowrap">{{ empresa.contato or '-' }}</td>
-            <td class="text-nowrap">{{ empresa.tipo_servico or '-' }}</td>
-            <td>{{ empresa.observacoes or '-' }}</td>
-            <td class="text-center" style="white-space: nowrap">
-              <div class="d-inline-flex gap-2">
+            <td class="fw-semibold">
+              {{ empresa.razao_social }}
+            </td>
+
+            <td class="text-nowrap">
+              {{ empresa.cnpj }}
+            </td>
+
+            <td class="text-nowrap">
+              {% if empresa.tipo_empresa == 'cliente' %}
+                <span class="badge bg-primary px-3 py-2">Cliente</span>
+              {% elif empresa.tipo_empresa == 'fornecedor' %}
+                <span class="badge bg-success px-3 py-2">Fornecedor</span>
+              {% else %}
+                <span class="badge bg-secondary px-3 py-2">Empresa</span>
+              {% endif %}
+            </td>
+
+            <td>
+              {{ empresa.endereco or '-' }}
+            </td>
+
+            <td class="text-nowrap">
+              {% if empresa.contato %}
+                {% set telefone_limpo = empresa.contato
+                  | replace('(', '')
+                  | replace(')', '')
+                  | replace('-', '')
+                  | replace(' ', '')
+                  | replace('.', '')
+                %}
+
+                <a
+                  href="https://wa.me/55{{ telefone_limpo }}"
+                  target="_blank"
+                  class="btn btn-sm btn-outline-success"
+                  title="Abrir WhatsApp"
+                >
+                  <i class="bi bi-whatsapp me-1"></i>
+                  WhatsApp
+                </a>
+
+                <small class="text-muted d-block mt-1">
+                  {{ empresa.contato }}
+                </small>
+              {% else %}
+                -
+              {% endif %}
+            </td>
+
+            <td class="text-nowrap">
+              {% if empresa.email %}
+                <div class="d-flex gap-1 flex-wrap">
+                  <a
+                    href="mailto:{{ empresa.email }}"
+                    class="btn btn-sm btn-outline-primary"
+                    title="Abrir aplicativo padrão de email"
+                  >
+                    <i class="bi bi-envelope-fill me-1"></i>
+                    Email
+                  </a>
+
+                  <a
+                    href="https://mail.google.com/mail/?view=cm&fs=1&to={{ empresa.email }}"
+                    target="_blank"
+                    class="btn btn-sm btn-outline-danger"
+                    title="Abrir no Gmail"
+                  >
+                    <i class="bi bi-google me-1"></i>
+                    Gmail
+                  </a>
+                </div>
+
+                <small class="text-muted d-block mt-1">
+                  {{ empresa.email }}
+                </small>
+              {% else %}
+                -
+              {% endif %}
+            </td>
+
+            <td>
+              {{ empresa.observacoes or '-' }}
+            </td>
+
+            <td class="text-center" style="white-space: nowrap;">
+              <div class="d-flex justify-content-center gap-2">
+
+                {% if empresa.tipo_empresa == 'cliente' %}
+                  <a
+                    href="{{ url_for('empresas.listar_os_cliente', cliente_id=empresa.id) }}"
+                    class="btn btn-sm btn-outline-info"
+                    title="Ver O.S do Cliente"
+                  >
+                    <i class="bi bi-list-ul"></i>
+                  </a>
+
+                  <a
+                    href="{{ url_for('empresas.nova_os', cliente_id=empresa.id) }}"
+                    class="btn btn-sm btn-outline-primary"
+                    title="Abrir Nova O.S"
+                  >
+                    <i class="bi bi-plus-circle"></i>
+                  </a>
+                {% endif %}
+
                 <a
                   href="{{ url_for('empresas.editar_empresa', id=empresa.id) }}"
                   class="btn btn-sm btn-outline-warning"
+                  title="Editar"
                 >
-                  ✏️ Editar
+                  <i class="bi bi-pencil-square"></i>
                 </a>
+
                 <form
-                  method="post"
+                  method="POST"
                   action="{{ url_for('empresas.excluir_empresa', id=empresa.id) }}"
-                  onsubmit="return confirm('Tem certeza que deseja excluir esta empresa?');"
+                  onsubmit="return confirm('Deseja realmente excluir este cadastro?');"
                 >
-                  <button type="submit" class="btn btn-sm btn-outline-danger">
-                    🗑️ Excluir
+                  <button
+                    type="submit"
+                    class="btn btn-sm btn-outline-danger"
+                    title="Excluir"
+                  >
+                    <i class="bi bi-trash"></i>
                   </button>
                 </form>
+
               </div>
             </td>
           </tr>
@@ -69,9 +210,17 @@
         </tbody>
       </table>
     </div>
+
     {% else %}
-    <p class="text-muted">Nenhuma empresa encontrada.</p>
+
+    <div class="alert alert-light border text-center">
+      <i class="bi bi-info-circle me-2"></i>
+      Nenhum cadastro encontrado.
+    </div>
+
     {% endif %}
+
   </div>
 </div>
+
 {% endblock %}

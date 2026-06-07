@@ -1,0 +1,266 @@
+{% extends "base.html" %}
+
+{% block content %}
+
+<style>
+  .detalhe-container {
+    max-width: 1100px;
+  }
+
+  .card-header-padrao {
+    background: #002b55;
+    color: #fff;
+    font-weight: 700;
+  }
+
+  .info-label {
+    font-size: 0.78rem;
+    color: #6c757d;
+    font-weight: 700;
+    text-transform: uppercase;
+  }
+
+  .info-value {
+    font-size: 0.95rem;
+    font-weight: 600;
+    color: #212529;
+  }
+
+  .status-entregue,
+  .status-pendente {
+    color: #fff;
+    padding: 6px 12px;
+    border-radius: 999px;
+    font-size: 0.78rem;
+    font-weight: 700;
+  }
+
+  .status-entregue {
+    background: #198754;
+  }
+
+  .status-pendente {
+    background: #dc3545;
+  }
+
+  .sticky-header th {
+    position: sticky;
+    top: 0;
+    background: #002b55;
+    color: white;
+    z-index: 10;
+    text-align: center;
+    vertical-align: middle;
+  }
+
+  .scroll-body {
+    max-height: 500px;
+    overflow-y: auto;
+  }
+
+  .assinatura-box {
+    min-height: 145px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+
+  .assinatura-img {
+    max-height: 140px;
+    max-width: 100%;
+  }
+</style>
+
+<div class="container detalhe-container mt-4">
+
+  <!-- DADOS DA REQUISIÇÃO -->
+  <div class="card shadow-sm border-0 mb-4">
+
+    <div class="card-header card-header-padrao">
+      <i class="bi bi-card-checklist me-2"></i>
+      Detalhes da Requisição
+    </div>
+
+    <div class="card-body">
+
+      <div class="row g-3">
+
+        <div class="col-md-4">
+          <div class="info-label">Técnico</div>
+          <div class="info-value">
+            {{ requisicao.solicitante_tecnico or '-' }}
+          </div>
+        </div>
+
+        <div class="col-md-4">
+          <div class="info-label">Tipo Serviço</div>
+          <div class="info-value">
+            {{ requisicao.tipo_servico or '-' }}
+          </div>
+        </div>
+
+        <div class="col-md-4">
+          <div class="info-label">Status</div>
+          <div class="mt-1">
+            {% if requisicao.status == 'material_entregue' %}
+              <span class="status-entregue">Material Entregue</span>
+            {% else %}
+              <span class="status-pendente">Pendente</span>
+            {% endif %}
+          </div>
+        </div>
+
+        <div class="col-md-4">
+          <div class="info-label">Tipo Estoque</div>
+          <div class="info-value">
+            {% if requisicao.tipo_estoque == 'cliente' %}
+              Cliente
+            {% else %}
+              Empresa
+            {% endif %}
+          </div>
+        </div>
+
+        <div class="col-md-4">
+          <div class="info-label">Data/Hora</div>
+          <div class="info-value">
+            {{ requisicao.data_hora.strftime('%d/%m/%Y %H:%M') if requisicao.data_hora else '-' }}
+          </div>
+        </div>
+
+        <div class="col-md-12">
+          <div class="info-label">Observação</div>
+          <div class="info-value">
+            {{ requisicao.observacao if requisicao.observacao else 'Não informado' }}
+          </div>
+        </div>
+
+      </div>
+
+    </div>
+
+  </div>
+
+  <!-- ITENS ENTREGUES -->
+  <div class="card shadow-sm border-0 mb-4">
+
+    <div class="card-header card-header-padrao">
+      <i class="bi bi-box-seam me-2"></i>
+      Itens Entregues
+    </div>
+
+    <div class="card-body p-0 scroll-body">
+
+      <table class="table table-hover table-bordered align-middle mb-0">
+
+        <thead class="sticky-header">
+          <tr>
+            <th style="width: 15%;">Código</th>
+            <th>Descrição</th>
+            <th style="width: 12%;">Unidade</th>
+            <th style="width: 18%;">Quantidade Entregue</th>
+          </tr>
+        </thead>
+
+        <tbody>
+
+          {% for item in requisicao.itens %}
+          <tr>
+
+            <td class="fw-semibold text-center">
+              {{ item.codigo }}
+            </td>
+
+            <td>
+              {{ item.descricao }}
+            </td>
+
+            <td class="text-center">
+              {{ item.unidade if item.unidade else 'UN' }}
+            </td>
+
+            <td class="text-center fw-bold text-primary">
+              {{ item.quantidade }}
+            </td>
+
+          </tr>
+          {% else %}
+          <tr>
+            <td colspan="4" class="text-center text-muted py-4">
+              Nenhum item encontrado.
+            </td>
+          </tr>
+          {% endfor %}
+
+        </tbody>
+
+      </table>
+
+    </div>
+
+  </div>
+
+  <!-- ASSINATURA -->
+  {% if requisicao.assinatura_base64 or requisicao.assinatura_path %}
+  <div class="card shadow-sm border-0 mb-4">
+
+    <div class="card-header card-header-padrao">
+      <i class="bi bi-pen me-2"></i>
+      Assinatura do Técnico
+    </div>
+
+    <div class="card-body text-center">
+
+      <div class="assinatura-box">
+
+        {% if requisicao.assinatura_base64 %}
+          <img
+            src="{{ requisicao.assinatura_base64 }}"
+            class="assinatura-img"
+          >
+        {% elif requisicao.assinatura_path %}
+          <img
+            src="{{ url_for('static', filename=requisicao.assinatura_path) }}"
+            class="assinatura-img"
+          >
+        {% endif %}
+
+      </div>
+
+      <div class="mt-3 text-center">
+        <div class="text-muted small">
+          Recebido por
+        </div>
+
+        <div class="fw-bold" style="font-size: 1rem;">
+          {{ requisicao.solicitante_tecnico or '-' }}
+        </div>
+      </div>
+  </div>
+  {% endif %}
+
+  <!-- AÇÕES -->
+  <div class="d-flex justify-content-end gap-2 mb-5">
+
+    <a
+      href="/requisicoes_tecnicos/historico/detalhes/{{ requisicao.id }}/pdf"
+      class="btn btn-danger"
+      target="_blank"
+    >
+      <i class="bi bi-file-earmark-pdf me-1"></i>
+      PDF
+    </a>
+
+    <a
+      href="{{ url_for('requisicoes_tecnicos.historico') }}"
+      class="btn btn-secondary"
+    >
+      <i class="bi bi-arrow-left me-1"></i>
+      Voltar
+    </a>
+
+  </div>
+
+</div>
+
+{% endblock %}

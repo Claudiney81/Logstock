@@ -3,10 +3,12 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
-    <title>LogStock</title>
-  </head>
 
-  <body autocomplete="off" class="{% if request.path == '/' %}home-page{% endif %}">
+    <title>LogiStock</title>
+
+    <link rel="icon"
+      type="image/png"
+      href="{{ url_for('static', filename='img/logistock_favicon.png') }}">
 
     <!-- Bootstrap 5 e ícones -->
     <link
@@ -24,564 +26,761 @@
       href="{{ url_for('static', filename='css/custom.css') }}"
     />
 
-   <style>
-  /* =================== CONFIGURAÇÃO GERAL =================== */
-  html, body {
-    height: 100%;
-    margin: 0;
-    padding: 0;
-    overflow-x: hidden;
-    overflow-y: auto; /* permite rolagem vertical normal */
-  }
-  body {
-    display: flex;
-    flex-direction: column;
-    background-color: #f1f5f9;
-    padding-bottom: 60px; /* espaço para o rodapé fixo */
-  }
+    <style>
+      html,
+      body {
+        height: 100%;
+        margin: 0;
+        padding: 0;
+        overflow-x: hidden;
+      }
+      body {
+        display: flex;
+        flex-direction: column;
+        background-color: #f1f5f9;
+        padding-top: 70px; /* espaço para navbar fixa */
+        padding-bottom: 50px;
+      }
 
-  /* =================== CONTEÚDO PRINCIPAL =================== */
-  #main-content {
-    flex: 1;
-    display: flex;
-    flex-direction: column;
-    margin-top: 56px;
-    overflow: hidden;
-  }
+      .navbar {
+        background-color: #193055 !important;
+      }
+      .navbar-nav .nav-link,
+      .navbar-nav .dropdown-item {
+        font-size: 0.9rem;
+      }
 
-  .flex-grow-1 {
-    margin-left: 260px;
-    overflow-y: auto;
-    animation: fadeIn 0.2s ease-in-out;
-  }
+      #main-content {
+        flex: 1;
+        padding: 20px;
+      }
 
-  @keyframes fadeIn {
-    from { opacity: 0; transform: translateY(5px); }
-    to { opacity: 1; transform: translateY(0); }
-  }
+      footer.footer {
+        position: fixed;
+        bottom: 0;
+        width: 100%;
+        background-color: #002b55;
+        color: white;
+        text-align: center;
+        padding: 8px 0;
+        font-size: 0.85rem;
+      }
 
-  /* =================== SIDEBAR =================== */
-  #sidebar {
-    width: 260px;
-    position: fixed;
-    top: 0;
-    left: 0;
-    height: 100vh;
-    background-color: rgba(25, 32, 85, 1);
-    color: white;
-    padding-top: 4rem;
-    padding-bottom: 2.5rem;
-    z-index: 1000;
-    overflow-y: auto;
-    scroll-behavior: smooth;
-  }
+      .footer-center-fix {
+    position: fixed !important;
+    bottom: 0 !important;
+    left: 0 !important;
+    right: 0 !important;
+    width: 100vw !important;
+    height: 38px !important;
 
-  /* Cabeçalhos do menu */
-  .menu-header,
-  .menu-master {
-    color: #93c5fd !important; /* azul clarinho */
-    font-weight: bold !important;
-    font-size: 0.9rem !important;
-    letter-spacing: 0.5px;
-    text-transform: uppercase;
-  }
+    display: flex !important;
+    justify-content: center !important;
+    align-items: center !important;
+    text-align: center !important;
 
-  /* Links do menu */
-  #sidebar .nav-link,
-  #sidebar .dropdown-item {
-    color: #ffffff !important;
-    font-size: 0.8rem !important;
-    padding: 4px 16px;
-    transition: background-color 0.2s ease-in-out, color 0.2s ease-in-out;
-  }
-
-  #sidebar .nav-link i {
-    color: #ffffff !important;
-    font-size: 0.9rem;
-    margin-right: 6px;
-  }
-
-  #sidebar .nav-link:hover,
-  #sidebar .nav-link.active {
-    background-color: #0066cc !important;
-    color: white !important;
-  }
-
-  #sidebar .nav-link:hover i,
-  #sidebar .nav-link.active i {
-    color: white !important;
-  }
-
-  .collapse .nav-link { padding-left: 32px; }
-
-  /* =================== NAVBAR =================== */
-  .navbar {
-    position: sticky;
-    top: 0;
-    z-index: 1020;
-    background-color: #325c9b !important;
-  }
-
-  /* =================== RODAPÉ =================== */
-  footer.footer {
-    position: fixed;
-    bottom: 0;
-    left: 260px;                /* compensa a sidebar fixa */
-    width: calc(100% - 260px);  /* ocupa largura total menos sidebar */
-    background-color: #002b55;  /* cor igual ao topo */
-    color: white;
-    text-align: center;
-    padding: 8px 0;
-    font-size: 0.85rem;
-    z-index: 1030;
-  }
-
-  /* =================== TABELAS =================== */
-  .table-responsive { overflow-x: auto; }
-  .table { border-collapse: collapse; }
-  .table th, .table td {
-    border: 0.5px solid #dee2e6 !important;
-    padding: 0.55rem;
-  }
-  .table thead th {
-    background-color: #f8f9fa;
-    font-weight: bold;
-    border-bottom: 1px solid #ccc;
-  }
-
-  /* =================== SCROLLBAR SIDEBAR =================== */
-  #sidebar::-webkit-scrollbar { width: 6px; }
-  #sidebar::-webkit-scrollbar-thumb {
-    background-color: rgba(255, 255, 255, 0.3);
-    border-radius: 4px;
-  }
-  #sidebar { scrollbar-width: thin; scrollbar-color: rgba(255, 255, 255, 0.3) transparent; }
-
-  .nav-link[onclick] { cursor: pointer; }
-  #sidebar hr, #sidebar .dropdown-divider, #sidebar .nav-item:not(.menu-header)::after {
-    display: none !important;
-  }
-  .nav-link:focus {
-    outline: none;
-    box-shadow: inset 0 0 0 1px #5dd8ff;
-  }
-
-  /* =================== HOME PAGE =================== */
-  body.home-page {
-    height: 100vh;        /* altura exata da tela */
-    overflow-y: hidden;   /* remove scroll vertical */
-  }
-
-  body.home-page #main-content {
-    height: calc(100vh - 56px - 40px); /* menos navbar e menos rodapé */
-    overflow: hidden;
-  }
-
-  body.home-page footer.footer {
-    position: fixed;
-    bottom: 0;
-    left: 260px; /* compensa a sidebar */
-    width: calc(100% - 260px);
-  }
-</style>
-
+    padding: 0 !important;
+    margin: 0 !important;
+    background: #002b55 !important;
+    color: #fff !important;
+    z-index: 9999 !important;
+}
+    </style>
   </head>
-
+  <body
+    autocomplete="off"
+    class="{% if request.path == '/' %}home-page{% endif %}"
+  >
     <!-- Barra superior -->
-    <nav class="navbar navbar-dark bg-dark navbar-expand fixed-top">
+<nav class="navbar navbar-expand-lg navbar-dark fixed-top">
   <div class="container-fluid">
-    <a class="navbar-brand d-flex align-items-center text-white" href="/">
-      <!-- Ícone minimalista de estoque -->
-      <svg xmlns="http://www.w3.org/2000/svg" width="28" height="28" fill="white" viewBox="0 0 16 16" class="me-2">
-        <path d="M8.21.5a1 1 0 0 0-.42 0L1.5 2.11a1 1 0 0 0-.71.96v9.86a1 1 0 0 0 .7.96l6.29 1.61a1 1 0 0 0 .42 0l6.29-1.61a1 1 0 0 0 .7-.96V3.07a1 1 0 0 0-.7-.96L8.21.5zM8 1.69 13.49 3 8 4.31 2.51 3 8 1.69zM2 4.3v7.62l5 1.28V5.58L2 4.3zM9 5.58v7.62l5-1.28V4.3L9 5.58z"/>
-      </svg>
-      <span class="fw-bold fs-4">LogStock</span>
+
+    <a
+      class="navbar-brand d-flex align-items-center text-white"
+      href="/"
+    >
+
+      <img
+        src="{{ url_for('static', filename='img/start_logo.png') }}"
+        alt="START"
+        style="
+          width:38px;
+          height:38px;
+          object-fit:contain;
+          border-radius:8px;
+          margin-right:10px;
+          background:white;
+          padding:2px;
+        "
+      >
+
+      <div class="d-flex flex-column" style="line-height:1;">
+
+        <span
+          style="
+            font-size:1.1rem;
+            font-weight:800;
+            color:#1da1f2 !important;
+            letter-spacing:.5px;
+          "
+        >
+          START
+        </span>
+
+        <small
+          style="
+            color:#ff8a00 !important;
+            font-size:.68rem;
+            font-weight:600;
+            margin-top:1px;
+            letter-spacing:.3px;
+          "
+        >
+          Energia e Inovação
+        </small>
+
+      </div>
+
     </a>
-    
-    {% if current_user.is_authenticated %}
-    <div class="d-flex align-items-center text-white">
-      <span class="me-3">Olá, {{ current_user.nome }}</span>
-      <a href="{{ url_for('auth.logout') }}" class="btn btn-outline-light btn-sm">Sair</a>
-    </div>
-    {% else %}
-    <div>
-      <a href="{{ url_for('auth.login') }}" class="btn btn-outline-light btn-sm">Entrar</a>
-    </div>
-    {% endif %}
-  </div>
-</nav>
 
+    <button
+      class="navbar-toggler"
+      type="button"
+      data-bs-toggle="collapse"
+      data-bs-target="#navbarNav"
+    >
+      <span class="navbar-toggler-icon"></span>
+    </button>
 
-    <div id="main-content">
-      <!-- Sidebar -->
-      <nav id="sidebar" class="d-flex flex-column">
-        <ul class="nav flex-column">
-          <!-- Gestão de Estoque -->
-<li class="nav-item mt-1">
-  <span class="menu-master no-top-border px-3">
-    <i class="bi bi-box-seam me-2"></i> Gestão de Estoque
-  </span>
-</li>
+    <div class="collapse navbar-collapse" id="navbarNav">
+      <ul class="navbar-nav me-auto">
 
-<a
-  onclick="window.location.href='/estoque/saldo'"
-  class="nav-link px-3 {% if request.path == '/estoque/saldo' %}active{% endif %}"
->
-  <i class="bi bi-graph-up me-2"></i>Saldo de Estoque
-</a>
-<a
-  onclick="window.location.href='/estoque/alertas'"
-  class="nav-link px-3 {% if request.path == '/estoque/alertas' %}active{% endif %}"
->
-  <i class="bi bi-exclamation-triangle me-2"></i>Alerta de Estoque
-</a>
-<a
-  onclick="window.location.href='{{ url_for('inventario_estoque.inventario') }}'"
-  class="nav-link px-3 {% if request.path.startswith('/inventario_estoque') %}active{% endif %}"
->
-  <i class="bi bi-clipboard-check me-2"></i>Inventário de Estoque
-</a>
-<a
-  onclick="window.location.href='{{ url_for('tipo_servico.cadastrar_tipo_servico') }}'"
-  class="nav-link px-3 {% if request.path == url_for('tipo_servico.cadastrar_tipo_servico') %}active{% endif %}"
->
-  <i class="bi bi-tools me-2"></i>Tipos de Serviço
-</a>
+            <!-- Gestão de Estoque -->
+          <li class="nav-item dropdown">
+            <a class="nav-link dropdown-toggle" href="#" data-bs-toggle="dropdown">
+              <i class="bi bi-box-seam me-1"></i> Gestão de Estoque
+            </a>
 
-<hr class="text-white my-2" />
+            <ul class="dropdown-menu">
 
-<!-- NOTA FISCAL -->
-<li class="nav-item">
-  <div
-    class="menu-header {% if 'nota' in request.path %}menu-active{% endif %}"
-  >
-    <i class="bi bi-receipt-cutoff me-2"></i> Nota Fiscal
-  </div>
+              <li>
+                <a class="dropdown-item" href="/estoque/saldo">
+                  <i class="bi bi-graph-up me-2"></i> Saldo de Estoque
+                </a>
+              </li>
 
-  <a
-    href="{{ url_for('nota_fiscal.nova_nota') }}"
-    target="_blank"
-    class="nav-link px-3 {% if request.path == url_for('nota_fiscal.nova_nota') %}active{% endif %}"
-  >
-    <i class="bi bi-file-earmark-plus me-2"></i>Nova Entrada
-  </a>
+              <li>
+                <a class="dropdown-item" href="/estoque/alertas">
+                  <i class="bi bi-exclamation-triangle me-2"></i> Alerta de Estoque
+                </a>
+              </li>
 
-  <a
-    onclick="window.location.href='{{ url_for('nota_fiscal.historico') }}'"
-    class="nav-link px-3 {% if request.path == url_for('nota_fiscal.historico') %}active{% endif %}"
-  >
-    <i class="bi bi-clock-history me-2"></i>Histórico
-  </a>
+              <li>
+                <a class="dropdown-item" href="{{ url_for('estoque.cadastrar_item') }}">
+                  <i class="bi bi-plus-square me-2"></i> Cadastro de Itens
+                </a>
+              </li>
 
-  <a
-    onclick="window.location.href='{{ url_for('nota_fiscal.pesquisar') }}'"
-    class="nav-link px-3 {% if request.path == url_for('nota_fiscal.pesquisar') %}active{% endif %}"
-  >
-    <i class="bi bi-search me-2"></i>Pesquisar
-  </a>
-</li>
+              <li>
+                <a class="dropdown-item" href="{{ url_for('estoque.listar_itens') }}">
+                  <i class="bi bi-list-ul me-2"></i> Listar Itens
+                </a>
+              </li>
 
-<hr class="text-white my-2" />
+              <li>
+                <a class="dropdown-item" href="{{ url_for('inventario_estoque.inventario') }}">
+                  <i class="bi bi-clipboard-check me-2"></i> Inventário de Estoque
+                </a>
+              </li>
 
-<!-- TRANSFERÊNCIAS -->
-<li class="menu-header px-3">
-  <i class="bi bi-arrow-left-right me-2"></i> Transferências
-</li>
+              <li>
+                <a class="dropdown-item" href="{{ url_for('inventario_estoque.historico_inventarios') }}">
+                  <i class="bi bi-clock-history me-2"></i> Histórico de Inventários
+                </a>
+              </li>
 
-<li class="nav-item px-3"><strong>Interna</strong></li>
-<li class="nav-item">
-  <a
-    href="/transferencias/interna/nova"
-    target="_blank"
-    class="nav-link"
-    ><i class="bi bi-plus-lg me-2"></i> Nova</a
-  >
-</li>
-<li class="nav-item">
-  <a
-    onclick="window.location.href='/transferencias/interna/historico'"
-    class="nav-link"
-    ><i class="bi bi-journal-text me-2"></i> Histórico</a
-  >
-</li>
+              <li>
+                <a class="dropdown-item" href="{{ url_for('tipo_servico.cadastrar_tipo_servico') }}">
+                  <i class="bi bi-tools me-2"></i> Tipos de Serviço
+                </a>
+              </li>
 
-<li class="nav-item px-3 mt-2"><strong>Externa</strong></li>
-<li class="nav-item">
-  <a
-    href="{{ url_for('transferencia_externa.nova_transferencia_externa') }}"
-    target="_blank"
-    class="nav-link"
-    ><i class="bi bi-plus-lg me-2"></i> Nova</a
-  >
-</li>
-<li class="nav-item">
-  <a
-    href="{{ url_for('transferencia_externa.historico_transferencia_externa') }}"
-    class="nav-link"
-    ><i class="bi bi-journal-text me-2"></i> Histórico</a
-  >
-</li>
+            </ul>
+          </li>
 
-<hr class="text-white my-2" />
+            <!-- Nota Fiscal -->
+            <li class="nav-item dropdown">
+              <a
+                class="nav-link dropdown-toggle"
+                href="#"
+                data-bs-toggle="dropdown"
+              >
+                <i class="bi bi-receipt-cutoff me-1"></i> Nota Fiscal
+              </a>
+              <ul class="dropdown-menu">
+                <li>
+                  <a
+                    class="dropdown-item"
+                    href="{{ url_for('nota_fiscal.nova_nota') }}"
+                    target="_blank"
+                    ><i class="bi bi-file-earmark-plus me-2"></i> Nova
+                    Entrada</a
+                  >
+                </li>
+                <li>
+                  <a
+                    class="dropdown-item"
+                    href="{{ url_for('nota_fiscal.historico') }}"
+                    ><i class="bi bi-clock-history me-2"></i> Histórico</a
+                  >
+                </li>
+                <li>
+                  <a
+                    class="dropdown-item"
+                    href="{{ url_for('nota_fiscal.pesquisar') }}"
+                    ><i class="bi bi-search me-2"></i> Pesquisar</a
+                  >
+                </li>
+              </ul>
+            </li>
 
-<!-- EMPRESAS / PARCEIROS -->
-<li class="nav-item">
-  <div
-    class="menu-header {% if 'empresas' in request.path %}menu-active{% endif %}"
-  >
-    <i class="bi bi-buildings me-2"></i> Empresas / Parceiros
-  </div>
+            <!-- Movimentação de Estoque -->
+            <li class="nav-item dropdown">
+              <a
+                class="nav-link dropdown-toggle"
+                href="#"
+                data-bs-toggle="dropdown"
+              >
+                <i class="bi bi-arrow-left-right me-1"></i>
+                Movimentação de Estoque
+              </a>
 
-  <a
-    href="{{ url_for('empresas.cadastrar_empresa') }}"
-    target="_blank"
-    class="nav-link px-3 {% if request.path == url_for('empresas.cadastrar_empresa') %}active{% endif %}"
-  >
-    <i class="bi bi-person-plus me-2"></i>Cadastrar Empresas
-  </a>
+              <ul class="dropdown-menu">
 
-  <a
-    onclick="window.location.href='{{ url_for('empresas.lista_empresas') }}'"
-    class="nav-link px-3 {% if request.path == url_for('empresas.lista_empresas') %}active{% endif %}"
-  >
-    <i class="bi bi-list-columns me-2"></i>Empresas Cadastradas
-  </a>
-</li>
+                <li>
+                  <a
+                    class="dropdown-item"
+                    href="{{ url_for('movimentacao_estoque.nova_movimentacao') }}"
+                  >
+                    <i class="bi bi-box-arrow-in-right me-2"></i>
+                    Movimentar Materiais
+                  </a>
+                </li>
 
-<hr class="text-white my-2" />
-
-<!-- CADASTRO DE ITENS -->
-<li class="nav-item">
-  <div
-    class="menu-header px-3 fw-bold text-white {% if request.path == '/estoque/cadastro' or request.path == '/estoque/listar' %} bg-primary text-white {% endif %}"
-  >
-    <i class="bi bi-box2-heart me-2"></i> Cadastro de Itens
-  </div>
-
-  <a
-    href="/estoque/cadastro"
-    target="_blank"
-    class="nav-link px-3 {% if request.path == '/estoque/cadastro' %}active{% endif %}"
-  >
-    <i class="bi bi-plus-lg me-2"></i>Novo
-  </a>
-
-  <a
-    href="/estoque/listar"
-    target="_blank"
-    class="nav-link px-3 {% if request.path == '/estoque/listar' %}active{% endif %}"
-  >
-    <i class="bi bi-card-list me-2"></i>Listar Itens
-  </a>
-</li>
-
-<hr class="text-white my-2" />
-
-<!-- Cadastro de Técnico -->
-<li class="menu-header px-3">Cadastro de Técnico</li>
-<li class="nav-item ps-3">
-  <a 
-    href="{{ url_for('tecnicos.cadastrar_tecnico') }}" 
-    target="_blank"
-    class="nav-link w-100 text-start {% if request.path == url_for('tecnicos.cadastrar_tecnico') %}active{% endif %}">
-    <i class="bi bi-person-plus me-2"></i> Cadastrar Técnico
-  </a>
-</li>
-<li class="nav-item ps-3">
-  <a 
-    href="{{ url_for('tecnicos.listar_tecnicos') }}" 
-    target="_blank"
-    class="nav-link w-100 text-start {% if request.path == url_for('tecnicos.listar_tecnicos') %}active{% endif %}">
-    <i class="bi bi-people me-2"></i> Técnicos Cadastrados
-  </a>
-</li>
-
-<!--
-<li class="nav-item">
-  <a class="nav-link" href="{{ url_for('baixa_tecnico.formulario_baixa') }}">
-    <i class="bi bi-phone me-2"></i> Baixa Mobile (Admin)
-  </a>
-</li>
--->
-<!-- Kit & Inventário -->
-<li class="menu-header px-3">Kit & Inventário</li>
-<li class="nav-item ps-3">
-  <button class="nav-link w-100 text-start border-0 bg-transparent {% if request.path.startswith('/kit_inicial') %}active{% endif %}"
-    onclick="window.location.href='/kit_inicial/cadastrar'">
-    <i class="bi bi-arrow-left-right me-2"></i> Transferir Kit Inicial
-  </button>
-</li>
-<li>
-  <a href="{{ url_for('inventario_tecnico.historico_inventarios') }}"
-    target="_blank"
-    class="nav-link px-4 {% if request.path == url_for('inventario_tecnico.historico_inventarios') %}active{% endif %}">
-    <i class="bi bi-clipboard-data me-2"></i> Inventário Técnico
-  </a>
-</li>
-<li class="nav-item ps-3">
-  <button class="nav-link w-100 text-start border-0 bg-transparent {% if request.path.startswith('/kit_inicial/historico') %}active{% endif %}"
-    onclick="window.location.href='/kit_inicial/historico'">
-    <i class="bi bi-clock-history me-2"></i> Histórico Kits
-  </button>
-</li>
-
-<!-- Requisições Técnicos -->
-<li class="menu-header px-3">Requisições Técnicos</li>
-<li class="nav-item ps-3">
-  <button class="nav-link w-100 text-start border-0 bg-transparent d-flex justify-content-between align-items-center {% if request.path.startswith('/requisicoes_tecnicos/recebidas') %}active{% endif %}"
-    onclick="window.location.href='/requisicoes_tecnicos/recebidas'">
-    <span><i class="bi bi-inbox-arrow-down me-2"></i>Recebidas</span>
-    {% if requisicoes_tecnicos_pendentes and requisicoes_tecnicos_pendentes > 0 %}
-    <span class="badge bg-danger">{{ requisicoes_tecnicos_pendentes }}</span>
-    {% endif %}
-  </button>
-</li>
-<li class="nav-item ps-3">
-  <button class="nav-link w-100 text-start border-0 bg-transparent {% if request.path.startswith('/requisicoes_tecnicos/mobile/recebidas') %}active{% endif %}"
-    onclick="window.location.href='{{ url_for('requisicoes_tecnicos.mobile_recebidas') }}'">
-    <i class="bi bi-phone me-2"></i> Recebidas (Mobile)
-  </button>
-</li>
-<li class="nav-item ps-3">
-  <button class="nav-link w-100 text-start border-0 bg-transparent {% if request.path.startswith('/requisicoes_tecnicos/atendidas') %}active{% endif %}"
-    onclick="window.location.href='/requisicoes_tecnicos/atendidas'">
-    <i class="bi bi-check2-circle me-2"></i> Atendidas
-  </button>
-</li>
-<li class="nav-item ps-3">
-  <a 
-    href="/requisicoes_tecnicos/nova"
-    target="_blank"
-    class="nav-link w-100 text-start {% if request.path == '/requisicoes_tecnicos/nova' %}active{% endif %}">
-    <i class="bi bi-plus-lg me-2"></i> Nova
-  </a>
-</li>
-
-<li class="nav-item ps-3">
-  <button class="nav-link w-100 text-start border-0 bg-transparent {% if request.path == '/requisicoes_tecnicos/historico' %}active{% endif %}"
-    onclick="window.location.href='/requisicoes_tecnicos/historico'">
-    <i class="bi bi-journal-text me-2"></i> Histórico
-  </button>
-</li>
-<a href="{{ url_for('requisicoes_tecnicos.nova_requisicao_mobile') }}" 
-   class="nav-link px-3" 
-   style="color: #5dd8ff" 
-   target="_blank">
-  <i class="bi bi-phone-fill me-2"></i> Acessar Requisição Mobile
-</a>
-
-<li class="nav-item ps-3">
-  <button class="nav-link w-100 text-start border-0 bg-transparent {% if request.path == url_for('saldo_tecnico.exibir_saldo') %}active{% endif %}"
-    onclick="window.location.href='{{ url_for('saldo_tecnico.exibir_saldo') }}'">
-    <i class="bi bi-person-bounding-box me-2"></i> Saldo Técnico
-  </button>
-</li>
-<li class="nav-item ps-3">
-  <button class="nav-link w-100 text-start border-0 bg-transparent {% if request.path == url_for('requisicoes_tecnicos.relatorio_consumo') %}active{% endif %}"
-    onclick="window.location.href='{{ url_for('requisicoes_tecnicos.relatorio_consumo') }}'">
-    <i class="bi bi-bar-chart-line me-2"></i> Relatório de Consumo
-  </button>
-</li>
-
-<!-- Controle de Ferramentas -->
-<li class="menu-header px-3">Controle de Ferramentas</li>
-<li class="nav-item ps-3">
-  <a class="nav-link {% if request.path == url_for('equipamentos.nova_movimentacao') %}active{% endif %}"
-     href="{{ url_for('equipamentos.nova_movimentacao') }}">
-    <i class="bi bi-tools me-2"></i> Nova Movimentação
-  </a>
-</li>
-<li class="nav-item ps-3">
-  <a class="nav-link {% if request.path == url_for('equipamentos.historico_equipamentos') %}active{% endif %}"
-     href="{{ url_for('equipamentos.historico_equipamentos') }}">
-    <i class="bi bi-clock-history me-2"></i> Histórico
-  </a>
-</li>
-
-<li class="nav-item ps-3">
-  <a class="nav-link {% if request.path == url_for('equipamentos.saldo_tecnico') %}active{% endif %}"
-     href="{{ url_for('equipamentos.saldo_tecnico') }}">
-    <i class="bi bi-person-lines-fill me-2"></i> Saldo Técnico
-  </a>
-</li>
-
-<!-- Validação de Baixas -->
-<li class="menu-header px-3">Validação de Baixas</li>
-<li class="nav-item ps-3">
-  <a class="nav-link {% if request.path == url_for('baixa_desktop.nova_baixa') %}active{% endif %}"
-    href="{{ url_for('baixa_desktop.nova_baixa') }}">
-    <i class="bi bi-plus-square me-2"></i> Nova Baixa
-  </a>
-</li>
-<li class="nav-item ps-3">
-  <a class="nav-link {% if request.path.startswith('/baixa_desktop/pendentes') %}active{% endif %}"
-    href="{{ url_for('baixa_desktop.baixas_pendentes') }}" id="menu-baixas-pendentes">
-    <i class="bi bi-hourglass-split me-2"></i> Baixas Pendentes
-    <span id="contador-baixas" class="badge bg-danger ms-2" style="display: none"></span>
-  </a>
-</li>
-<li class="nav-item ps-3">
-  <a class="nav-link {% if request.path == url_for('baixa_desktop.historico_baixas') %}active{% endif %}"
-    href="{{ url_for('baixa_desktop.historico_baixas') }}">
-    <i class="bi bi-journal-check me-2"></i> Histórico de Baixas
-  </a>
-</li>
-<li class="nav-item ps-3">
-  <a class="nav-link {% if request.path == url_for('baixa_desktop.baixas_realizadas') %}active{% endif %}"
-    href="{{ url_for('baixa_desktop.baixas_realizadas') }}">
-    <i class="bi bi-check-all me-2"></i> Baixas Realizadas
-  </a>
-</li>
+                <li>
+                  <a
+                    class="dropdown-item"
+                    href="{{ url_for('movimentacao_estoque.historico') }}"
+                  >
+                    <i class="bi bi-clock-history me-2"></i>
+                    Histórico
+                  </a>
+                </li>
 
               </ul>
-            </div>
+            </li>
+
+          <!-- Empresas / Parceiros -->
+          <li class="nav-item dropdown">
+            <a
+              class="nav-link dropdown-toggle"
+              href="#"
+              data-bs-toggle="dropdown"
+            >
+              <i class="bi bi-buildings me-1"></i>
+              Empresas / Parceiros
+            </a>
+
+            <ul class="dropdown-menu">
+
+              <!-- CLIENTES -->
+              <li>
+                <a
+                  class="dropdown-item"
+                  href="{{ url_for('empresas.cadastrar_cliente') }}"
+                  target="_blank"
+                >
+                  <i class="bi bi-person-plus me-2"></i>
+                  Cadastrar Cliente
+                </a>
+              </li>
+
+              <li>
+                <a
+                  class="dropdown-item"
+                  href="{{ url_for('empresas.lista_clientes') }}"
+                >
+                  <i class="bi bi-people me-2"></i>
+                  Clientes Cadastrados
+                </a>
+              </li>
+
+              <li><hr class="dropdown-divider"></li>
+
+              <!-- FORNECEDORES -->
+              <li>
+                <a
+                  class="dropdown-item"
+                  href="{{ url_for('empresas.cadastrar_fornecedor') }}"
+                  target="_blank"
+                >
+                  <i class="bi bi-truck me-2"></i>
+                  Cadastrar Fornecedor
+                </a>
+              </li>
+
+              <li>
+                <a
+                  class="dropdown-item"
+                  href="{{ url_for('empresas.lista_fornecedores') }}"
+                >
+                  <i class="bi bi-list-columns me-2"></i>
+                  Fornecedores Cadastrados
+                </a>
+              </li>
+
+            </ul>
           </li>
-        </ul>
-      </nav>
 
-      <!-- Conteúdo principal -->
+          <!-- Gestão de Frota -->
+<li class="nav-item dropdown">
+  <a
+    class="nav-link dropdown-toggle"
+    href="#"
+    data-bs-toggle="dropdown"
+  >
+    <i class="bi bi-car-front-fill me-1"></i>
+    Gestão de Frota
+  </a>
 
-      <div class="flex-grow-1 p-4">
-        {% with messages = get_flashed_messages(with_categories=true) %} {% if
-        messages %} {% for category, message in messages %}
-        <div
-          class="alert alert-{{ category }} alert-dismissible fade show"
-          role="alert"
-        >
-          {{ message }}
-          <button
-            type="button"
-            class="btn-close"
-            data-bs-dismiss="alert"
-            aria-label="Fechar"
-          ></button>
+  <ul class="dropdown-menu">
+
+    <li>
+      <a
+        class="dropdown-item"
+        href="{{ url_for('frota.cadastrar_veiculo') }}"
+      >
+        <i class="bi bi-plus-circle me-2"></i>
+        Cadastrar Veículo
+      </a>
+    </li>
+
+    <li>
+      <a
+        class="dropdown-item"
+        href="{{ url_for('frota.listar_veiculos') }}"
+      >
+        <i class="bi bi-card-list me-2"></i>
+        Veículos Cadastrados
+      </a>
+    </li>
+
+    <li><hr class="dropdown-divider"></li>
+
+    <li>
+      <a
+        class="dropdown-item"
+        href="{{ url_for('frota.nova_manutencao') }}"
+      >
+        <i class="bi bi-tools me-2"></i>
+        Nova Manutenção
+      </a>
+    </li>
+
+    <li>
+      <a
+        class="dropdown-item"
+        href="{{ url_for('frota.historico_manutencao') }}"
+      >
+        <i class="bi bi-clock-history me-2"></i>
+        Histórico de Manutenção
+      </a>
+    </li>
+
+    <li><hr class="dropdown-divider"></li>
+
+    <li>
+      <a
+        class="dropdown-item"
+        href="{{ url_for('frota.novo_abastecimento') }}"
+      >
+        <i class="bi bi-fuel-pump me-2"></i>
+        Novo Abastecimento
+      </a>
+    </li>
+
+    <li>
+      <a
+        class="dropdown-item"
+        href="{{ url_for('frota.historico_abastecimento') }}"
+      >
+        <i class="bi bi-receipt me-2"></i>
+        Histórico de Abastecimento
+      </a>
+    </li>
+
+    <li><hr class="dropdown-divider"></li>
+
+    <li>
+      <a
+        class="dropdown-item"
+        href="{{ url_for('frota.novo_documento') }}"
+      >
+        <i class="bi bi-cloud-arrow-up me-2"></i>
+        Enviar Documento
+      </a>
+    </li>
+
+    <li>
+      <a
+        class="dropdown-item"
+        href="{{ url_for('frota.historico_documentos') }}"
+      >
+        <i class="bi bi-folder2-open me-2"></i>
+        Documentos da Frota
+      </a>
+    </li>
+
+    <li><hr class="dropdown-divider"></li>
+
+    <li>
+      <a
+        class="dropdown-item"
+        href="{{ url_for('frota_vistoria.nova_vistoria') }}"
+      >
+        <i class="bi bi-clipboard-check me-2"></i>
+        Nova Vistoria
+      </a>
+    </li>
+
+    <li>
+      <a
+        class="dropdown-item"
+        href="{{ url_for('frota_vistoria.historico_vistorias') }}"
+      >
+        <i class="bi bi-journal-text me-2"></i>
+        Histórico de Vistorias
+      </a>
+    </li>
+
+  </ul>
+</li>
+            <!-- Técnicos -->
+    <li class="nav-item dropdown">
+      <a class="nav-link dropdown-toggle" href="#" data-bs-toggle="dropdown">
+        <i class="bi bi-person-badge me-1"></i> Técnicos
+      </a>
+
+      <ul class="dropdown-menu">
+
+        <li>
+          <a class="dropdown-item" href="{{ url_for('tecnicos.cadastrar_tecnico') }}" target="_blank">
+            <i class="bi bi-person-plus me-2"></i> Cadastrar Técnico
+          </a>
+        </li>
+
+        <li>
+          <a class="dropdown-item" href="{{ url_for('tecnicos.listar_tecnicos') }}" target="_blank">
+            <i class="bi bi-people me-2"></i> Técnicos Cadastrados
+          </a>
+        </li>
+
+        <li><hr class="dropdown-divider"></li>
+
+        <li>
+          <h6 class="dropdown-header">
+            <i class="bi bi-clipboard-data me-2"></i>
+            Inventário
+          </h6>
+        </li>
+        
+        <li>
+          <a class="dropdown-item" href="{{ url_for('inventario_tecnico.historico_inventarios') }}" target="_blank">
+            <i class="bi bi-clipboard-data me-2"></i> Inventário Técnico
+          </a>
+        </li>
+        
+      </ul>
+    </li>
+
+            <!-- Requisições Técnicos -->
+<li class="nav-item dropdown">
+  <a
+    class="nav-link dropdown-toggle"
+    href="#"
+    data-bs-toggle="dropdown"
+  >
+    <i class="bi bi-inbox me-1"></i>
+    Requisição Mobile
+  </a>
+
+  <ul class="dropdown-menu">
+
+    <!-- RECEBIDAS MOBILE -->
+    <li>
+      <a id="link-recebidas"
+        class="dropdown-item"
+        href="{{ url_for('requisicoes_tecnicos.mobile_recebidas') }}">
+          <i class="bi bi-card-checklist me-2"></i>
+          Recebidas Mobile
+      </a>
+    </li>
+
+    <!-- HISTÓRICO -->
+    <li>
+      <a
+        class="dropdown-item"
+        href="/requisicoes_tecnicos/historico"
+      >
+        <i class="bi bi-journal-text me-2"></i>
+        Histórico
+      </a>
+    </li>
+
+    <!-- SALDO TÉCNICO -->
+    <li>
+      <a
+        class="dropdown-item"
+        href="{{ url_for('saldo_tecnico.exibir_saldo') }}"
+      >
+        <i class="bi bi-person-bounding-box me-2"></i>
+        Saldo Técnico
+      </a>
+    </li>
+
+  </ul>
+</li>
+<li class="nav-item dropdown">
+
+    <a class="nav-link dropdown-toggle text-white"
+       href="#"
+       id="menuFerramentasEpis"
+       role="button"
+       data-bs-toggle="dropdown"
+       aria-expanded="false">
+
+        <i class="bi bi-tools me-1"></i>
+        Ferramentas & EPIs
+
+    </a>
+
+    <ul class="dropdown-menu"
+        aria-labelledby="menuFerramentasEpis">
+
+        <!-- TRANSFERÊNCIA -->
+        <li>
+
+            <a class="dropdown-item"
+               href="{{ url_for('ferramentas_epis.transferencia') }}">
+
+                <i class="bi bi-arrow-left-right me-2"></i>
+                Transferência
+
+            </a>
+
+        </li>
+
+        <!-- SALDO -->
+        <li>
+
+            <a class="dropdown-item"
+               href="{{ url_for('ferramentas_epis.saldo_tecnico') }}">
+
+                <i class="bi bi-person-lines-fill me-2"></i>
+                Saldo Técnico
+
+            </a>
+
+        </li>
+
+        <!-- HISTÓRICO -->
+        <li>
+
+            <a class="dropdown-item"
+               href="{{ url_for('ferramentas_epis.historico') }}">
+
+                <i class="bi bi-clock-history me-2"></i>
+                Histórico
+
+            </a>
+
+        </li>
+
+    </ul>
+
+</li>
+
+            <!-- Validação de Baixas -->
+            <li class="nav-item dropdown">
+              <a
+                class="nav-link dropdown-toggle"
+                href="#"
+                data-bs-toggle="dropdown"
+              >
+                <i class="bi bi-journal-check me-1"></i> Validação de Baixas
+              </a>
+              <ul class="dropdown-menu">
+                <li>
+                  <a
+                    class="dropdown-item"
+                    href="{{ url_for('baixa_desktop.nova_baixa') }}"
+                    ><i class="bi bi-plus-square me-2"></i> Nova Baixa</a
+                  >
+                </li>
+                <li>
+                  <a
+                    class="dropdown-item"
+                    href="{{ url_for('baixa_desktop.baixas_pendentes') }}"
+                    ><i class="bi bi-hourglass-split me-2"></i> Baixas Pendentes
+                    <span
+                      id="contador-baixas"
+                      class="badge bg-danger ms-2"
+                      style="display: none"
+                    ></span
+                  ></a>
+                </li>
+                <li>
+                  <a
+                    class="dropdown-item"
+                    href="{{ url_for('baixa_desktop.historico_baixas') }}"
+                    ><i class="bi bi-journal-text me-2"></i> Histórico de
+                    Baixas</a
+                  >
+                </li>
+                <li>
+                  <a
+                    class="dropdown-item"
+                    href="{{ url_for('baixa_desktop.baixas_realizadas') }}"
+                    ><i class="bi bi-check-all me-2"></i> Baixas Realizadas</a
+                  >
+                </li>
+              </ul>
+            </li>
+          </ul>
+
+          <!-- Usuários -->
+{% if current_user.is_authenticated and current_user.perfil == 'admin' %}
+<li class="nav-item dropdown">
+  <a
+    class="nav-link dropdown-toggle"
+    href="#"
+    data-bs-toggle="dropdown"
+  >
+    <i class="bi bi-people-fill me-1"></i>
+    Usuários
+  </a>
+
+  <ul class="dropdown-menu">
+    <li>
+      <a
+        class="dropdown-item"
+        href="{{ url_for('auth.registro') }}"
+      >
+        <i class="bi bi-person-plus me-2"></i>
+        Cadastrar Usuário
+      </a>
+    </li>
+  </ul>
+</li>
+{% endif %}
+
+<!-- Usuário logado -->
+{% if current_user.is_authenticated %}
+<div class="d-flex align-items-center ms-3">
+
+  <span
+    class="text-white me-2 d-flex align-items-center"
+    style="font-size:0.85rem;"
+  >
+    <i
+      class="bi bi-person-circle me-1"
+      style="font-size:1rem;"
+    ></i>
+
+    {{ current_user.nome.split(' ')[0] }}
+  </span>
+
+  <a
+    href="{{ url_for('auth.logout') }}"
+    class="btn btn-outline-light btn-sm py-0 px-2"
+    style="height:26px; font-size:0.78rem;"
+  >
+    <i class="bi bi-box-arrow-right"></i>
+    Sair
+  </a>
+
+</div>
+
+{% else %}
+
+<div>
+  <a
+    href="{{ url_for('auth.login') }}"
+    class="btn btn-outline-light btn-sm"
+  >
+    Entrar
+  </a>
+</div>
+
+{% endif %}
         </div>
-        {% endfor %} {% endif %} {% endwith %} {% block content %}{% endblock %}
       </div>
+    </nav>
+
+    <!-- Conteúdo principal -->
+    {% with messages = get_flashed_messages(with_categories=true) %}
+  {% if messages %}
+    <div
+      class="toast-container position-fixed top-0 end-0 p-3"
+      style="z-index:11000; margin-top:75px;"
+    >
+      {% for category, message in messages %}
+        {% if category != 'info' %}
+        <div
+          class="toast flash-toast text-bg-{{ category }} border-0 shadow"
+          role="alert"
+          aria-live="assertive"
+          aria-atomic="true"
+        >
+          <div class="d-flex align-items-center">
+            <div class="toast-body">
+              {{ message }}
+            </div>
+
+            <button
+              type="button"
+              class="btn-close btn-close-white me-2 m-auto"
+              data-bs-dismiss="toast"
+            ></button>
+          </div>
+        </div>
+        {% endif %}
+      {% endfor %}
     </div>
+  {% endif %}
+{% endwith %}
 
+{% block content %}{% endblock %}
+
+    
     <!-- Rodapé -->
-    <footer class="footer text-white text-center py-3">
-  <hr class="mb-2" style="border-top: 1px solid rgba(255, 255, 255, 0.2)" />
-  <div>
-    © 2025 <strong>LogStock</strong> - Sistema Gestão de Materiais<br />
-    <small>Desenvolvido por CCM</small>
-  </div>
-</footer>
-
+    <footer class="footer footer-center-fix">
+        <span>LogiStock | START Tecnologia © 2026 CM</span>
+    </footer>
 
     <!-- Bootstrap JS -->
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
-
-    <!-- Script para fechar alertas flash automaticamente em 3s -->
     <script>
-      setTimeout(() => {
-        const alerts = document.querySelectorAll(".alert");
-        alerts.forEach((alert) => {
-          const bsAlert = bootstrap.Alert.getOrCreateInstance(alert);
-          bsAlert.close();
+    document.addEventListener("DOMContentLoaded", function () {
+      document.querySelectorAll(".flash-toast").forEach(function(toastEl) {
+        const toast = new bootstrap.Toast(toastEl, {
+          delay: 2500,
+          autohide: true
         });
-      }, 3000); // 3 segundos
+
+        toast.show();
+      });
+    });
     </script>
 
     <!-- Script para manter a posição da sidebar entre navegações -->
@@ -603,36 +802,91 @@
     </script>
 
     <!-- Atualização em tempo real do menu 📥 Recebidas -->
-    <script>
-      function atualizarMenuRequisicoes() {
-        fetch("{{ url_for('requisicoes_tecnicos.api_requisicoes_pendentes') }}")
-          .then((response) => response.json())
-          .then((data) => {
-            const count = data.count;
-            const link = document.getElementById("link-recebidas");
+<script>
+function atualizarMenuRequisicoes() {
+  fetch(
+    "{{ url_for('requisicoes_tecnicos.api_requisicoes_pendentes') }}?t=" + new Date().getTime(),
+    {
+      cache: "no-store"
+    }
+  )
+    .then(response => response.json())
+    .then(data => {
+      const count = Number(data.count || 0);
 
-            if (link) {
-              let badge = link.querySelector(".badge");
+      const link = document.getElementById("link-recebidas");
 
-              if (count > 0) {
-                link.classList.add("text-danger", "fw-bold");
-                if (!badge) {
-                  badge = document.createElement("span");
-                  badge.className = "badge bg-danger ms-2";
-                  link.appendChild(badge);
-                }
-                badge.textContent = count;
-              } else {
-                link.classList.remove("text-danger", "fw-bold");
-                if (badge) badge.remove();
-              }
-            }
-          });
+      if (!link) return;
+
+      let badge = link.querySelector(".badge");
+
+      if (count > 0) {
+
+        link.classList.add(
+          "text-danger",
+          "fw-bold"
+        );
+
+        if (!badge) {
+          badge =
+            document.createElement("span");
+
+          badge.className =
+            "badge bg-danger ms-2";
+
+          link.appendChild(badge);
+        }
+
+        badge.textContent = count;
+
+      } else {
+
+        link.classList.remove(
+          "text-danger",
+          "fw-bold"
+        );
+
+        if (badge) {
+          badge.remove();
+        }
       }
+    })
+    .catch(error => {
+      console.error(
+        "Erro ao atualizar contador de recebidas:",
+        error
+      );
+    });
+}
 
-      setInterval(atualizarMenuRequisicoes, 10000); // Atualiza a cada 10s
-      document.addEventListener("DOMContentLoaded", atualizarMenuRequisicoes);
-    </script>
+document.addEventListener(
+  "DOMContentLoaded",
+  function () {
+
+    atualizarMenuRequisicoes();
+
+    setInterval(
+      atualizarMenuRequisicoes,
+      3000
+    );
+
+    window.addEventListener(
+      "focus",
+      atualizarMenuRequisicoes
+    );
+
+    document.addEventListener(
+      "visibilitychange",
+      function () {
+        if (!document.hidden) {
+          atualizarMenuRequisicoes();
+        }
+      }
+    );
+  }
+);
+
+</script>
 
     <script>
       function atualizarContadorBaixas() {
@@ -676,4 +930,5 @@
       });
     });
     </script>
+  </body>
 </html>

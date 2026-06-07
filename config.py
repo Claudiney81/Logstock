@@ -1,6 +1,35 @@
 import os
 
-SECRET_KEY = 'sua-chave-secreta-segura'
+SECRET_KEY = os.getenv("SECRET_KEY", "chave-local-dev")
 
-SQLALCHEMY_DATABASE_URI = 'postgresql://logstock_db_user:nErIcMmMHmkHXTKcJVYYm1MU2TWUIkUq@dpg-d2afshk9c44c738qvek0-a.oregon-postgres.render.com/logstock_db'
+SQLALCHEMY_DATABASE_URI = os.getenv(
+    "DATABASE_URL",
+    "sqlite:///logistock.db"
+)
+
+if SQLALCHEMY_DATABASE_URI.startswith("postgres://"):
+    SQLALCHEMY_DATABASE_URI = SQLALCHEMY_DATABASE_URI.replace(
+        "postgres://",
+        "postgresql://",
+        1
+    )
+
 SQLALCHEMY_TRACK_MODIFICATIONS = False
+
+
+# ==================================================
+# EMAIL
+# ==================================================
+
+MAIL_SERVER = os.getenv("MAIL_SERVER", "smtp.gmail.com")
+MAIL_PORT = int(os.getenv("MAIL_PORT", 587))
+MAIL_USE_TLS = True
+MAIL_USE_SSL = False
+
+MAIL_USERNAME = os.getenv("MAIL_USERNAME")
+MAIL_PASSWORD = os.getenv("MAIL_PASSWORD")
+
+MAIL_DEFAULT_SENDER = (
+    "LogiStock",
+    os.getenv("MAIL_USERNAME", "sistemalogstock@gmail.com")
+)

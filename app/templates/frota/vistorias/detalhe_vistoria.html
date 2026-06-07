@@ -1,0 +1,294 @@
+{% extends 'base.html' %}
+
+{% block content %}
+
+<style>
+  .page-header{
+    background:linear-gradient(135deg,#002b55,#063b70);
+    color:#fff;
+    border-radius:14px;
+    padding:22px 26px;
+    margin-bottom:22px;
+    box-shadow:0 6px 18px rgba(0,43,85,.18);
+  }
+
+  .card-custom{
+    border:0;
+    border-radius:14px;
+    box-shadow:0 6px 18px rgba(15,39,66,.08);
+    overflow:hidden;
+  }
+
+  .card-custom .card-header{
+    background:#002b55;
+    color:#fff;
+    padding:14px 18px;
+  }
+
+  .section-title{
+    color:#002b55;
+    font-weight:700;
+    margin-bottom:14px;
+    display:flex;
+    align-items:center;
+    gap:8px;
+  }
+
+  .info-label{
+    font-size:.82rem;
+    font-weight:700;
+    color:#374151;
+    margin-bottom:5px;
+  }
+
+  .form-control[readonly],
+  textarea[readonly]{
+    background:#f8fafc;
+    border-color:#dbe3ee;
+    font-size:.9rem;
+  }
+
+  .table-vistoria th{
+    background:#002b55;
+    color:#fff;
+    font-size:.86rem;
+    white-space:nowrap;
+    vertical-align:middle;
+  }
+
+  .table-vistoria td{
+    font-size:.88rem;
+    vertical-align:middle;
+  }
+
+  .badge-status{
+    min-width:95px;
+    padding:7px 10px;
+    border-radius:8px;
+    font-weight:700;
+    font-size:.75rem;
+  }
+
+  .foto-card{
+    border:0;
+    border-radius:12px;
+    overflow:hidden;
+    box-shadow:0 4px 12px rgba(15,39,66,.10);
+  }
+
+  .foto-card img{
+    height:180px;
+    object-fit:cover;
+  }
+
+  .empty-text{
+    color:#6b7280;
+    font-size:.9rem;
+  }
+</style>
+
+<div class="container-fluid mt-4">
+
+  <div class="page-header d-flex justify-content-between align-items-center flex-wrap gap-3">
+    <div>
+      <h4 class="mb-1 fw-bold">
+        <i class="bi bi-clipboard-check me-2"></i>
+        Detalhes da Vistoria
+      </h4>
+      <small class="opacity-75">
+        Consulta completa da vistoria registrada para o veículo.
+      </small>
+    </div>
+
+    <a
+      href="{{ url_for('frota_vistoria.pdf_detalhe_vistoria', vistoria_id=vistoria.id) }}"
+      class="btn btn-danger btn-sm"
+      target="_blank"
+    >
+      <i class="bi bi-file-earmark-pdf me-1"></i>
+      Exportar PDF
+    </a>
+  </div>
+
+  <div class="card card-custom mb-4">
+    <div class="card-header">
+      <h5 class="mb-0">
+        <i class="bi bi-info-circle me-2"></i>
+        Informações da Vistoria
+      </h5>
+    </div>
+
+    <div class="card-body">
+
+      <div class="section-title">
+        <i class="bi bi-car-front"></i>
+        Dados principais
+      </div>
+
+      <div class="row g-3 mb-4">
+
+        <div class="col-md-4">
+          <label class="info-label">Tipo</label>
+          <input
+            class="form-control"
+            readonly
+            value="{{ vistoria.tipo_vistoria or '-' }}"
+          >
+        </div>
+
+        <div class="col-md-4">
+          <label class="info-label">Veículo</label>
+          <input
+            class="form-control"
+            readonly
+            value="{{ vistoria.veiculo.placa if vistoria.veiculo else '-' }}"
+          >
+        </div>
+
+        <div class="col-md-4">
+          <label class="info-label">Técnico</label>
+          <input
+            class="form-control"
+            readonly
+            value="{{ vistoria.tecnico.nome if vistoria.tecnico else '-' }}"
+          >
+        </div>
+
+        <div class="col-md-4">
+          <label class="info-label">KM Atual</label>
+          <input
+            class="form-control"
+            readonly
+            value="{{ vistoria.km_atual or '-' }}"
+          >
+        </div>
+
+        <div class="col-md-4">
+          <label class="info-label">Combustível</label>
+          <input
+            class="form-control"
+            readonly
+            value="{{ vistoria.combustivel or '-' }}"
+          >
+        </div>
+
+        <div class="col-md-4">
+          <label class="info-label">Data</label>
+          <input
+            class="form-control"
+            readonly
+            value="{{ vistoria.data_hora.strftime('%d/%m/%Y %H:%M') if vistoria.data_hora else '-' }}"
+          >
+        </div>
+
+        <div class="col-md-6">
+          <label class="info-label">Local</label>
+          <input
+            class="form-control"
+            readonly
+            value="{{ vistoria.local_vistoria or '-' }}"
+          >
+        </div>
+
+        <div class="col-md-6">
+          <label class="info-label">Responsável</label>
+          <input
+            class="form-control"
+            readonly
+            value="{{ vistoria.responsavel or '-' }}"
+          >
+        </div>
+
+        <div class="col-md-12">
+          <label class="info-label">Observações</label>
+          <textarea
+            class="form-control"
+            rows="3"
+            readonly
+          >{{ vistoria.observacao_geral or '-' }}</textarea>
+        </div>
+
+      </div>
+
+      <hr>
+
+      <div class="section-title">
+        <i class="bi bi-list-check"></i>
+        Checklist
+      </div>
+
+      <div class="table-responsive">
+        <table class="table table-bordered table-hover align-middle table-vistoria">
+          <thead>
+            <tr>
+              <th>Item</th>
+              <th class="text-center">Status</th>
+              <th>Observação</th>
+            </tr>
+          </thead>
+
+          <tbody>
+            {% for item in vistoria.itens %}
+            <tr>
+              <td>{{ item.item }}</td>
+
+              <td class="text-center">
+                {% if item.status == 'conforme' %}
+                  <span class="badge bg-success badge-status">Conforme</span>
+                {% elif item.status == 'avaria' %}
+                  <span class="badge bg-danger badge-status">Avaria</span>
+                {% else %}
+                  <span class="badge bg-secondary badge-status">{{ item.status }}</span>
+                {% endif %}
+              </td>
+
+              <td>
+                {{ item.observacao or '-' }}
+              </td>
+            </tr>
+            {% else %}
+            <tr>
+              <td colspan="3" class="text-center empty-text py-4">
+                Nenhum item de checklist registrado.
+              </td>
+            </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+
+      {% if vistoria.fotos %}
+      <hr>
+
+      <div class="section-title">
+        <i class="bi bi-images"></i>
+        Fotos da Vistoria
+      </div>
+
+      <div class="row">
+        {% for foto in vistoria.fotos %}
+        <div class="col-md-3 mb-4">
+          <div class="card foto-card h-100">
+            <img
+              src="{{ url_for('static', filename=foto.caminho_arquivo) }}"
+              class="card-img-top"
+              alt="Foto da vistoria"
+            >
+
+            <div class="card-body p-2">
+              <div class="small text-muted">
+                {{ foto.descricao or '-' }}
+              </div>
+            </div>
+          </div>
+        </div>
+        {% endfor %}
+      </div>
+      {% endif %}
+
+    </div>
+  </div>
+
+</div>
+
+{% endblock %}

@@ -34,7 +34,7 @@
         <p><strong>Bairro:</strong> {{ baixa.bairro }}</p>
         <p><strong>Código do Imóvel:</strong> {{ baixa.codigo_imovel }}</p>
         <p>
-          <strong>Data:</strong> {{ baixa.data.strftime('%d/%m/%Y %H:%M') }}
+          {{ baixa.data_hora.strftime('%d/%m/%Y %H:%M') if baixa.data_hora else '-' }}
         </p>
         <p><strong>Observações:</strong> {{ baixa.observacao or '---' }}</p>
       </div>

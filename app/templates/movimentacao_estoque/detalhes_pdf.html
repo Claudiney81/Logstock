@@ -1,0 +1,343 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+  <meta charset="UTF-8">
+  <title>Comprovante de Movimentação</title>
+
+  <style>
+    @page {
+      size: A4;
+      margin: 20mm 18mm;
+    }
+
+    body {
+      font-family: Arial, sans-serif;
+      font-size: 11px;
+      color: #111;
+    }
+
+    .container {
+      width: 100%;
+      max-width: 760px;
+      margin: 0 auto;
+    }
+
+    .topo {
+      display: table;
+      width: 100%;
+      margin-bottom: 10px;
+    }
+
+    .logo {
+      display: table-cell;
+      width: 120px;
+      vertical-align: middle;
+    }
+
+    .logo img {
+      max-width: 90px;
+      max-height: 65px;
+    }
+
+    .titulo {
+      display: table-cell;
+      text-align: right;
+      vertical-align: middle;
+    }
+
+    .titulo h1 {
+      margin: 0;
+      color: #002b55;
+      font-size: 24px;
+      font-weight: bold;
+    }
+
+    .titulo p {
+      margin: 2px 0 0 0;
+      font-size: 12px;
+      color: #111;
+    }
+
+    .linha {
+      border-top: 3px solid #002b55;
+      margin-bottom: 18px;
+    }
+
+    .secao {
+      background: #002b55;
+      color: #fff;
+      font-weight: bold;
+      padding: 9px 12px;
+      font-size: 13px;
+      margin-top: 18px;
+    }
+
+    table {
+      width: 100%;
+      border-collapse: collapse;
+    }
+
+    .dados td {
+      border: 1px solid #cfcfcf;
+      padding: 9px;
+      vertical-align: middle;
+    }
+
+    .label {
+      font-weight: bold;
+      width: 17%;
+    }
+
+    .valor {
+      width: 33%;
+    }
+
+    .itens th {
+      background: #002b55;
+      color: white;
+      border: 1px solid #cfcfcf;
+      padding: 7px;
+      font-size: 10px;
+      text-align: center;
+    }
+
+    .itens td {
+      border: 1px solid #cfcfcf;
+      padding: 7px;
+      font-size: 10px;
+    }
+
+    .center {
+      text-align: center;
+    }
+
+    .right {
+      text-align: right;
+    }
+
+    .total-box {
+      margin-top: 18px;
+      width: 100%;
+      border-collapse: collapse;
+    }
+
+    .total-label {
+      text-align: right;
+      font-weight: bold;
+      font-size: 14px;
+      padding: 12px;
+      border: 1px solid #cfcfcf;
+    }
+
+    .total-value {
+      width: 190px;
+      background: #002b55;
+      color: white;
+      font-weight: bold;
+      text-align: center;
+      font-size: 17px;
+      padding: 12px;
+      border: 1px solid #002b55;
+    }
+
+    .assinatura-titulo {
+      background: #002b55;
+      color: white;
+      font-weight: bold;
+      padding: 9px 12px;
+      font-size: 13px;
+      margin-top: 22px;
+    }
+
+    .assinatura-box {
+      margin-top: 30px;
+      text-align: center;
+    }
+
+    .assinatura-box img {
+      max-height: 80px;
+      max-width: 250px;
+      margin-bottom: 10px;
+    }
+
+    .linha-assinatura {
+      border-top: 1px solid #111;
+      width: 100%;
+      margin-top: 10px;
+    }
+
+    .nome-assinatura {
+      font-weight: bold;
+      font-size: 12px;
+      margin-top: 8px;
+    }
+
+    .texto-assinatura {
+      font-size: 11px;
+      margin-top: 2px;
+    }
+
+    .rodape {
+      margin-top: 24px;
+      text-align: center;
+      font-size: 9px;
+      color: #6b7280;
+    }
+  </style>
+</head>
+
+<body>
+
+<div class="container">
+
+  <div class="topo">
+    <div class="logo">
+      <img src="{{ url_for('static', filename='img/logo.png', _external=True) }}">
+    </div>
+
+    <div class="titulo">
+      <h1>Comprovante de Movimentação</h1>
+      <p>Movimentação Nº {{ movimentacao.id }}</p>
+    </div>
+  </div>
+
+  <div class="linha"></div>
+
+  <div class="secao">DADOS DA MOVIMENTAÇÃO</div>
+
+  <table class="dados">
+    <tr>
+      <td class="label">Técnico:</td>
+      <td class="valor">
+        {% if movimentacao.destino_tipo == 'tecnico' %}
+          {{ tecnicos_dict.get(movimentacao.destino_id|int, '-') }}
+        {% elif movimentacao.origem_tipo == 'tecnico' %}
+          {{ tecnicos_dict.get(movimentacao.origem_id|int, '-') }}
+        {% else %}
+          -
+        {% endif %}
+      </td>
+
+      <td class="label">Data/Hora:</td>
+      <td class="valor">
+        {{ movimentacao.data_hora.strftime('%d/%m/%Y %H:%M') if movimentacao.data_hora else '-' }}
+      </td>
+    </tr>
+
+    <tr>
+      <td class="label">Origem:</td>
+      <td>
+        {% if movimentacao.origem_tipo == 'empresa' %}
+          Empresa
+        {% elif movimentacao.origem_tipo == 'cliente' %}
+          Cliente
+        {% elif movimentacao.origem_tipo == 'tecnico' %}
+          Técnico
+        {% else %}
+          -
+        {% endif %}
+      </td>
+
+      <td class="label">Destino:</td>
+      <td>
+        {% if movimentacao.destino_tipo == 'empresa' %}
+          Empresa
+        {% elif movimentacao.destino_tipo == 'tecnico' %}
+          Técnico
+        {% else %}
+          -
+        {% endif %}
+      </td>
+    </tr>
+
+    <tr>
+      <td class="label">Tipo Serviço:</td>
+      <td>
+        {{ movimentacao.tipo_servico.nome if movimentacao.tipo_servico else '-' }}
+      </td>
+
+      <td class="label">Observação:</td>
+      <td>
+        {{ movimentacao.observacao or '-' }}
+      </td>
+    </tr>
+  </table>
+
+  {% set total_geral = namespace(valor=0) %}
+
+  <table class="itens" style="margin-top: 22px;">
+    <thead>
+      <tr>
+        <th style="width: 12%;">Código</th>
+        <th>Descrição</th>
+        <th style="width: 7%;">Un.</th>
+        <th style="width: 7%;">Qtd.</th>
+        <th style="width: 15%;">Valor Unit.</th>
+        <th style="width: 15%;">Valor Total</th>
+      </tr>
+    </thead>
+
+    <tbody>
+      {% for i in itens %}
+        {% set subtotal = (i.quantidade or 0) * (i.valor_unitario or 0) %}
+        {% set total_geral.valor = total_geral.valor + subtotal %}
+
+        <tr>
+          <td class="center">{{ i.item.codigo if i.item else '-' }}</td>
+          <td>{{ i.item.descricao if i.item else '-' }}</td>
+          <td class="center">{{ i.item.unidade if i.item else '-' }}</td>
+          <td class="center">{{ i.quantidade }}</td>
+          <td class="right">R$ {{ "%.2f"|format(i.valor_unitario or 0) }}</td>
+          <td class="right">R$ {{ "%.2f"|format(subtotal) }}</td>
+        </tr>
+      {% else %}
+        <tr>
+          <td colspan="6" class="center">Nenhum item encontrado.</td>
+        </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+
+  <table class="total-box">
+    <tr>
+      <td class="total-label">TOTAL GERAL:</td>
+      <td class="total-value">
+        R$ {{ "%.2f"|format(total_geral.valor) }}
+      </td>
+    </tr>
+  </table>
+
+  <div class="assinatura-titulo">
+    ASSINATURA DO TÉCNICO
+  </div>
+
+  <div class="assinatura-box">
+    {% if movimentacao.assinatura %}
+      <img src="{{ movimentacao.assinatura }}">
+    {% endif %}
+
+    <div class="linha-assinatura"></div>
+
+    <div class="nome-assinatura">
+      {% if movimentacao.destino_tipo == 'tecnico' %}
+        {{ tecnicos_dict.get(movimentacao.destino_id|int, '-') }}
+      {% elif movimentacao.origem_tipo == 'tecnico' %}
+        {{ tecnicos_dict.get(movimentacao.origem_id|int, '-') }}
+      {% else %}
+        Técnico
+      {% endif %}
+    </div>
+
+    <div class="texto-assinatura">
+      Assinatura de recebimento
+    </div>
+  </div>
+
+  <div class="rodape">
+    Documento gerado automaticamente pelo LogiStock.
+  </div>
+
+</div>
+
+</body>
+</html>

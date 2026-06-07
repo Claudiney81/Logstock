@@ -1,47 +1,91 @@
-{% extends 'base.html' %} {% block content %}
+{% extends 'base.html' %}
+
+{% block content %}
 <div class="container mt-4">
-  <h3 class="mb-4">📋 Aceite de Baixa Técnica</h3>
+
+  <h3 class="mb-4">
+    📋 Aceite de Baixa Técnica
+  </h3>
 
   {% for baixa in baixas %}
   <div class="card mb-4 shadow-sm">
+
     <div class="card-header bg-primary text-white">
-      <strong>Técnico:</strong> {{ baixa.tecnico.nome }} |
-      <strong>Tipo de Serviço:</strong> {{ baixa.tipo_servico.nome if
-      baixa.tipo_servico else '-' }} | <strong>Data:</strong> {{
-      baixa.data_hora.strftime('%d/%m/%Y %H:%M') }}
+      <strong>Técnico:</strong>
+      {{ baixa.tecnico.nome if baixa.tecnico else '-' }}
+
+      |
+
+      <strong>Tipo de Serviço:</strong>
+      {{ baixa.tipo_servico.nome if baixa.tipo_servico else '-' }}
+
+      |
+
+      <strong>Data:</strong>
+      {{ baixa.data_hora.strftime('%d/%m/%Y %H:%M') if baixa.data_hora else '-' }}
     </div>
+
     <div class="card-body">
-      <p><strong>Endereço:</strong> {{ baixa.local_servico or '-' }}</p>
-      <p><strong>Bairro:</strong> {{ baixa.bairro or '-' }}</p>
-      <p><strong>Código do Imóvel:</strong> {{ baixa.codigo_imovel or '-' }}</p>
-      <p><strong>Responsável:</strong> {{ baixa.responsavel or '-' }}</p>
-      <p><strong>Observações:</strong> {{ baixa.observacao or '-' }}</p>
+
+      <p>
+        <strong>Endereço:</strong>
+        {{ baixa.local_servico or baixa.endereco or '-' }}
+      </p>
+
+      <p>
+        <strong>Responsável:</strong>
+        {{ baixa.responsavel or '-' }}
+      </p>
+
+      <p>
+        <strong>Observações:</strong>
+        {{ baixa.observacao or '-' }}
+      </p>
 
       <div class="table-responsive mt-3">
-        <table class="table table-bordered table-sm">
-          <thead class="table-light">
+        <table class="table table-bordered table-sm align-middle">
+
+          <thead class="table-light text-center">
             <tr>
-              <th>Código</th>
+              <th style="width: 120px">Código</th>
               <th>Descrição</th>
-              <th>Quantidade</th>
-              <th>Valor Unitário</th>
+              <th style="width: 120px">Quantidade</th>
+              <th style="width: 140px">Valor Unitário</th>
             </tr>
           </thead>
+
           <tbody>
             {% for item in baixa.itens %}
             <tr>
-              <td>{{ item.item.codigo }}</td>
-              <td>{{ item.item.descricao }}</td>
-              <td>{{ item.quantidade }}</td>
-              <td>R$ {{ '%.2f' | format(item.valor_unitario or 0) }}</td>
+              <td class="text-center">
+                {{ item.item.codigo if item.item else '' }}
+              </td>
+
+              <td>
+                {{ item.item.descricao if item.item else '' }}
+              </td>
+
+              <td class="text-center">
+                {{ item.quantidade }}
+              </td>
+
+              <td class="text-end">
+                R$ {{ '%.2f' | format(item.valor_unitario or 0) }}
+              </td>
             </tr>
             {% endfor %}
           </tbody>
+
         </table>
       </div>
 
-      <form method="POST" class="mt-3 d-flex justify-content-end gap-2">
-        <input type="hidden" name="baixa_id" value="{{ baixa.id }}" />
+      <form
+        method="POST"
+        class="mt-3 d-flex justify-content-end gap-2"
+        onsubmit="return confirmaAcao(event)"
+      >
+        <input type="hidden" name="baixa_id" value="{{ baixa.id }}">
+
         <button
           type="submit"
           name="acao"
@@ -50,21 +94,111 @@
         >
           ✅ Aprovar
         </button>
+
         <button
-          type="submit"
-          name="acao"
-          value="recusar"
+          type="button"
           class="btn btn-danger"
+          data-bs-toggle="modal"
+          data-bs-target="#modalRecusa-{{ baixa.id }}"
         >
           ❌ Recusar
         </button>
       </form>
+
     </div>
   </div>
+
+  <div
+    class="modal fade"
+    id="modalRecusa-{{ baixa.id }}"
+    tabindex="-1"
+    aria-hidden="true"
+  >
+    <div class="modal-dialog">
+
+      <form method="POST" class="modal-content">
+
+        <div class="modal-header">
+          <h5 class="modal-title">
+            Motivo da Recusa — Baixa #{{ baixa.id }}
+          </h5>
+
+          <button
+            type="button"
+            class="btn-close"
+            data-bs-dismiss="modal"
+            aria-label="Fechar"
+          ></button>
+        </div>
+
+        <div class="modal-body">
+
+          <input type="hidden" name="baixa_id" value="{{ baixa.id }}">
+
+          <div class="mb-2">
+            <label class="form-label">
+              Informe o motivo
+            </label>
+
+            <textarea
+              class="form-control"
+              name="motivo"
+              rows="3"
+              required
+            ></textarea>
+          </div>
+
+        </div>
+
+        <div class="modal-footer">
+
+          <button
+            type="button"
+            class="btn btn-outline-secondary"
+            data-bs-dismiss="modal"
+          >
+            Cancelar
+          </button>
+
+          <button
+            type="submit"
+            name="acao"
+            value="recusar"
+            class="btn btn-danger"
+          >
+            Confirmar Recusa
+          </button>
+
+        </div>
+
+      </form>
+
+    </div>
+  </div>
+
   {% else %}
   <div class="alert alert-info">
     Nenhuma baixa técnica pendente de aprovação.
   </div>
   {% endfor %}
+
 </div>
+
+<script>
+function confirmaAcao(e) {
+  const btn = e.submitter;
+
+  if (!btn) {
+    return true;
+  }
+
+  if (btn.value === "aprovar") {
+    return confirm(
+      "Aprovar esta baixa e debitar os itens do saldo do técnico?"
+    );
+  }
+
+  return true;
+}
+</script>
 {% endblock %}

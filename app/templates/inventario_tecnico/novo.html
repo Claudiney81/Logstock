@@ -1,68 +1,242 @@
 {% extends 'base.html' %}
+
 {% block content %}
-<div class="container mt-4">
-  <h2>Registrar Inventário Técnico</h2>
+<div class="container-fluid mt-4">
 
-  <form method="POST">
-    <div class="row mb-3">
-      <div class="col-md-5">
-        <label class="form-label">Técnico</label>
-        <select name="tecnico_id" class="form-select" required onchange="this.form.submit()">
-          <option value="">Selecione</option>
-          {% for t in tecnicos %}
-          <option value="{{ t.id }}" {% if tecnico_id == t.id %}selected{% endif %}>{{ t.nome }}</option>
-          {% endfor %}
-        </select>
-      </div>
-      <div class="col-md-5">
-        <label class="form-label">Tipo de Serviço</label>
-        <select name="tipo_servico_id" class="form-select" required onchange="this.form.submit()">
-          <option value="">Selecione</option>
-          {% for ts in tipos_servico %}
-          <option value="{{ ts.id }}" {% if tipo_servico_id == ts.id %}selected{% endif %}>{{ ts.nome }}</option>
-          {% endfor %}
-        </select>
-      </div>
-      <div class="col-md-2">
-        <label class="form-label">Responsável</label>
-        <input type="text" name="responsavel" class="form-control" value="{{ responsavel or '' }}">
-      </div>
+  <div class="card shadow-sm border-0">
+
+    <div class="card-header text-white" style="background-color: #002b55;">
+      <h5 class="mb-0 fw-semibold">
+        <i class="bi bi-person-check-fill me-2"></i>
+        Inventário Técnico
+      </h5>
     </div>
 
-    {% if saldo_tecnico %}
-    <hr>
-    <h5>Itens no Saldo Técnico</h5>
-    <table class="table table-sm table-bordered mt-2">
-      <thead class="table-light">
-        <tr>
-          <th>Código</th>
-          <th>Descrição</th>
-          <th>Unidade</th>
-          <th>Saldo Atual</th>
-          <th>Qtd Contada</th>
-        </tr>
-      </thead>
-      <tbody>
-        {% for s in saldo_tecnico %}
-        <tr>
-          <td>
-            {{ s.item.codigo }}
-            <input type="hidden" name="codigo[]" value="{{ s.item.codigo }}">
-          </td>
-          <td>{{ s.item.descricao }}</td>
-          <td>{{ s.item.unidade }}</td>
-          <td>{{ s.quantidade }}</td>
-          <td><input type="number" name="quantidade_contada[]" class="form-control"></td>
-        </tr>
-        {% endfor %}
-      </tbody>
-    </table>
-    <div class="text-end">
-      <button type="submit" class="btn btn-primary mt-3">Registrar Inventário</button>
+    <div class="card-body">
+
+      <!-- FILTROS -->
+      <form method="GET" class="mb-3">
+        <div class="row g-3 align-items-end">
+
+          <div class="col-md-3">
+            <label class="form-label fw-bold">Técnico</label>
+            <select name="tecnico_id" class="form-select shadow-sm" onchange="this.form.submit()" required>
+              <option value="">Selecione</option>
+              {% for t in tecnicos %}
+              <option value="{{ t.id }}" {% if tecnico_id == t.id %}selected{% endif %}>
+                {{ t.nome }}
+              </option>
+              {% endfor %}
+            </select>
+          </div>
+
+          <div class="col-md-3">
+            <label class="form-label fw-bold">Categoria</label>
+            <select name="categoria" class="form-select shadow-sm" onchange="this.form.submit()" required>
+              <option value="MATERIAL" {% if categoria == 'MATERIAL' %}selected{% endif %}>MATERIAL</option>
+              <option value="FERRAMENTA" {% if categoria == 'FERRAMENTA' %}selected{% endif %}>FERRAMENTA</option>
+              <option value="EPI" {% if categoria == 'EPI' %}selected{% endif %}>EPI</option>
+            </select>
+          </div>
+
+          <div class="col-md-3">
+            <label class="form-label fw-bold">Tipo de Estoque</label>
+            <select name="tipo_estoque" class="form-select shadow-sm" onchange="this.form.submit()" required>
+              <option value="">Selecione</option>
+              <option value="empresa" {% if tipo_estoque == 'empresa' %}selected{% endif %}>Estoque Empresa</option>
+              <option value="cliente" {% if tipo_estoque == 'cliente' %}selected{% endif %}>Estoque Cliente</option>
+            </select>
+          </div>
+
+          {% if tipo_estoque == 'cliente' %}
+          <div class="col-md-3">
+            <label class="form-label fw-bold">Cliente O.S</label>
+            <select name="cliente_id" class="form-select shadow-sm" onchange="this.form.submit()" required>
+              <option value="">Selecione</option>
+              {% for cliente in clientes %}
+              <option value="{{ cliente.id }}" {% if cliente_id == cliente.id %}selected{% endif %}>
+                {{ cliente.razao_social }}
+              </option>
+              {% endfor %}
+            </select>
+          </div>
+          {% endif %}
+
+          {% if categoria == 'MATERIAL' %}
+          <div class="col-md-3">
+            <label class="form-label fw-bold">Tipo de Serviço</label>
+            <select name="tipo_servico_id" class="form-select shadow-sm" onchange="this.form.submit()">
+              <option value="">Todos</option>
+              {% for ts in tipos_servico %}
+              <option value="{{ ts.id }}" {% if tipo_servico_id == ts.id %}selected{% endif %}>
+                {{ ts.nome }}
+              </option>
+              {% endfor %}
+            </select>
+          </div>
+          {% endif %}
+
+        </div>
+      </form>
+
+      {% if saldo_tecnico %}
+
+      <div class="alert alert-info py-2 mb-3">
+        <strong>Orientação:</strong>
+        primeiro imprima o formulário de contagem. Após conferir no carro do técnico,
+        preencha as quantidades abaixo e registre o inventário.
+      </div>
+
+      <form method="POST">
+
+        <input type="hidden" name="acao" value="registrar">
+        <input type="hidden" name="tecnico_id" value="{{ tecnico_id }}">
+        <input type="hidden" name="categoria" value="{{ categoria }}">
+        <input type="hidden" name="tipo_estoque" value="{{ tipo_estoque }}">
+        <input type="hidden" name="tipo_servico_id" value="{{ tipo_servico_id or '' }}">
+        <input type="hidden" name="cliente_id" value="{{ cliente_id or '' }}">
+
+        <div class="card border-0 shadow-sm mb-3">
+          <div class="card-body py-3">
+
+            <div class="row g-3 align-items-end">
+
+              <div class="col-md-4">
+                <label class="form-label fw-bold mb-1">
+                  Responsável pela Conferência
+                </label>
+                <input
+                  type="text"
+                  name="responsavel"
+                  class="form-control shadow-sm"
+                  value="{{ responsavel or '' }}"
+                  placeholder="Nome do responsável"
+                  required
+                >
+              </div>
+
+              <div class="col-md-3">
+                <label class="form-label fw-bold mb-1">
+                  Itens encontrados
+                </label><br>
+                <span class="badge bg-primary fs-6 px-3 py-2">
+                  {{ saldo_tecnico|length }} itens
+                </span>
+              </div>
+
+              <div class="col-md-5 text-end">
+                <a
+                  href="{{ url_for(
+                    'inventario_tecnico.formulario_contagem',
+                    tecnico_id=tecnico_id,
+                    categoria=categoria,
+                    tipo_estoque=tipo_estoque,
+                    tipo_servico_id=tipo_servico_id or '',
+                    cliente_id=cliente_id or ''
+                  ) }}"
+                  target="_blank"
+                  class="btn btn-outline-primary shadow-sm"
+                >
+                  <i class="bi bi-printer me-1"></i>
+                  Imprimir Formulário de Contagem
+                </a>
+              </div>
+
+            </div>
+
+          </div>
+        </div>
+
+        {% if categoria == 'FERRAMENTA' %}
+        <div class="alert alert-secondary fw-bold text-center py-2">
+          INVENTÁRIO DE FERRAMENTAS DO TÉCNICO
+        </div>
+        {% elif categoria == 'EPI' %}
+        <div class="alert alert-info fw-bold text-center py-2">
+          INVENTÁRIO DE EPIs DO TÉCNICO
+        </div>
+        {% elif tipo_estoque == 'empresa' %}
+        <div class="alert alert-primary fw-bold text-center py-2">
+          INVENTÁRIO ESTOQUE EMPRESA
+          {% if categoria == 'MATERIAL' and not tipo_servico_id %}
+            — ESTOQUE GERAL
+          {% endif %}
+        </div>
+        {% elif tipo_estoque == 'cliente' %}
+        <div class="alert alert-warning fw-bold text-center py-2">
+          INVENTÁRIO ESTOQUE CLIENTE
+        </div>
+        {% endif %}
+
+        <div class="table-responsive shadow-sm rounded">
+          <table class="table table-bordered table-hover align-middle mb-0">
+
+           <thead class="table-light text-center">
+            <tr>
+              <th style="width: 110px;">Código</th>
+              <th>Descrição</th>
+              <th style="width: 110px;">Unidade</th>
+              <th style="width: 120px;">Saldo Atual</th>
+              <th style="width: 180px;">Qtd Contada</th>
+            </tr>
+          </thead>
+
+            <tbody>
+              {% for s in saldo_tecnico %}
+              <tr>
+                <td class="text-center fw-semibold">
+                  {{ s.codigo }}
+                  <input type="hidden" name="codigo[]" value="{{ s.codigo }}">
+                </td>
+
+                <td>{{ s.descricao }}</td>
+
+              
+                <td class="text-center">
+                  {{ s.unidade }}
+                </td>
+
+                <td class="text-center fw-bold">
+                  <span class="badge bg-success fs-6 px-3">
+                    {{ s.quantidade }}
+                  </span>
+                </td>
+
+                <td>
+                  <input
+                    type="number"
+                    name="quantidade_contada[]"
+                    class="form-control shadow-sm text-center"
+                    min="0"
+                    placeholder="Digite"
+                    required
+                  >
+                </td>
+              </tr>
+              {% endfor %}
+            </tbody>
+
+          </table>
+        </div>
+
+        <div class="text-end mt-4">
+          <button type="submit" class="btn btn-success shadow-sm px-4">
+            ✅ Registrar Inventário
+          </button>
+        </div>
+
+      </form>
+
+      {% elif tecnico_id and tipo_estoque %}
+
+      <div class="alert alert-warning mt-4">
+        Nenhum saldo encontrado para os filtros selecionados.
+      </div>
+
+      {% endif %}
+
     </div>
-    {% elif tecnico_id and tipo_servico_id %}
-      <div class="alert alert-warning mt-3">Este técnico não possui saldo registrado para este tipo de serviço.</div>
-    {% endif %}
-  </form>
+  </div>
+
 </div>
 {% endblock %}

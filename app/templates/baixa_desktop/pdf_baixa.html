@@ -1,0 +1,306 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+  <meta charset="UTF-8">
+  <title>Relatório de Material Aplicado</title>
+
+  <style>
+    @page {
+      size: A4;
+      margin: 18mm 14mm 16mm 14mm;
+    }
+
+    body {
+      font-family: Arial, Helvetica, sans-serif;
+      color: #1f2937;
+      font-size: 12px;
+      margin: 0;
+    }
+
+    .topo {
+      display: table;
+      width: 100%;
+      border-bottom: 3px solid #002b55;
+      padding-bottom: 14px;
+      margin-bottom: 22px;
+    }
+
+    .logo-box {
+      display: table-cell;
+      width: 35%;
+      vertical-align: middle;
+    }
+
+    .logo {
+      height: 58px;
+      object-fit: contain;
+    }
+
+    .titulo-box {
+      display: table-cell;
+      width: 65%;
+      text-align: right;
+      vertical-align: middle;
+    }
+
+    .titulo {
+      font-size: 24px;
+      font-weight: 800;
+      color: #002b55;
+      margin: 0 0 8px 0;
+      text-transform: uppercase;
+    }
+
+    .subinfo {
+      font-size: 12px;
+      color: #374151;
+      line-height: 1.5;
+    }
+
+    .card {
+      border: 1px solid #d1d5db;
+      border-radius: 6px;
+      margin-bottom: 18px;
+      overflow: hidden;
+    }
+
+    .card-title {
+      background: #002b55;
+      color: #fff;
+      padding: 9px 12px;
+      font-size: 13px;
+      font-weight: bold;
+      text-transform: uppercase;
+    }
+
+    .dados {
+      width: 100%;
+      border-collapse: collapse;
+    }
+
+    .dados td {
+      padding: 9px 12px;
+      border-bottom: 1px solid #e5e7eb;
+      vertical-align: top;
+    }
+
+    .dados tr:last-child td {
+      border-bottom: none;
+    }
+
+    .label {
+      width: 18%;
+      font-weight: bold;
+      color: #002b55;
+      white-space: nowrap;
+    }
+
+    .valor {
+      width: 32%;
+      color: #111827;
+    }
+
+    .tabela {
+      width: 100%;
+      border-collapse: collapse;
+      margin-top: 8px;
+    }
+
+    .tabela th {
+      background: #002b55;
+      color: #fff;
+      padding: 8px 6px;
+      font-size: 11px;
+      text-align: center;
+      border: 1px solid #002b55;
+      text-transform: uppercase;
+    }
+
+    .tabela td {
+      padding: 7px 6px;
+      border: 1px solid #d1d5db;
+      font-size: 11px;
+    }
+
+    .center {
+      text-align: center;
+    }
+
+    .right {
+      text-align: right;
+    }
+
+    .descricao {
+      text-align: left;
+    }
+
+    .total-box {
+      margin-top: 22px;
+      width: 100%;
+      border-collapse: collapse;
+    }
+
+    .total-label {
+      text-align: right;
+      font-size: 16px;
+      font-weight: bold;
+      color: #002b55;
+      padding-right: 16px;
+    }
+
+    .total-valor {
+      width: 210px;
+      background: #002b55;
+      color: #fff;
+      text-align: center;
+      padding: 14px;
+      font-size: 20px;
+      font-weight: bold;
+      border-radius: 6px;
+    }
+
+    .observacao {
+      min-height: 28px;
+      line-height: 1.5;
+    }
+  </style>
+</head>
+
+<body>
+
+  {% set total = namespace(valor=0.0) %}
+
+  <div class="topo">
+    <div class="logo-box">
+      <img src="{{ url_for('static', filename='img/start_logo.png') }}" class="logo">
+    </div>
+
+    <div class="titulo-box">
+      <h1 class="titulo">Relatório de Material Aplicado</h1>
+      <div class="subinfo">
+        <strong>Nº da Baixa:</strong> BAI-{{ "%04d"|format(baixa.id) }}<br>
+        <strong>Data/Hora:</strong>
+        {{ baixa.data_hora.strftime('%d/%m/%Y %H:%M') if baixa.data_hora else '-' }}
+      </div>
+    </div>
+  </div>
+
+  <div class="card">
+    <div class="card-title">Dados da Aplicação</div>
+
+    <table class="dados">
+      <tr>
+        <td class="label">Técnico:</td>
+        <td class="valor">{{ baixa.tecnico.nome if baixa.tecnico else '-' }}</td>
+
+        <td class="label">Responsável:</td>
+        <td class="valor">{{ baixa.responsavel or '-' }}</td>
+      </tr>
+
+      <tr>
+        <td class="label">Cliente:</td>
+        <td class="valor">
+          {{ baixa.cliente.razao_social if baixa.cliente else '-' }}
+        </td>
+
+        <td class="label">O.S:</td>
+        <td class="valor">
+          {{ baixa.cliente.numero_os if baixa.cliente and baixa.cliente.numero_os else '-' }}
+        </td>
+      </tr>
+
+      <tr>
+        <td class="label">Tipo de Estoque:</td>
+        <td class="valor">
+          {% set tipos = baixa.itens | map(attribute='tipo_estoque') | list %}
+
+          {% if 'empresa' in tipos and 'cliente' in tipos %}
+            Empresa / Cliente
+          {% elif 'empresa' in tipos %}
+            Empresa
+          {% elif 'cliente' in tipos %}
+            Cliente
+          {% else %}
+            -
+          {% endif %}
+        </td>
+
+        <td class="label"></td>
+        <td class="valor"></td>
+      </tr>
+
+      <tr>
+        <td class="label">Endereço:</td>
+        <td class="valor" colspan="3">
+          {{ baixa.endereco or '-' }}
+        </td>
+      </tr>
+
+      <tr>
+        <td class="label">Observação:</td>
+        <td class="valor observacao" colspan="3">
+          {{ baixa.observacao or '-' }}
+        </td>
+      </tr>
+    </table>
+  </div>
+
+  <table class="tabela">
+    <thead>
+      <tr>
+        <th style="width: 12%;">Código</th>
+        <th>Descrição</th>
+        <th style="width: 8%;">Un.</th>
+        <th style="width: 8%;">Qtd.</th>
+        <th style="width: 14%;">Valor Unit.</th>
+        <th style="width: 14%;">Valor Total</th>
+        <th style="width: 12%;">Origem</th>
+      </tr>
+    </thead>
+
+    <tbody>
+      {% for item in baixa.itens %}
+
+        {% set valor_total = (item.valor_total or 0)|float %}
+        {% set total.valor = total.valor + valor_total %}
+
+        <tr>
+          <td class="center">{{ item.item.codigo if item.item else '-' }}</td>
+          <td class="descricao">{{ item.item.descricao if item.item else '-' }}</td>
+          <td class="center">{{ item.item.unidade if item.item else '-' }}</td>
+          <td class="center">
+            {{ item.quantidade_aprovada if item.quantidade_aprovada else item.quantidade }}
+          </td>
+          <td class="right">
+            R$ {{ "%.2f"|format((item.valor_unitario or 0)|float)|replace('.', ',') }}
+          </td>
+          <td class="right">
+            R$ {{ "%.2f"|format(valor_total)|replace('.', ',') }}
+          </td>
+          <td class="center">
+            {% if item.tipo_estoque == 'cliente' %}
+              Cliente
+            {% else %}
+              Empresa
+            {% endif %}
+          </td>
+        </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+
+  <table class="total-box">
+    <tr>
+      <td class="total-label">TOTAL GERAL DA BAIXA:</td>
+      <td class="total-valor">
+        R$ {{ "%.2f"|format(total.valor)|replace('.', ',') }}
+      </td>
+    </tr>
+  </table>
+
+  <div style="margin-top: 45px; text-align: center; font-size: 11px; color: #6b7280;">
+    Documento gerado automaticamente pelo LogiStock.
+  </div>
+
+</body>
+</html>

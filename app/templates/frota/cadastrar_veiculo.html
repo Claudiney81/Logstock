@@ -1,0 +1,177 @@
+{% extends 'base.html' %}
+
+{% block content %}
+
+<style>
+  .page-header {
+    background: linear-gradient(135deg, #0f2742, #163b63);
+    color: white;
+    border-radius: 14px;
+    padding: 22px 26px;
+    margin-bottom: 24px;
+    box-shadow: 0 6px 18px rgba(15, 39, 66, 0.18);
+  }
+
+  .form-card {
+    background: #ffffff;
+    border-radius: 14px;
+    border: 1px solid #e5e7eb;
+    box-shadow: 0 6px 18px rgba(15, 39, 66, 0.08);
+  }
+
+  .form-label {
+    font-weight: 600;
+    color: #374151;
+  }
+
+  .btn-elegant {
+    background: #163b63;
+    color: white;
+    border: none;
+  }
+
+  .btn-elegant:hover {
+    background: #0f2742;
+    color: white;
+  }
+</style>
+
+<div class="container-fluid mt-4">
+
+  <div class="page-header">
+    <h4 class="mb-1">
+      <i class="bi bi-truck-front me-2"></i>
+      Cadastro de Veículo
+    </h4>
+    <small>Registre os veículos da frota da empresa.</small>
+  </div>
+
+  <div class="card form-card">
+    <div class="card-body">
+
+      <form method="POST" action="{{ url_for('frota.cadastrar_veiculo') }}">
+
+        <div class="row g-3">
+
+          <div class="col-md-3">
+            <label class="form-label">Placa *</label>
+            <input type="text"
+                   name="placa"
+                   class="form-control text-uppercase"
+                   placeholder="ABC-1234"
+                   required>
+          </div>
+
+          <div class="col-md-3">
+            <label class="form-label">Marca *</label>
+            <input type="text"
+                   name="marca"
+                   class="form-control"
+                   placeholder="Ex: Fiat"
+                   required>
+          </div>
+
+          <div class="col-md-3">
+            <label class="form-label">Modelo *</label>
+            <input type="text"
+                   name="modelo"
+                   class="form-control"
+                   placeholder="Ex: Fiorino"
+                   required>
+          </div>
+
+          <div class="col-md-3">
+            <label class="form-label">Ano</label>
+            <input type="number"
+                   name="ano"
+                   class="form-control"
+                   placeholder="2024">
+          </div>
+
+          <div class="col-md-3">
+            <label class="form-label">Cor</label>
+            <input type="text"
+                   name="cor"
+                   class="form-control"
+                   placeholder="Ex: Branco">
+          </div>
+
+          <div class="col-md-3">
+            <label class="form-label">Tipo</label>
+            <select name="tipo" class="form-select">
+              <option value="">Selecione</option>
+              <option value="Carro">Carro</option>
+              <option value="Moto">Moto</option>
+              <option value="Utilitário">Utilitário</option>
+              <option value="Caminhão">Caminhão</option>
+              <option value="Van">Van</option>
+              <option value="Outro">Outro</option>
+            </select>
+          </div>
+
+          <div class="col-md-3">
+            <label class="form-label">Quilometragem Atual</label>
+            <input type="number"
+                   name="quilometragem_atual"
+                   class="form-control"
+                   min="0"
+                   value="0">
+          </div>
+
+          <div class="col-md-3">
+            <label class="form-label">Status</label>
+            <select name="status" class="form-select">
+              <option value="ativo" selected>Ativo</option>
+              <option value="em manutencao">Em manutenção</option>
+              <option value="inativo">Inativo</option>
+            </select>
+          </div>
+
+          <div class="col-md-6">
+            <label class="form-label">Responsável / Motorista</label>
+            <input type="text"
+                   name="responsavel"
+                   class="form-control"
+                   placeholder="Nome do responsável pelo veículo">
+          </div>
+
+          <div class="col-md-6">
+            <label class="form-label">Observação</label>
+            <textarea name="observacao"
+                      class="form-control"
+                      rows="2"
+                      placeholder="Informações adicionais sobre o veículo"></textarea>
+          </div>
+
+        </div>
+
+        <hr class="my-4">
+
+        <div class="d-flex justify-content-end gap-2">
+
+          <a href="{{ url_for('frota.listar_veiculos') }}"
+             class="btn btn-outline-secondary">
+            <i class="bi bi-arrow-left me-1"></i>
+            Voltar
+          </a>
+
+          <button type="reset" class="btn btn-outline-warning">
+            <i class="bi bi-eraser me-1"></i>
+            Limpar
+          </button>
+
+          <button type="submit" class="btn btn-elegant">
+            <i class="bi bi-check-circle me-1"></i>
+            Salvar Veículo
+          </button>
+
+        </div>
+
+      </form>
+
+    </div>
+  </div>
+
+</div>
+
+{% endblock %}

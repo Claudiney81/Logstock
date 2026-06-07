@@ -1,169 +1,338 @@
 from flask import Blueprint, render_template, request, redirect, url_for, flash, jsonify
-from app.extensions import db
-from app.models import TransferenciaInterna, TransferenciaInternaItem, Tecnico, TipoServico, Item, Estoque, SaldoTecnico
+from flask_login import login_required, current_user
 from datetime import datetime
 
-bp_interna = Blueprint('transferencias_interna', __name__, url_prefix='/transferencias/interna')
+from app.extensions import db
+
+from app.models import (
+    MovimentacaoEstoque,
+    MovimentacaoEstoqueItem,
+    Tecnico,
+    Empresa,
+    TipoServico,
+    Item,
+    Estoque,
+    SaldoTecnico
+)
+
+bp_movimentacao = Blueprint(
+    'movimentacao_estoque',
+    __name__,
+    url_prefix='/movimentacao_estoque'
+)
 
 
-@bp_interna.route('/nova', methods=['GET', 'POST'])
-def nova_transferencia_interna():
+# ==========================================================
+# NOVA MOVIMENTAÇÃO
+# ==========================================================
+@bp_movimentacao.route('/nova', methods=['GET', 'POST'])
+@login_required
+def nova_movimentacao():
+
     tecnicos = Tecnico.query.order_by(Tecnico.nome).all()
+    empresas = Empresa.query.order_by(Empresa.nome).all()
     tipos_servico = TipoServico.query.order_by(TipoServico.nome).all()
 
     if request.method == 'POST':
-        tecnico_id = request.form.get('tecnico_id')
-        area_tecnica = request.form.get('area_tecnica')
+
+        origem_tipo = request.form.get('origem_tipo')
+        origem_id = request.form.get('origem_id')
+
+        destino_tipo = request.form.get('destino_tipo')
+        destino_id = request.form.get('destino_id')
+
         tipo_servico_id = request.form.get('tipo_servico_id')
+        observacao = request.form.get('observacao')
 
         codigos = request.form.getlist('codigo[]')
-        unidades = request.form.getlist('unidade[]')
         quantidades = request.form.getlist('quantidade[]')
         valores = request.form.getlist('valor_unitario[]')
 
-        if not tecnico_id or not area_tecnica or not tipo_servico_id:
-            flash("Preencha todos os campos do cabeçalho.", "danger")
-            return redirect(url_for('transferencias_interna.nova_transferencia_interna'))
+        if not origem_tipo or not origem_id:
+            flash('Informe a origem.', 'danger')
+            return redirect(url_for('movimentacao_estoque.nova_movimentacao'))
 
-        nova_transf = TransferenciaInterna(
-            tecnico_id=tecnico_id,
-            area_tecnica=area_tecnica,
+        if not destino_tipo or not destino_id:
+            flash('Informe o destino.', 'danger')
+            return redirect(url_for('movimentacao_estoque.nova_movimentacao'))
+
+        if not tipo_servico_id:
+            flash('Selecione o tipo de serviço.', 'danger')
+            return redirect(url_for('movimentacao_estoque.nova_movimentacao'))
+
+        nova_mov = MovimentacaoEstoque(
+            origem_tipo=origem_tipo,
+            origem_id=origem_id,
+            destino_tipo=destino_tipo,
+            destino_id=destino_id,
             tipo_servico_id=tipo_servico_id,
+            observacao=observacao,
+            usuario_id=current_user.id,
             data_hora=datetime.utcnow()
         )
-        db.session.add(nova_transf)
+
+        db.session.add(nova_mov)
         db.session.flush()
 
         sucesso = False
 
+        # ==========================================================
+        # LOOP DOS ITENS
+        # ==========================================================
         for i in range(len(codigos)):
-            if not codigos[i] or not quantidades[i] or int(quantidades[i]) <= 0:
+
+            if not codigos[i]:
                 continue
 
-            # Buscar item apenas pelo código
-            item_obj = Item.query.filter_by(codigo=codigos[i]).first()
-            if not item_obj:
-                flash(f"Item {codigos[i]} não encontrado no cadastro!", "danger")
+            try:
+                quantidade = int(quantidades[i])
+            except:
                 continue
 
-            # Estoque por tipo de serviço
-            estoque = Estoque.query.filter_by(item_id=item_obj.id, tipo_servico_id=tipo_servico_id).first()
-            if not estoque:
-                flash(f"Item {codigos[i]} não possui saldo para este tipo de serviço!", "danger")
+            if quantidade <= 0:
                 continue
 
-            quantidade_transferida = int(quantidades[i])
-            if estoque.quantidade < quantidade_transferida:
-                flash(f"Saldo insuficiente para o item {codigos[i]}! Saldo disponível: {estoque.quantidade}", "danger")
+            item = Item.query.filter_by(codigo=codigos[i]).first()
+
+            if not item:
+                flash(f'Item {codigos[i]} não encontrado.', 'danger')
                 continue
 
-            # Baixa no estoque central
-            estoque.quantidade -= quantidade_transferida
+            # ==========================================================
+            # ORIGEM EMPRESA
+            # ==========================================================
+            if origem_tipo == 'empresa':
 
-            # Registro do item na transferência
-            item_transf = TransferenciaInternaItem(
-                transferencia_interna_id=nova_transf.id,
-                item_id=item_obj.id,
-                quantidade=quantidade_transferida,
-                valor_unitario=float(valores[i]) if valores[i] else 0
+                estoque = Estoque.query.filter_by(
+                    item_id=item.id,
+                    tipo_servico_id=tipo_servico_id
+                ).first()
+
+                if not estoque:
+                    flash(
+                        f'Item {item.codigo} sem saldo no estoque.',
+                        'danger'
+                    )
+                    continue
+
+                if estoque.quantidade < quantidade:
+                    flash(
+                        f'Saldo insuficiente para {item.codigo}.',
+                        'danger'
+                    )
+                    continue
+
+                estoque.quantidade -= quantidade
+
+            # ==========================================================
+            # ORIGEM TÉCNICO
+            # ==========================================================
+            elif origem_tipo == 'tecnico':
+
+                saldo = SaldoTecnico.query.filter_by(
+                    tecnico_id=origem_id,
+                    item_id=item.id,
+                    tipo_servico_id=tipo_servico_id
+                ).first()
+
+                if not saldo:
+                    flash(
+                        f'Técnico sem saldo do item {item.codigo}.',
+                        'danger'
+                    )
+                    continue
+
+                if saldo.quantidade < quantidade:
+                    flash(
+                        f'Saldo insuficiente do técnico.',
+                        'danger'
+                    )
+                    continue
+
+                saldo.quantidade -= quantidade
+
+            # ==========================================================
+            # ITEM MOVIMENTAÇÃO
+            # ==========================================================
+            try:
+                valor_unitario = float(valores[i]) if valores[i] else 0
+            except:
+                valor_unitario = 0
+
+            item_mov = MovimentacaoEstoqueItem(
+                movimentacao_id=nova_mov.id,
+                item_id=item.id,
+                quantidade=quantidade,
+                valor_unitario=valor_unitario
             )
-            db.session.add(item_transf)
 
-            # Atualiza saldo técnico (apenas quantidade)
-            saldo_tec = SaldoTecnico.query.filter_by(
-                tecnico_id=tecnico_id,
-                item_id=item_obj.id,
-                tipo_servico_id=tipo_servico_id,
-                endereco=area_tecnica
-            ).first()
-            if saldo_tec:
-                saldo_tec.quantidade += quantidade_transferida
-            else:
-                saldo_tec = SaldoTecnico(
-                    tecnico_id=tecnico_id,
-                    item_id=item_obj.id,
-                    tipo_servico_id=tipo_servico_id,
-                    quantidade=quantidade_transferida,
-                    endereco=area_tecnica,
-                    bairro='',
-                    codigo_imovel=''
-                )
-                db.session.add(saldo_tec)
+            db.session.add(item_mov)
+
+            # ==========================================================
+            # DESTINO TÉCNICO
+            # ==========================================================
+            if destino_tipo == 'tecnico':
+
+                saldo_destino = SaldoTecnico.query.filter_by(
+                    tecnico_id=destino_id,
+                    item_id=item.id,
+                    tipo_servico_id=tipo_servico_id
+                ).first()
+
+                if saldo_destino:
+
+                    saldo_destino.quantidade += quantidade
+
+                else:
+
+                    novo_saldo = SaldoTecnico(
+                        tecnico_id=destino_id,
+                        item_id=item.id,
+                        tipo_servico_id=tipo_servico_id,
+                        quantidade=quantidade,
+                        endereco='',
+                        bairro='',
+                        codigo_imovel='',
+                        tipo_estoque=origem_tipo,
+                        cliente_id=origem_id if origem_tipo == 'cliente' else None
+                    )
+
+                    db.session.add(novo_saldo)
 
             sucesso = True
 
+        # ==========================================================
+        # FINALIZA
+        # ==========================================================
         if not sucesso:
+
             db.session.rollback()
-            flash("Nenhum item transferido. Corrija as quantidades e tente novamente.", "danger")
-            return redirect(url_for('transferencias_interna.nova_transferencia_interna'))
+
+            flash(
+                'Nenhum item movimentado.',
+                'danger'
+            )
+
+            return redirect(
+                url_for('movimentacao_estoque.nova_movimentacao')
+            )
 
         db.session.commit()
-        flash("Transferência interna registrada com sucesso!", "success")
-        return redirect(url_for('transferencias_interna.historico_transferencia_interna'))
+
+        flash(
+            'Movimentação realizada com sucesso!',
+            'success'
+        )
+
+        return redirect(
+            url_for('movimentacao_estoque.historico')
+        )
 
     return render_template(
-        'transferencias/interna/nova_transferencia_interna.html',
+        'movimentacao_estoque/nova.html',
         tecnicos=tecnicos,
+        empresas=empresas,
         tipos_servico=tipos_servico
     )
 
 
-@bp_interna.route('/historico')
-def historico_transferencia_interna():
-    transferencias = TransferenciaInterna.query.order_by(TransferenciaInterna.data_hora.desc()).all()
-    return render_template('transferencias/interna/historico_transferencia_interna.html', transferencias=transferencias)
+# ==========================================================
+# HISTÓRICO
+# ==========================================================
+@bp_movimentacao.route('/historico')
+@login_required
+def historico():
+
+    movimentacoes = MovimentacaoEstoque.query.order_by(
+        MovimentacaoEstoque.data_hora.desc()
+    ).all()
+
+    return render_template(
+        'movimentacao_estoque/historico.html',
+        movimentacoes=movimentacoes
+    )
 
 
-@bp_interna.route('/detalhes/<int:id>')
-def detalhes_transferencia_interna(id):
-    transferencia = TransferenciaInterna.query.get_or_404(id)
-    return render_template('transferencias/interna/detalhes.html', transferencia=transferencia)
+# ==========================================================
+# DETALHES
+# ==========================================================
+@bp_movimentacao.route('/detalhes/<int:id>')
+@login_required
+def detalhes(id):
+
+    movimentacao = MovimentacaoEstoque.query.get_or_404(id)
+
+    return render_template(
+        'movimentacao_estoque/detalhes.html',
+        movimentacao=movimentacao
+    )
 
 
-@bp_interna.route('/api/item_saldo')
-def api_item_saldo():
-    codigo = request.args.get('codigo')
+# ==========================================================
+# API ITENS DISPONÍVEIS
+# ==========================================================
+@bp_movimentacao.route('/api/itens')
+@login_required
+def api_itens():
+
     tipo_servico_id = request.args.get('tipo_servico_id')
-    if not codigo or not tipo_servico_id:
-        return jsonify({'error': 'Código e Tipo de Serviço obrigatórios'}), 400
+    origem_tipo = request.args.get('origem_tipo')
+    origem_id = request.args.get('origem_id')
 
-    item = Item.query.filter_by(codigo=codigo).first()
-    if not item:
-        return jsonify({'error': 'Item não encontrado'}), 404
-
-    estoque = Estoque.query.filter_by(item_id=item.id, tipo_servico_id=tipo_servico_id).first()
-    saldo = estoque.quantidade if estoque else 0
-
-    return jsonify({
-        'codigo': item.codigo,
-        'descricao': item.descricao,
-        'unidade': item.unidade,
-        'valor': item.valor,
-        'saldo': saldo
-    })
-
-
-@bp_interna.route('/api/itens_disponiveis')
-def api_itens_disponiveis():
-    tipo_servico_id = request.args.get('tipo_servico_id')
     if not tipo_servico_id:
         return jsonify([])
 
-    itens = (
-        db.session.query(Item, Estoque)
-        .join(Estoque, Item.id == Estoque.item_id)
-        .filter(Estoque.tipo_servico_id == tipo_servico_id, Estoque.quantidade > 0)
-        .order_by(Item.descricao)
-        .all()
-    )
+    resultado = []
 
-    return jsonify([
-        {
-            'codigo': item.codigo,
-            'descricao': item.descricao,
-            'unidade': item.unidade,
-            'valor': item.valor,
-            'saldo': estoque.quantidade
-        }
-        for item, estoque in itens
-    ])
+    # ==========================================================
+    # EMPRESA
+    # ==========================================================
+    if origem_tipo == 'empresa':
+
+        itens = (
+            db.session.query(Item, Estoque)
+            .join(Estoque, Item.id == Estoque.item_id)
+            .filter(
+                Estoque.tipo_servico_id == tipo_servico_id,
+                Estoque.quantidade > 0
+            )
+            .all()
+        )
+
+        for item, estoque in itens:
+
+            resultado.append({
+                'codigo': item.codigo,
+                'descricao': item.descricao,
+                'unidade': item.unidade,
+                'valor': item.valor,
+                'saldo': estoque.quantidade
+            })
+
+    # ==========================================================
+    # TÉCNICO
+    # ==========================================================
+    elif origem_tipo == 'tecnico':
+
+        itens = (
+            db.session.query(Item, SaldoTecnico)
+            .join(SaldoTecnico, Item.id == SaldoTecnico.item_id)
+            .filter(
+                SaldoTecnico.tecnico_id == origem_id,
+                SaldoTecnico.tipo_servico_id == tipo_servico_id,
+                SaldoTecnico.quantidade > 0
+            )
+            .all()
+        )
+
+        for item, saldo in itens:
+
+            resultado.append({
+                'codigo': item.codigo,
+                'descricao': item.descricao,
+                'unidade': item.unidade,
+                'valor': item.valor,
+                'saldo': saldo.quantidade
+            })
+
+    return jsonify(resultado)

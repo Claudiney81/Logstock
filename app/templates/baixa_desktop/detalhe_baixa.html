@@ -1,59 +1,653 @@
 {% extends 'base.html' %}
 {% block content %}
-<div class="container mt-4">
-  <h4 class="text-primary"><i class="bi bi-clipboard-check"></i> Detalhes da Baixa</h4>
 
-  <div class="card mb-3">
+<div class="container-fluid mt-4">
+
+  <div class="card shadow-sm border-0 mb-4">
+
+    <div class="card-header text-white" style="background:#002b55;">
+      <h5 class="mb-0 fw-semibold">
+        <i class="bi bi-clipboard-check me-2"></i>
+        Detalhes da Baixa
+      </h5>
+    </div>
+
     <div class="card-body">
-      <p><strong>Técnico:</strong> {{ baixa.tecnico.nome }}</p>
-      <p><strong>Tipo de Serviço:</strong> {{ baixa.tipo_servico.nome }}</p>
-      <p><strong>Data/Hora:</strong> {{ baixa.data_hora.strftime('%d/%m/%Y %H:%M') if baixa.data_hora else '' }}</p>
-      <p><strong>Responsável:</strong> {{ baixa.responsavel }}</p>
-      <p><strong>Observação:</strong> {{ baixa.observacao or '' }}</p>
+
+      {% set tipos = baixa.itens | map(attribute='tipo_estoque') | list %}
+
+      <div class="row g-3 mb-3">
+
+        <div class="col-md-3">
+          <small class="text-muted fw-semibold">Técnico</small>
+          <div class="fw-semibold">
+            {{ baixa.tecnico.nome if baixa.tecnico else '-' }}
+          </div>
+        </div>
+
+        <div class="col-md-3">
+          <small class="text-muted fw-semibold">Cliente</small>
+          <div class="fw-semibold">
+            {{ baixa.cliente.razao_social if baixa.cliente else '-' }}
+          </div>
+        </div>
+
+        <div class="col-md-3">
+          <small class="text-muted fw-semibold">O.S</small>
+          <div class="fw-semibold">
+            {{ baixa.ordem_servico.numero_os if baixa.ordem_servico else baixa.os_cliente or '-' }}
+          </div>
+        </div>
+
+        <div class="col-md-3">
+          <small class="text-muted fw-semibold">Tipo de Estoque</small>
+          <div class="fw-semibold">
+            {% if 'empresa' in tipos and 'cliente' in tipos %}
+              Empresa / Cliente
+            {% elif 'empresa' in tipos %}
+              Empresa
+            {% elif 'cliente' in tipos %}
+              Cliente
+            {% else %}
+              -
+            {% endif %}
+          </div>
+        </div>
+
+        <div class="col-md-3">
+          <small class="text-muted fw-semibold">Tipo de Serviço</small>
+          <div class="fw-semibold">
+            {{ baixa.tipo_servico.nome if baixa.tipo_servico else '-' }}
+          </div>
+        </div>
+
+        <div class="col-md-3">
+          <small class="text-muted fw-semibold">Endereço</small>
+          <div class="fw-semibold">
+            {{ baixa.endereco or '-' }}
+          </div>
+        </div>        
+
+        <div class="col-md-3">
+          <small class="text-muted fw-semibold">Data/Hora</small>
+          <div class="fw-semibold">
+            {{ baixa.data_hora.strftime('%d/%m/%Y %H:%M') if baixa.data_hora else '-' }}
+          </div>
+        </div>
+
+        <div class="col-md-3">
+          <small class="text-muted fw-semibold">Status</small>
+          <div class="fw-semibold">
+            {% if baixa.status == 'confirmado' %}
+              <span class="status-confirmado">Confirmado</span>
+            {% elif baixa.status == 'pendente' %}
+              <span class="status-pendente">Pendente</span>
+            {% elif baixa.status == 'pendente_ajuste' %}
+              <span class="status-ajuste">Retorno Ajuste</span>
+            {% elif baixa.status == 'recusado' %}
+              <span class="status-recusado">Recusado</span>
+            {% elif baixa.status == 'aprovada_parcial' %}
+              <span class="status-parcial">Aprovada Parcial</span>
+            {% else %}
+              <span class="text-secondary fw-semibold">
+                {{ baixa.status|replace('_', ' ')|capitalize }}
+              </span>
+            {% endif %}
+          </div>
+        </div>
+
+        <div class="col-md-12">
+          <small class="text-muted fw-semibold">Observação</small>
+          <div class="fw-semibold">
+            {{ baixa.observacao or '-' }}
+          </div>
+        </div>
+
+        {% if baixa.motivo_recusa %}
+        <div class="col-md-12">
+          <div class="alert alert-light border mb-0">
+            <small class="text-muted fw-semibold">Motivo da Recusa / Devolução</small>
+            <div class="fw-semibold text-secondary">
+              {{ baixa.motivo_recusa }}
+            </div>
+          </div>
+        </div>
+        {% endif %}
+
+      </div>
+
     </div>
   </div>
 
-  <form method="POST">
-    <div class="table-responsive shadow-sm rounded mb-3">
-      <table class="table table-bordered align-middle text-center">
-        <thead class="table-light">
-          <tr>
-            <th>Selecionar</th>
-            <th>Código</th>
-            <th>Descrição</th>
-            <th>Quantidade</th>
-            <th>Saldo Atual</th>
-          </tr>
-        </thead>
-        <tbody>
-          {% for item, saldo in itens %}
-          <tr>
-            <td>
-              <input type="checkbox" name="itens" value="{{ item.id }}" checked>
-            </td>
-            <td>{{ item.item.codigo }}</td>
-            <td class="text-start">{{ item.item.descricao }}</td>
-            <td>{{ item.quantidade }}</td>
-            <td>{{ saldo or 0 }}</td>
-          </tr>
-          {% endfor %}
-        </tbody>
-      </table>
+{% if baixa.fotos %}
+
+<div class="card shadow-sm border-0 mb-4">
+
+  <div class="card-header text-white d-flex justify-content-between align-items-center"
+       style="background:#002b55;">
+
+    <h6 class="mb-0 fw-semibold">
+      📸 Fotos do Serviço
+    </h6>
+
+    <button
+      class="btn btn-sm btn-light"
+      type="button"
+      data-bs-toggle="collapse"
+      data-bs-target="#collapseFotosServico"
+      aria-expanded="false"
+      aria-controls="collapseFotosServico"
+    >
+      Mostrar / Ocultar
+    </button>
+
+  </div>
+
+  <div class="collapse" id="collapseFotosServico">
+
+    <div class="card-body">
+
+      <div class="row g-3">
+
+        {% for foto in baixa.fotos %}
+
+        <div class="col-md-2 col-sm-4">
+
+          <div class="card shadow-sm h-100 border-0">
+
+            <a href="{{ url_for('static', filename=foto.caminho_arquivo) }}"
+               target="_blank">
+
+              <img
+                src="{{ url_for('static', filename=foto.caminho_arquivo) }}"
+                class="card-img-top"
+                style="height:120px; object-fit:cover; cursor:zoom-in;"
+              >
+
+            </a>
+
+            <div class="card-body p-2">
+              <small class="text-muted fw-bold">Legenda</small>
+              <div>{{ foto.legenda or '-' }}</div>
+            </div>
+
+            <div class="card-footer bg-white border-0 pt-0">
+              <small class="text-muted">
+                {{ foto.data_upload.strftime('%d/%m/%Y %H:%M') if foto.data_upload else '-' }}
+              </small>
+            </div>
+
+          </div>
+
+        </div>
+
+        {% endfor %}
+
+      </div>
+
     </div>
 
-    <div class="d-flex justify-content-between">
-      <a href="{{ url_for('baixa_desktop.baixas_pendentes') }}" class="btn btn-secondary">
-        <i class="bi bi-arrow-left"></i> Voltar
-      </a>
-      <div>
-        <button type="submit" name="recusar" class="btn btn-danger">
-          <i class="bi bi-x-circle"></i> Recusar
-        </button>
-        <button type="submit" name="aprovar" class="btn btn-success">
-          <i class="bi bi-check-circle"></i> Aprovar Selecionados
-        </button>
+  </div>
+
+</div>
+
+{% endif %}
+
+  <form method="POST" id="formAprovacao">
+
+    <style>
+      .tabela-container {
+        overflow-x: auto;
+        border-radius: 10px;
+        border: 1px solid #dee2e6;
+        background: #fff;
+      }
+
+      .tabela-container table {
+        margin-bottom: 0;
+      }
+
+      .tabela-container thead th {
+        background: #002b55;
+        color: #fff;
+        text-align: center;
+        font-size: 0.92rem;
+        font-weight: 600;
+        border-bottom: none;
+        padding: 12px 8px;
+        white-space: nowrap;
+      }
+
+      .tabela-container tbody td {
+        vertical-align: middle;
+        padding: 12px 8px;
+        font-size: 0.92rem;
+        border-color: #edf0f2;
+      }
+
+      .tabela-container tbody tr:hover {
+        background: #f8fafc;
+      }
+
+      .status-confirmado {
+        color: #198754;
+        font-weight: 600;
+      }
+
+      .status-pendente {
+        color: #dc3545;
+        font-weight: 600;
+      }
+
+      .status-ajuste {
+        color: #fd7e14;
+        font-weight: 600;
+      }
+
+      .status-recusado {
+        color: #6c757d;
+        font-weight: 600;
+      }
+
+      .status-parcial {
+        color: #0d6efd;
+        font-weight: 600;
+      }
+
+      .estoque-texto {
+        color: #212529;
+        font-weight: 500;
+      }
+
+      .saldo-ok {
+        color: #198754;
+        font-weight: 600;
+      }
+
+      .saldo-baixo {
+        color: #dc3545;
+        font-weight: 600;
+      }
+
+      .btn-acao {
+        border-radius: 8px;
+        padding: 7px 14px;
+        font-size: 0.9rem;
+      }
+    </style>
+
+    <div class="tabela-container shadow-sm mb-3">
+
+      <table class="table table-hover align-middle mb-0">
+
+        <thead>
+          <tr>
+            <th style="width:50px;">
+              <input type="checkbox" id="checkAll">
+            </th>
+            <th>Tipo Estoque</th>
+            <th>Código</th>
+            <th>Descrição</th>
+            <th>Un.</th>
+            <th>Qtd.</th>
+            <th>Valor Unit.</th>
+            <th>Valor Total</th>
+            <th>Saldo Técnico</th>
+            <th style="width:150px;">Qtd. Aprovar</th>
+            <th>Status Item</th>
+          </tr>
+        </thead>
+
+        <tbody>
+
+          {% for item, saldo in itens %}
+
+            {% set sal = saldo or 0 %}
+
+            {% if item.status == 'confirmado' %}
+              {% set req = item.quantidade_aprovada or 0 %}
+            {% else %}
+              {% set req = item.quantidade or 0 %}
+            {% endif %}
+
+            {% set max_aprov = req if sal >= req else sal %}
+            {% set def_val = req if sal >= req else sal %}
+          <tr>
+
+            <td class="text-center">
+              <input
+                type="checkbox"
+                class="chk-item"
+                name="itens"
+                value="{{ item.id }}"
+                {% if sal > 0 and item.status == 'pendente' %}checked{% endif %}
+                {% if item.status != 'pendente' %}disabled{% endif %}
+              >
+            </td>
+
+            <td class="text-center">
+              {% if item.tipo_estoque == 'cliente' %}
+                <span class="estoque-texto">Cliente</span>
+              {% else %}
+                <span class="estoque-texto">Empresa</span>
+              {% endif %}
+            </td>
+
+            <td class="text-center fw-semibold">
+              {{ item.item.codigo if item.item else '-' }}
+            </td>
+
+            <td>
+              {{ item.item.descricao if item.item else '-' }}
+            </td>
+
+            <td class="text-center">
+              {{ item.item.unidade if item.item else '-' }}
+            </td>
+
+            <td class="text-center fw-semibold">
+              {{ req }}
+            </td>
+
+            <td class="text-center">
+              <span class="fw-semibold text-primary">
+                R$
+                {{
+                  '%.2f'|format((item.valor_unitario or 0)|float)
+                  | replace('.', ',')
+                }}
+              </span>
+            </td>
+
+            <td class="text-center">
+              <span class="fw-bold text-success">
+                R$
+               {{
+                 '%.2f'|format((item.valor_total or 0)|float)
+                 | replace('.', ',')
+               }}
+              </span>
+            </td>
+
+            <td class="text-center">
+              <span class="saldo-ok">
+                {{ sal }} disponível
+              </span>
+            </td>
+
+            <td>
+              <input
+                type="number"
+                class="form-control form-control-sm text-center qtd-input"
+                name="qtd_{{ item.id }}"
+                value="{{ req }}"
+                min="0"
+                step="1"
+                max="{{ max_aprov }}"
+                data-req="{{ req }}"
+                data-saldo="{{ sal }}"
+                data-codigo="{{ item.item.codigo if item.item else '' }}"
+                {% if item.status != 'pendente' %}readonly{% endif %}
+              >
+            </td>
+
+            <td class="text-center">
+              {% if item.status == 'confirmado' %}
+                <span class="status-confirmado">Confirmado</span>
+              {% elif item.status == 'recusado' %}
+                <span class="status-recusado">Recusado</span>
+              {% else %}
+                <span class="status-pendente">Pendente</span>
+              {% endif %}
+            </td>
+
+          </tr>
+
+          {% else %}
+
+          <tr>
+            <td colspan="11" class="text-center text-muted py-4">
+              Nenhum item encontrado.
+            </td>
+          </tr>
+
+          {% endfor %}
+
+        </tbody>
+
+      </table>
+
+    </div>
+    
+<div class="d-flex justify-content-end mt-3 pe-3">
+
+  <div class="card shadow-sm border-0"
+       style="min-width: 280px;">
+
+    <div class="card-body text-end">
+
+      <small class="text-muted fw-semibold">
+        TOTAL GERAL DA BAIXA
+      </small>
+
+      <h4 class="fw-bold text-success mb-0">
+
+        {% set total = namespace(valor=0.0) %}
+
+        {% for item in baixa.itens %}
+          {% set valor_item = (item.valor_total|string)|replace(',', '.')|float %}
+          {% set total.valor = total.valor + valor_item %}
+        {% endfor %}
+
+        R$ {{ '%.2f'|format(total.valor)|replace('.', ',') }}
+              </h4>
+
+    </div>
+
+  </div>
+
+</div>
+
+    <div class="d-flex justify-content-between align-items-center mb-4">
+
+  <div class="d-flex gap-2">
+
+    <a
+      href="{{ url_for('baixa_desktop.baixas_realizadas') }}"
+      class="btn btn-outline-secondary btn-acao"
+    >
+      <i class="bi bi-arrow-left me-1"></i>
+      Voltar
+    </a>
+
+    <a
+      href="{{ url_for('baixa_desktop.exportar_baixa_excel', baixa_id=baixa.id) }}"
+      class="btn btn-success btn-acao"
+    >
+      <i class="bi bi-file-earmark-excel me-1"></i>
+      Excel
+    </a>
+
+    <a href="{{ url_for('baixa_desktop.exportar_baixa_pdf', baixa_id=baixa.id) }}"
+      class="btn btn-danger">
+      <i class="bi bi-file-earmark-pdf"></i>
+      Exportar PDF
+    </a>
+
+  </div>
+
+  {% if baixa.status not in ['confirmado', 'recusado'] %}
+
+  <div class="d-flex gap-2">
+
+    <button
+      type="button"
+      class="btn btn-outline-danger btn-acao"
+      data-bs-toggle="modal"
+      data-bs-target="#modalRecusa"
+    >
+      <i class="bi bi-x-circle me-1"></i>
+      Recusar / Devolver
+    </button>
+
+    <button
+      type="button"
+      class="btn btn-success btn-acao"
+      id="btnAprovar"
+    >
+      <i class="bi bi-check-circle me-1"></i>
+      Aprovar Baixa
+    </button>
+
+  </div>
+
+  {% endif %}
+
+</div>
+
+    <input type="hidden" id="acaoField">
+
+    <div class="modal fade" id="modalRecusa" tabindex="-1" aria-hidden="true">
+      <div class="modal-dialog">
+        <div class="modal-content">
+
+          <div class="modal-header">
+            <h5 class="modal-title">
+              Motivo da Recusa / Devolução
+            </h5>
+            <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+          </div>
+
+          <div class="modal-body">
+            <label class="form-label fw-semibold">
+              Informe o motivo para o técnico corrigir
+            </label>
+
+            <textarea
+              class="form-control"
+              name="motivo"
+              id="motivoRecusa"
+              rows="4"
+              placeholder="Exemplo: quantidade divergente, material incorreto, O.S incorreta..."
+            ></textarea>
+          </div>
+
+          <div class="modal-footer">
+            <button
+              type="button"
+              class="btn btn-outline-secondary"
+              data-bs-dismiss="modal"
+            >
+              Cancelar
+            </button>
+
+            <button
+              type="button"
+              class="btn btn-danger"
+              id="btnModalRecusar"
+            >
+              Confirmar Devolução
+            </button>
+          </div>
+
+        </div>
       </div>
     </div>
+
   </form>
+
 </div>
+
+<script>
+(function () {
+  const form = document.getElementById("formAprovacao");
+  if (!form) return;
+
+  const checkAll = document.getElementById("checkAll");
+  const itens = Array.from(document.querySelectorAll(".chk-item:not(:disabled)"));
+  const btnAprovar = document.getElementById("btnAprovar");
+  const btnModalRecusar = document.getElementById("btnModalRecusar");
+  const motivoRecusa = document.getElementById("motivoRecusa");
+  const acaoField = document.getElementById("acaoField");
+
+  function refreshBtn() {
+    if (!btnAprovar) return;
+    btnAprovar.disabled = !itens.some((c) => c.checked);
+  }
+
+  if (checkAll) {
+    checkAll.addEventListener("change", () => {
+      itens.forEach((c) => c.checked = checkAll.checked);
+      refreshBtn();
+    });
+  }
+
+  itens.forEach((c) => c.addEventListener("change", refreshBtn));
+  refreshBtn();
+
+  function validarSelecionados() {
+    const erros = [];
+
+    document.querySelectorAll(".qtd-input").forEach((i) => {
+      i.classList.remove("is-invalid");
+    });
+
+    itens.filter((c) => c.checked).forEach((c) => {
+      const tr = c.closest("tr");
+      const inp = tr.querySelector(".qtd-input");
+
+      const req = parseInt(inp.dataset.req || "0", 10);
+      const saldo = parseInt(inp.dataset.saldo || "0", 10);
+      const cod = inp.dataset.codigo || "";
+      const v = parseInt(inp.value || "0", 10);
+      const max = Math.min(req, saldo);
+
+      if (!(v >= 1 && v <= max)) {
+        erros.push(`${cod}: informe entre 1 e ${max}`);
+        inp.classList.add("is-invalid");
+      }
+    });
+
+    return erros;
+  }
+
+  if (btnAprovar) {
+    btnAprovar.addEventListener("click", () => {
+      if (!itens.some((c) => c.checked)) {
+        alert("Selecione ao menos um item para aprovar.");
+        return;
+      }
+
+      const erros = validarSelecionados();
+
+      if (erros.length) {
+        alert("Corrija as quantidades:\n - " + erros.join("\n - "));
+        return;
+      }
+
+      if (!confirm("Aprovar baixa e debitar do saldo do técnico?")) return;
+
+      acaoField.setAttribute("name", "aprovar");
+      acaoField.value = "1";
+      form.submit();
+    });
+  }
+
+  if (btnModalRecusar) {
+    btnModalRecusar.addEventListener("click", () => {
+      const motivo = (motivoRecusa.value || "").trim();
+
+      if (!motivo) {
+        alert("Informe o motivo da recusa/devolução.");
+        return;
+      }
+
+      acaoField.setAttribute("name", "recusar");
+      acaoField.value = "1";
+      form.submit();
+    });
+  }
+})();
+</script>
+
 {% endblock %}

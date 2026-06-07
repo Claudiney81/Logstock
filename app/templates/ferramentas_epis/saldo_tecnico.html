@@ -1,0 +1,293 @@
+{% extends "base.html" %}
+
+{% block content %}
+
+<style>
+    .badge-categoria {
+        display: inline-block;
+        min-width: 115px;
+        padding: 7px 12px;
+        border-radius: 6px;
+        font-size: 0.78rem;
+        font-weight: 700;
+        text-align: center;
+        border: 1px solid transparent;
+    }
+
+    .badge-ferramenta {
+        background: #e6f0fb;
+        color: #084783;
+        border-color: #c7ddf4;
+    }
+
+    .badge-epi {
+        background: #e6f4ec;
+        color: #146c43;
+        border-color: #c8e6d3;
+    }
+
+    .btn-filtrar-saldo {
+        background: #0b2e59;
+        border: 1px solid #0b2e59;
+        color: #fff;
+    }
+
+    .btn-filtrar-saldo:hover {
+        background: #14447f;
+        border-color: #14447f;
+        color: #fff;
+    }
+
+    .btn-outline-secondary {
+        border-color: #cfd6df;
+        color: #495057;
+    }
+
+    .btn-outline-secondary:hover {
+        background: #f5f7fa;
+        color: #0b2e59;
+    }
+
+    .table-dark th {
+        background: #1f252b !important;
+        border-color: #1f252b !important;
+        color: #fff;
+    }
+
+    .alert-info {
+        background: #eef4fb;
+        color: #0b2e59;
+        border-left: 4px solid #0b2e59;
+    }
+</style>
+
+<div class="container-fluid mt-4">
+
+    <div class="card shadow-sm border-0 mb-4">
+
+        <div class="card-header text-white d-flex justify-content-between align-items-center"
+             style="background:#002b55;">
+
+            <h5 class="mb-0 fw-semibold">
+                <i class="bi bi-person-lines-fill me-2"></i>
+                Saldo de Ferramentas & EPIs por Técnico
+            </h5>
+
+        </div>
+
+        <div class="card-body">
+
+            <form method="GET" class="mb-4">
+
+                <div class="row g-3">
+
+                    <div class="col-md-5">
+
+                        <label class="form-label fw-semibold">
+                            Técnico
+                        </label>
+
+                        <select
+                            name="tecnico_id"
+                            class="form-select"
+                        >
+                            <option value="">
+                                Todos
+                            </option>
+
+                            {% for tecnico in tecnicos %}
+                            <option
+                                value="{{ tecnico.id }}"
+                                {% if tecnico_id == tecnico.id|string %}
+                                selected
+                                {% endif %}
+                            >
+                                {{ tecnico.nome }}
+                            </option>
+                            {% endfor %}
+
+                        </select>
+
+                    </div>
+
+                    <div class="col-md-3">
+
+                        <label class="form-label fw-semibold">
+                            Categoria
+                        </label>
+
+                        <select
+                            name="categoria"
+                            class="form-select"
+                        >
+                            <option value="">
+                                Todas
+                            </option>
+
+                            <option value="ferramenta"
+                                {% if categoria == 'ferramenta' %}
+                                selected
+                                {% endif %}
+                            >
+                                Ferramenta
+                            </option>
+
+                            <option value="epi"
+                                {% if categoria == 'epi' %}
+                                selected
+                                {% endif %}
+                            >
+                                EPI
+                            </option>
+
+                        </select>
+
+                    </div>
+
+                    <div class="col-md-4 d-flex align-items-end gap-2">
+
+                        <button
+                            type="submit"
+                            class="btn btn-filtrar-saldo w-100"
+                        >
+                            <i class="bi bi-search me-1"></i>
+                            Filtrar
+                        </button>
+
+                        <a
+                            href="{{ url_for('ferramentas_epis.exportar_saldo_tecnico', tecnico_id=tecnico_id, categoria=categoria) }}"
+                            class="btn btn-success w-100"
+                        >
+                            <i class="bi bi-file-earmark-excel me-1"></i>
+                            Excel
+                        </a>
+
+                        <a
+                            href="{{ url_for('ferramentas_epis.saldo_tecnico') }}"
+                            class="btn btn-outline-secondary w-100"
+                        >
+                            Limpar
+                        </a>
+
+                    </div>
+
+                </div>
+
+            </form>
+
+            <div class="table-responsive">
+
+                <table class="table table-hover align-middle">
+
+                    <thead class="table-dark">
+
+                        <tr>
+
+                            <th>Código</th>
+
+                            <th>Descrição</th>
+
+                            <th>Categoria</th>
+
+                            <th class="text-center">
+                                Quantidade
+                            </th>
+
+                            <th class="text-end">
+                                Valor Unit.
+                            </th>
+
+                            <th class="text-end">
+                                Valor Total
+                            </th>
+
+                        </tr>
+
+                    </thead>
+
+                    <tbody>
+
+                        {% for saldo in saldos %}
+
+                        <tr>
+
+                            <td>
+                                {{ saldo.codigo }}
+                            </td>
+
+                            <td>
+                                {{ saldo.descricao }}
+                            </td>
+
+                            <td>
+
+                                {% if saldo.categoria|lower == 'ferramenta' %}
+
+                                <span class="badge-categoria badge-ferramenta">
+                                    Ferramenta
+                                </span>
+
+                                {% else %}
+
+                                <span class="badge-categoria badge-epi">
+                                    EPI
+                                </span>
+
+                                {% endif %}
+
+                            </td>
+
+                            <td class="text-center fw-bold">
+                                {{ saldo.quantidade }}
+                            </td>
+
+                            <td class="text-end">
+                                R$
+                                {{ "%.2f"|format(saldo.valor_unitario or 0)|replace('.', ',') }}
+                            </td>
+
+                            <td class="text-end fw-semibold">
+                                R$
+                                {{ "%.2f"|format(saldo.valor_total or 0)|replace('.', ',') }}
+                            </td>
+
+                        </tr>
+
+                        {% else %}
+
+                        <tr>
+
+                            <td colspan="6" class="text-center text-muted py-4">
+                                Nenhum saldo encontrado.
+                            </td>
+
+                        </tr>
+
+                        {% endfor %}
+
+                    </tbody>
+
+                </table>
+
+            </div>
+
+            <div class="alert alert-info border-0 shadow-sm mt-4 mb-0">
+
+                <strong>
+                    Controle patrimonial:
+                </strong>
+
+                esta tela mostra os itens atualmente em posse dos técnicos.
+
+                Ferramentas e EPIs devolvidos, desgastados,
+                perdidos ou descontados não aparecem aqui.
+
+            </div>
+
+        </div>
+
+    </div>
+
+</div>
+
+{% endblock %}

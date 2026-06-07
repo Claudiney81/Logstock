@@ -1,0 +1,135 @@
+{% extends "base.html" %}
+
+{% block content %}
+
+<div class="container mt-4">
+
+  <div class="card shadow-sm border-0">
+
+    <div class="card-header text-white"
+         style="background:#002b55;">
+
+      <h5 class="mb-0">
+        <i class="bi bi-plus-circle me-2"></i>
+        Abrir Nova Ordem de Serviço
+      </h5>
+
+    </div>
+
+    <div class="card-body">
+
+      <div class="alert alert-light border">
+
+        <strong>Cliente:</strong>
+        {{ cliente.razao_social }}
+
+      </div>
+
+      <form method="POST">
+
+        <div class="row g-3">
+
+          <!-- TIPO SERVIÇO -->
+          <div class="col-md-6">
+
+            <label class="form-label fw-semibold">
+              Tipo de Serviço
+            </label>
+
+            <select
+              name="tipo_servico_id"
+              class="form-select"
+            >
+
+              <option value="">
+                Selecione
+              </option>
+
+              {% for tipo in tipos_servico %}
+
+              <option value="{{ tipo.id }}">
+                {{ tipo.nome }}
+              </option>
+
+              {% endfor %}
+
+            </select>
+
+          </div>
+
+          <!-- RESPONSÁVEL -->
+          <div class="col-md-6">
+
+            <label class="form-label fw-semibold">
+              Responsável
+            </label>
+
+            <input
+              type="text"
+              name="responsavel"
+              class="form-control"
+            >
+
+          </div>
+
+          <!-- ENDEREÇO -->
+          <div class="col-12">
+
+            <label class="form-label fw-semibold">
+              Endereço da O.S
+            </label>
+
+            <input
+              type="text"
+              name="endereco"
+              class="form-control"
+              value="{{ cliente.endereco or '' }}"
+            >
+
+          </div>
+
+          <!-- OBS -->
+          <div class="col-12">
+
+            <label class="form-label fw-semibold">
+              Observação
+            </label>
+
+            <textarea
+              name="observacao"
+              rows="3"
+              class="form-control"
+            ></textarea>
+
+          </div>
+
+        </div>
+
+        <div class="mt-4 d-flex gap-2">
+
+          <button
+            type="submit"
+            class="btn btn-primary"
+          >
+            <i class="bi bi-check-circle me-1"></i>
+            Abrir O.S
+          </button>
+
+          <a
+            href="{{ url_for('empresas.lista_clientes') }}"
+            class="btn btn-secondary"
+          >
+            Voltar
+          </a>
+
+        </div>
+
+      </form>
+
+    </div>
+
+  </div>
+
+</div>
+
+{% endblock %}

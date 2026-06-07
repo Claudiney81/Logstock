@@ -1,0 +1,150 @@
+{% extends "base.html" %}
+
+{% block content %}
+
+<div class="container-fluid mt-4">
+
+  <div class="card shadow-sm border-0">
+
+    <div
+      class="card-header text-white d-flex justify-content-between align-items-center"
+      style="background:#002b55;"
+    >
+
+      <h5 class="mb-0">
+        <i class="bi bi-list-ul me-2"></i>
+        Ordens de Serviço - {{ cliente.razao_social }}
+      </h5>
+
+      <a
+        href="{{ url_for('empresas.nova_os', cliente_id=cliente.id) }}"
+        class="btn btn-light btn-sm"
+      >
+        <i class="bi bi-plus-circle me-1"></i>
+        Nova O.S
+      </a>
+
+    </div>
+
+    <div class="card-body">
+
+      <div class="mb-4">
+
+        <p class="mb-1">
+          <strong>Cliente:</strong>
+          {{ cliente.razao_social }}
+        </p>
+
+        <p class="mb-1">
+          <strong>CNPJ:</strong>
+          {{ cliente.cnpj or '-' }}
+        </p>
+
+        <p class="mb-0">
+          <strong>Endereço Principal:</strong>
+          {{ cliente.endereco or '-' }}
+        </p>
+
+      </div>
+
+      {% if ordens %}
+
+      <div class="table-responsive">
+
+        <table class="table table-hover table-bordered align-middle">
+
+          <thead
+            class="text-white"
+            style="background:#002b55;"
+          >
+            <tr>
+              <th class="text-center">O.S</th>
+              <th>Tipo de Serviço</th>
+              <th>Endereço</th>
+              <th>Responsável</th>
+              <th>Status</th>
+              <th>Observação</th>
+              <th class="text-center">Ações</th>
+            </tr>
+          </thead>
+
+          <tbody>
+
+            {% for os in ordens %}
+
+            <tr>
+
+              <td class="text-center fw-semibold">
+                {{ os.numero_os }}
+              </td>
+
+              <td>
+                {{ os.tipo_servico.nome if os.tipo_servico else '-' }}
+              </td>
+
+              <td>
+                {{ os.endereco or '-' }}
+              </td>
+
+              <td>
+                {{ os.responsavel or '-' }}
+              </td>
+
+              <td class="text-center">
+                <span class="badge bg-primary">
+                  {{ os.status or 'aberta' }}
+                </span>
+              </td>
+
+              <td>
+                {{ os.observacao or '-' }}
+              </td>
+
+              <td class="text-center">
+                <a
+                  href="{{ url_for('empresas.editar_os', os_id=os.id) }}"
+                  class="btn btn-sm btn-outline-primary"
+                >
+                  <i class="bi bi-pencil-square"></i>
+                  Editar
+                </a>
+              </td>
+
+            </tr>
+
+            {% endfor %}
+
+          </tbody>
+
+        </table>
+
+      </div>
+
+      {% else %}
+
+      <div class="alert alert-light border text-center">
+        <i class="bi bi-info-circle me-2"></i>
+        Nenhuma Ordem de Serviço encontrada para este cliente.
+      </div>
+
+      {% endif %}
+
+      <div class="mt-4">
+
+        <a
+          href="{{ url_for('empresas.lista_clientes') }}"
+          class="btn btn-secondary"
+        >
+          <i class="bi bi-arrow-left me-1"></i>
+          Voltar
+        </a>
+
+      </div>
+
+    </div>
+
+  </div>
+
+</div>
+
+{% endblock %}

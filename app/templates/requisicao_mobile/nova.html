@@ -1,0 +1,372 @@
+{% extends "base_mobile.html" %}
+{% block title %}Nova Requisição{% endblock %}
+
+{% block content %}
+
+<h5 class="mb-3 text-primary">
+  📱 Nova Requisição
+</h5>
+
+<form method="post" id="formRequisicao">
+
+  <!-- TÉCNICO LOGADO -->
+  <div class="mb-3">
+    <label class="form-label fw-semibold">Técnico</label>
+    <input
+      type="text"
+      class="form-control form-control-sm"
+      value="{{ tecnico.nome }}"
+      readonly
+    >
+  </div>
+
+  <!-- TIPO SERVIÇO -->
+  <div class="mb-3">
+    <label class="form-label fw-semibold">Tipo de Serviço</label>
+    <select
+      name="tipo_servico_id"
+      id="tipo-servico-select"
+      class="form-select form-select-sm"
+      required
+    >
+      <option value="">Selecione</option>
+      {% for tipo in tipos_servico %}
+      <option value="{{ tipo.id }}">{{ tipo.nome }}</option>
+      {% endfor %}
+    </select>
+  </div>
+
+  <!-- OBS -->
+  <div class="mb-3">
+    <label class="form-label fw-semibold">Observação</label>
+    <textarea
+      name="observacao"
+      class="form-control form-control-sm"
+      rows="2"
+      placeholder="Informe uma observação, se necessário"
+    ></textarea>
+  </div>
+
+  <!-- ITENS -->
+  <h6 class="text-success mt-4">Itens da Requisição</h6>
+
+  <div class="table-responsive mb-3">
+    <table class="table table-sm table-bordered" id="tabela-itens">
+      <thead class="table-light">
+        <tr>
+          <th>Código</th>
+          <th>Descrição</th>
+          <th>Qtd</th>
+          <th></th>
+        </tr>
+      </thead>
+      <tbody></tbody>
+    </table>
+  </div>
+
+  <button
+    type="button"
+    class="btn btn-outline-primary w-100 mb-2"
+    onclick="adicionarLinha()"
+  >
+    + Adicionar Item
+  </button>
+
+  <button
+    type="button"
+    class="btn btn-success w-100"
+    onclick="abrirConfirmacaoEnvio()"
+  >
+    📤 Enviar Requisição
+  </button>
+
+</form>
+
+<!-- MODAL CONFIRMAÇÃO -->
+<div class="modal fade" id="modalConfirmacao" tabindex="-1" aria-hidden="true">
+  <div class="modal-dialog modal-dialog-centered">
+    <div class="modal-content border-0 rounded-4 shadow">
+
+      <div class="modal-header bg-warning-subtle">
+        <h5 class="modal-title fw-bold">
+          <i class="bi bi-exclamation-triangle me-2"></i>
+          Confirmar Envio
+        </h5>
+
+        <button
+          type="button"
+          class="btn-close"
+          data-bs-dismiss="modal"
+          aria-label="Fechar">
+        </button>
+      </div>
+
+      <div class="modal-body">
+        <p class="mb-2 fw-semibold">
+          Você tem certeza que deseja enviar esta requisição?
+        </p>
+
+        <p class="mb-0 text-muted small">
+          Confira o tipo de serviço, observação e itens solicitados.
+          Após o envio, a requisição será encaminhada para análise do setor responsável.
+        </p>
+      </div>
+
+      <div class="modal-footer">
+        <button
+          type="button"
+          class="btn btn-outline-secondary"
+          data-bs-dismiss="modal"
+        >
+          Cancelar
+        </button>
+
+        <button
+          type="button"
+          class="btn btn-success"
+          onclick="confirmarEnvioRequisicao()"
+        >
+          <i class="bi bi-check-circle me-2"></i>
+          Sim, Enviar
+        </button>
+      </div>
+
+    </div>
+  </div>
+</div>
+
+<script>
+
+let tipoSelecionado = "";
+let tipoEstoqueSelecionado = "empresa";
+let envioConfirmado = false;
+
+// ==================================================
+// LIMPAR ITENS AO ALTERAR TIPO DE SERVIÇO
+// ==================================================
+
+document
+  .getElementById("tipo-servico-select")
+  .addEventListener("change", function () {
+    tipoSelecionado = this.value;
+    document.querySelector("#tabela-itens tbody").innerHTML = "";
+  });
+
+// ==================================================
+// ADICIONAR ITEM
+// ==================================================
+
+function adicionarLinha() {
+
+  tipoEstoqueSelecionado = "empresa";
+  tipoSelecionado = document.getElementById("tipo-servico-select").value;
+
+  if (!tipoSelecionado) {
+    alert("Selecione o Tipo de Serviço.");
+    return;
+  }
+
+  const tbody = document.querySelector("#tabela-itens tbody");
+  const linha = document.createElement("tr");
+
+  linha.innerHTML = `
+    <td>
+      <input
+        name="codigo[]"
+        class="form-control form-control-sm codigo"
+        readonly
+      >
+    </td>
+
+    <td>
+      <select
+        name="item_id[]"
+        class="form-control form-control-sm descricao-select"
+        required
+        onchange="preencherCampos(this)"
+      >
+        <option value="">Carregando...</option>
+      </select>
+    </td>
+
+    <td>
+      <input
+        name="quantidade[]"
+        type="number"
+        min="1"
+        class="form-control form-control-sm quantidade"
+        required
+      >
+    </td>
+
+    <td>
+      <button
+        type="button"
+        class="btn btn-danger btn-sm"
+        onclick="removerLinha(this)"
+      >
+        ✕
+      </button>
+    </td>
+  `;
+
+  tbody.appendChild(linha);
+
+  carregarItens(linha.querySelector(".descricao-select"));
+}
+
+function removerLinha(btn) {
+  btn.closest("tr").remove();
+}
+
+// ==================================================
+// CARREGAR ITENS COM SALDO DO ESTOQUE EMPRESA
+// ==================================================
+
+function carregarItens(select) {
+
+  fetch(`/requisicao_mobile/api/itens/${tipoSelecionado}/${tipoEstoqueSelecionado}`)
+    .then(res => res.json())
+    .then(data => {
+
+      select.innerHTML = '<option value="">Selecione...</option>';
+
+      if (!data.itens || data.itens.length === 0) {
+        select.innerHTML = '<option value="">Nenhum item com saldo disponível</option>';
+        alert("Não existem itens com saldo disponível para este Tipo de Serviço.");
+        return;
+      }
+
+      data.itens.forEach(item => {
+
+        const opt = document.createElement("option");
+
+        opt.value = item.id;
+        opt.textContent = `${item.codigo} - ${item.descricao} (Saldo: ${item.saldo})`;
+
+        opt.dataset.codigo = item.codigo;
+        opt.dataset.unidade = item.unidade;
+        opt.dataset.saldo = item.saldo;
+
+        select.appendChild(opt);
+
+      });
+
+    })
+    .catch(() => {
+      select.innerHTML = '<option value="">Erro ao carregar itens</option>';
+    });
+}
+
+// ==================================================
+// PREENCHER CAMPOS DO ITEM
+// ==================================================
+
+function preencherCampos(select) {
+
+  const item = select.selectedOptions[0];
+  const linha = select.closest("tr");
+
+  linha.querySelector(".codigo").value = item.dataset.codigo || "";
+
+  const quantidadeInput = linha.querySelector(".quantidade");
+  const saldo = parseInt(item.dataset.saldo || 0);
+
+  quantidadeInput.max = saldo;
+
+  quantidadeInput.oninput = function () {
+    const qtd = parseInt(this.value || 0);
+
+    if (qtd > saldo) {
+      alert(`Quantidade solicitada maior que o saldo disponível. Saldo atual: ${saldo}`);
+      this.value = saldo;
+    }
+  };
+}
+
+// ==================================================
+// VALIDAR REQUISIÇÃO
+// ==================================================
+
+function validarRequisicao() {
+
+  const tipoServico = document.getElementById("tipo-servico-select").value;
+
+  const itens = document.querySelectorAll("select[name='item_id[]']");
+  const quantidades = document.querySelectorAll("input[name='quantidade[]']");
+
+  let temItemValido = false;
+
+  if (!tipoServico) {
+    alert("Selecione o Tipo de Serviço.");
+    return false;
+  }
+
+  itens.forEach((s, index) => {
+    const qtd = parseInt(quantidades[index]?.value || 0);
+    const saldo = parseInt(s.selectedOptions[0]?.dataset?.saldo || 0);
+
+    if (s.value && qtd > 0) {
+      if (qtd > saldo) {
+        alert(`Quantidade maior que saldo disponível. Saldo atual: ${saldo}`);
+        temItemValido = false;
+        return;
+      }
+
+      temItemValido = true;
+    }
+  });
+
+  if (!temItemValido) {
+    alert("Adicione pelo menos um item com quantidade válida.");
+    return false;
+  }
+
+  return true;
+}
+
+// ==================================================
+// MODAL CONFIRMAÇÃO
+// ==================================================
+
+function abrirConfirmacaoEnvio() {
+
+  if (!validarRequisicao()) {
+    return;
+  }
+
+  const modal = new bootstrap.Modal(
+    document.getElementById("modalConfirmacao")
+  );
+
+  modal.show();
+}
+
+function confirmarEnvioRequisicao() {
+
+  envioConfirmado = true;
+
+  document
+    .getElementById("formRequisicao")
+    .submit();
+}
+
+document
+  .getElementById("formRequisicao")
+  .addEventListener("submit", function(e) {
+
+    if (!validarRequisicao()) {
+      e.preventDefault();
+      return;
+    }
+
+    if (!envioConfirmado) {
+      e.preventDefault();
+      abrirConfirmacaoEnvio();
+    }
+
+});
+
+</script>
+
+{% endblock %}

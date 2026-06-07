@@ -1,0 +1,237 @@
+{% extends 'base.html' %}
+
+{% block content %}
+
+<style>
+  .page-header {
+    background: linear-gradient(135deg, #002b55, #163b63);
+    color: white;
+    border-radius: 14px;
+    padding: 22px 26px;
+    margin-bottom: 24px;
+    box-shadow: 0 6px 18px rgba(0,43,85,.18);
+  }
+
+  .page-header h4 {
+    margin: 0;
+    font-weight: 700;
+  }
+
+  .form-card {
+    background: #fff;
+    border-radius: 14px;
+    border: 1px solid #e5e7eb;
+    box-shadow: 0 6px 18px rgba(15,39,66,.08);
+  }
+
+  .form-label {
+    font-weight: 600;
+    color: #374151;
+  }
+
+  .section-title {
+    font-size: .9rem;
+    font-weight: 700;
+    color: #002b55;
+    text-transform: uppercase;
+    border-bottom: 1px solid #e5e7eb;
+    padding-bottom: 8px;
+    margin-bottom: 18px;
+  }
+
+  .info-box {
+    background: #f8fafc;
+    border: 1px solid #dbe4ee;
+    border-left: 4px solid #002b55;
+    border-radius: 10px;
+    padding: 14px 16px;
+    font-size: .9rem;
+    color: #334155;
+  }
+
+  .btn-elegant {
+    background: #002b55;
+    color: white;
+    border: none;
+    font-weight: 600;
+  }
+
+  .btn-elegant:hover {
+    background: #001f3f;
+    color: white;
+  }
+
+  .text-help {
+    font-size: .8rem;
+    color: #6b7280;
+    margin-top: 4px;
+  }
+</style>
+
+<div class="container-fluid mt-4">
+
+  <div class="page-header">
+    <h4>
+      <i class="bi bi-tools me-2"></i>
+      Nova Manutenção
+    </h4>
+    <small>
+      Registre manutenções preventivas, corretivas, revisões e serviços realizados nos veículos.
+    </small>
+  </div>
+
+  <div class="card form-card">
+    <div class="card-body p-4">
+
+      <div class="info-box mb-4">
+        <strong>Orientação:</strong>
+        informe o veículo, o tipo de manutenção, a data e descreva na observação o que foi executado.
+        Exemplo: troca de óleo, filtro, pneus, freios, revisão elétrica ou serviço corretivo.
+      </div>
+
+      <form method="POST" action="{{ url_for('frota.nova_manutencao') }}">
+
+        <div class="section-title">
+          Dados da Manutenção
+        </div>
+
+        <div class="row g-3">
+
+          <div class="col-md-4">
+            <label class="form-label">Veículo *</label>
+            <select name="veiculo_id" class="form-select" required>
+              <option value="">Selecione o veículo</option>
+
+              {% for veiculo in veiculos %}
+                <option value="{{ veiculo.id }}">
+                  {{ veiculo.placa }} - {{ veiculo.marca }} {{ veiculo.modelo }}
+                </option>
+              {% endfor %}
+            </select>
+          </div>
+
+          <div class="col-md-4">
+            <label class="form-label">Tipo de Manutenção *</label>
+            <select name="tipo_manutencao" class="form-select" required>
+              <option value="">Selecione</option>
+              <option value="Troca de Óleo">Troca de Óleo</option>
+              <option value="Pneus">Pneus</option>
+              <option value="Freios">Freios</option>
+              <option value="Revisão Preventiva">Revisão Preventiva</option>
+              <option value="Manutenção Corretiva">Manutenção Corretiva</option>
+              <option value="Alinhamento">Alinhamento</option>
+              <option value="Balanceamento">Balanceamento</option>
+              <option value="Elétrica">Elétrica</option>
+              <option value="Outro">Outro</option>
+            </select>
+          </div>
+
+          <div class="col-md-4">
+            <label class="form-label">Data *</label>
+            <input
+              type="date"
+              name="data_manutencao"
+              class="form-control"
+              required
+            >
+          </div>
+
+          <div class="col-md-3">
+            <label class="form-label">Quilometragem</label>
+            <input
+              type="number"
+              name="quilometragem"
+              class="form-control"
+              min="0"
+              placeholder="Ex: 15200"
+            >
+            <div class="text-help">
+              Atualiza o KM do veículo se for maior que o atual.
+            </div>
+          </div>
+
+          <div class="col-md-3">
+            <label class="form-label">Valor</label>
+            <input
+              type="text"
+              name="valor"
+              class="form-control"
+              placeholder="Ex: 350,00"
+            >
+          </div>
+
+          <div class="col-md-3">
+            <label class="form-label">Oficina / Prestador</label>
+            <input
+              type="text"
+              name="oficina"
+              class="form-control"
+              placeholder="Nome da oficina"
+            >
+          </div>
+
+          <div class="col-md-3">
+            <label class="form-label">Responsável</label>
+            <input
+              type="text"
+              name="responsavel"
+              class="form-control"
+              placeholder="Quem acompanhou"
+            >
+          </div>
+
+          <div class="col-12">
+            <label class="form-label">Detalhes do Serviço Executado</label>
+            <textarea
+              name="observacao"
+              rows="5"
+              class="form-control"
+              placeholder="Ex: Troca de óleo 10W40, filtro de óleo, revisão dos freios, alinhamento e balanceamento..."
+            ></textarea>
+            <div class="text-help">
+              Esse campo é importante porque aparece no histórico e no PDF.
+            </div>
+          </div>
+
+        </div>
+
+        <hr class="my-4">
+
+        <div class="d-flex justify-content-between gap-2 flex-wrap">
+
+          <a
+            href="{{ url_for('frota.historico_manutencao') }}"
+            class="btn btn-outline-secondary"
+          >
+            <i class="bi bi-arrow-left me-1"></i>
+            Voltar
+          </a>
+
+          <div class="d-flex gap-2">
+            <button
+              type="reset"
+              class="btn btn-outline-warning"
+            >
+              <i class="bi bi-eraser me-1"></i>
+              Limpar
+            </button>
+
+            <button
+              type="submit"
+              class="btn btn-elegant"
+            >
+              <i class="bi bi-check-circle me-1"></i>
+              Salvar Manutenção
+            </button>
+          </div>
+
+        </div>
+
+      </form>
+
+    </div>
+  </div>
+
+</div>
+
+{% endblock %}

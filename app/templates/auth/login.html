@@ -1,38 +1,53 @@
-{% extends 'base.html' %} {% block content %}
+{% extends 'base.html' %}
+
+{% block content %}
+
 <div class="d-flex justify-content-center align-items-center vh-100 bg-light">
   <div
     class="card shadow-lg rounded-4 border-0"
-    style="width: 100%; max-width: 420px"
+    style="width: 100%; max-width: 420px;"
   >
     <div class="card-body p-4">
+
       <div class="text-center mb-4">
-        <h3 class="fw-bold text-primary">🔐 Acesso ao Sistema</h3>
-        <p class="text-muted mb-0" style="font-size: 0.95rem">
+        <h3 class="fw-bold text-primary">
+          🔐 Acesso ao Sistema
+        </h3>
+
+        <p class="text-muted mb-0" style="font-size: 0.95rem;">
           Informe seus dados para entrar
         </p>
       </div>
 
       <!-- Alertas -->
-      {% with messages = get_flashed_messages(with_categories=true) %} {% if
-      messages %} {% for category, message in messages %}
-      <div
-        class="alert alert-{{ category }} alert-dismissible fade show"
-        role="alert"
-      >
-        {{ message }}
-        <button
-          type="button"
-          class="btn-close"
-          data-bs-dismiss="alert"
-          aria-label="Fechar"
-        ></button>
-      </div>
-      {% endfor %} {% endif %} {% endwith %}
+      {% with messages = get_flashed_messages(with_categories=true) %}
+        {% if messages %}
+          {% for category, message in messages %}
+            <div
+              class="alert alert-{{ category }} alert-dismissible fade show"
+              role="alert"
+            >
+              {{ message }}
+
+              <button
+                type="button"
+                class="btn-close"
+                data-bs-dismiss="alert"
+                aria-label="Fechar"
+              ></button>
+            </div>
+          {% endfor %}
+        {% endif %}
+      {% endwith %}
 
       <!-- Formulário -->
       <form method="POST" action="{{ url_for('auth.login') }}">
+
         <div class="mb-3">
-          <label for="email" class="form-label fw-semibold">Email</label>
+          <label for="email" class="form-label fw-semibold">
+            Email
+          </label>
+
           <input
             type="email"
             id="email"
@@ -41,10 +56,14 @@
             placeholder="seu@email.com"
             required
             autofocus
-          />
+          >
         </div>
+
         <div class="mb-3">
-          <label for="senha" class="form-label fw-semibold">Senha</label>
+          <label for="senha" class="form-label fw-semibold">
+            Senha
+          </label>
+
           <input
             type="password"
             id="senha"
@@ -52,30 +71,26 @@
             class="form-control form-control-sm"
             placeholder="••••••••"
             required
-          />
+          >
         </div>
+
         <div class="d-grid mt-3">
-          <button type="submit" class="btn btn-primary fw-semibold">
+          <button
+            type="submit"
+            class="btn btn-primary fw-semibold"
+          >
             Entrar
           </button>
         </div>
+
       </form>
 
       <div class="text-center mt-3">
-        <small class="text-muted"
-          >Não tem conta?
-          <a href="{{ url_for('auth.registro') }}" class="text-decoration-none"
-            >Registre-se</a
-          >
-        </small>
-      </div>
-
-      <div class="text-center mt-3">
-        <a href="{{ url_for('login_tecnico') }}" class="text-decoration-none">
-          🔧 Acesso Técnico (Mobile)
+        <a
+          href="{{ url_for('auth.esqueci_senha') }}"
+          class="text-decoration-none"
+        >
+          Esqueci minha senha
         </a>
       </div>
-    </div>
-  </div>
-</div>
 {% endblock %}

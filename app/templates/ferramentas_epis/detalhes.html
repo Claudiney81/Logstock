@@ -1,0 +1,281 @@
+{% extends "base.html" %}
+{% block content %}
+
+<div class="container mt-4">
+
+  <div class="card shadow-sm border-0">
+
+    <div class="card-header text-white d-flex justify-content-between align-items-center"
+         style="background:#002b55;">
+
+      <h5 class="mb-0 fw-semibold">
+        <i class="bi bi-file-earmark-text me-2"></i>
+        Detalhes da Transferência
+      </h5>
+
+      <a href="{{ url_for('ferramentas_epis.historico') }}"
+         class="btn btn-light btn-sm">
+        <i class="bi bi-arrow-left me-1"></i>
+        Voltar
+      </a>
+
+    </div>
+
+    <div class="card-body">
+
+      <!-- DADOS GERAIS -->
+      <div class="row g-3 mb-4">
+
+        <div class="col-md-3">
+          <small class="text-muted">Data</small><br>
+          <strong>
+            {{ historico.data_hora.strftime('%d/%m/%Y %H:%M') if historico.data_hora else '-' }}
+          </strong>
+        </div>
+
+        <div class="col-md-3">
+          <small class="text-muted">Técnico</small><br>
+          <strong>
+            {{ historico.tecnico.nome if historico.tecnico else '-' }}
+          </strong>
+        </div>
+
+        <div class="col-md-3">
+          <small class="text-muted">Movimento</small><br>
+          <strong>
+            {% if historico.tipo_movimentacao == 'saida' %}
+              Saída - Empresa para Técnico
+            {% elif historico.tipo_movimentacao == 'retorno' %}
+              Retorno - Técnico para Empresa
+            {% else %}
+              {{ historico.tipo_movimentacao or '-' }}
+            {% endif %}
+          </strong>
+        </div>
+
+        <div class="col-md-3">
+          <small class="text-muted">Status</small><br>
+          <strong>{{ historico.status or '-' }}</strong>
+        </div>
+
+      </div>
+
+      <hr>
+
+      <!-- ITENS -->
+      <h6 class="fw-semibold mb-3">
+        <i class="bi bi-box-seam me-2"></i>
+        Itens da Transferência
+      </h6>
+
+      <div class="table-responsive mb-4">
+
+        <table class="table table-sm table-bordered align-middle">
+
+          <thead class="table-light">
+            <tr>
+              <th>Código</th>
+              <th>Descrição</th>
+              <th>Categoria</th>
+              <th class="text-center">Qtd</th>
+              <th class="text-end">Valor Unit.</th>
+              <th class="text-end">Valor Total</th>
+            </tr>
+          </thead>
+
+          <tbody>
+
+            {% for item_hist in itens_historico %}
+
+            <tr>
+              <td>
+                {{ item_hist.item.codigo if item_hist.item else '-' }}
+              </td>
+
+              <td>
+                {{ item_hist.item.descricao if item_hist.item else '-' }}
+              </td>
+
+              <td>
+                {% if item_hist.categoria == 'epi' %}
+                  EPI
+                {% else %}
+                  {{ item_hist.categoria|capitalize }}
+                {% endif %}
+              </td>
+
+              <td class="text-center">
+                {{ item_hist.quantidade or 0 }}
+              </td>
+
+              <td class="text-end">
+                R$ {{ "%.2f"|format(item_hist.valor_unitario or 0)|replace('.', ',') }}
+              </td>
+
+              <td class="text-end">
+                R$ {{ "%.2f"|format(item_hist.valor_total or 0)|replace('.', ',') }}
+              </td>
+            </tr>
+
+            {% else %}
+
+            <tr>
+              <td colspan="6" class="text-center text-muted">
+                Nenhum item encontrado para esta transferência.
+              </td>
+            </tr>
+
+            {% endfor %}
+
+          </tbody>
+
+        </table>
+
+      </div>
+
+      <!-- MOTIVO / OBSERVAÇÃO -->
+      <div class="row g-3 mb-4">
+
+        <div class="col-md-6">
+          <small class="text-muted">Motivo</small><br>
+          <strong>{{ historico.motivo or '-' }}</strong>
+        </div>
+
+        <div class="col-md-6">
+          <small class="text-muted">Observação</small><br>
+          <strong>{{ historico.observacao or '-' }}</strong>
+        </div>
+
+      </div>
+
+      <hr>
+
+      <!-- ASSINATURAS -->
+      <h6 class="fw-semibold mb-3">
+        <i class="bi bi-pen me-2"></i>
+        Assinaturas
+      </h6>
+
+      <div class="border rounded p-3 mb-4 bg-light">
+
+        <div class="row g-4">
+
+          <div class="col-md-6">
+
+            <div class="border rounded bg-white p-3 text-center h-100">
+
+              <p class="fw-semibold mb-3">
+                Assinatura do Técnico
+              </p>
+
+              {% if historico.assinatura_tecnico %}
+
+                <img src="{{ historico.assinatura_tecnico }}"
+                     class="img-fluid"
+                     style="width:100%; max-height:120px; object-fit:contain;">
+
+              {% else %}
+
+                <div class="d-flex align-items-center justify-content-center"
+                     style="height:120px;">
+                  <span class="text-muted small">
+                    Não assinada
+                  </span>
+                </div>
+
+              {% endif %}
+
+            </div>
+
+          </div>
+
+          <div class="col-md-6">
+
+            <div class="border rounded bg-white p-3 text-center h-100">
+
+              <p class="fw-semibold mb-3">
+                Assinatura Almoxarifado / Logística
+              </p>
+
+              {% if historico.assinatura_logistica %}
+
+                <img src="{{ historico.assinatura_logistica }}"
+                     class="img-fluid"
+                     style="width:100%; max-height:120px; object-fit:contain;">
+
+              {% else %}
+
+                <div class="d-flex align-items-center justify-content-center"
+                     style="height:120px;">
+                  <span class="text-muted small">
+                    Não assinada
+                  </span>
+                </div>
+
+              {% endif %}
+
+            </div>
+
+          </div>
+
+        </div>
+
+      </div>
+
+      <!-- PDF / EMAIL -->
+      <div class="row g-3 mb-4">
+
+        <div class="col-md-6">
+          <small class="text-muted">Termo PDF</small><br>
+
+          {% if historico.termo_pdf %}
+            <strong>{{ historico.termo_pdf }}</strong>
+          {% else %}
+            <span class="text-muted">Ainda não gerado</span>
+          {% endif %}
+        </div>
+
+        <div class="col-md-6">
+          <small class="text-muted">E-mail</small><br>
+
+          {% if historico.email_enviado %}
+            <strong>Enviado</strong>
+          {% else %}
+            <span class="text-muted">Pendente</span>
+          {% endif %}
+        </div>
+
+      </div>
+
+      <!-- BOTÕES -->
+      <div class="d-flex flex-wrap gap-2">
+
+        <a href="{{ url_for('ferramentas_epis.historico') }}"
+           class="btn btn-outline-secondary">
+          <i class="bi bi-arrow-left me-1"></i>
+          Voltar
+        </a>
+
+        <a href="{{ url_for('ferramentas_epis.gerar_termo', id=historico.id) }}"
+           class="btn btn-primary"
+           target="_blank">
+          <i class="bi bi-file-earmark-pdf me-1"></i>
+          Gerar Termo PDF
+        </a>
+
+        <button type="button"
+                onclick="window.print()"
+                class="btn btn-outline-dark">
+          <i class="bi bi-printer me-1"></i>
+          Imprimir
+        </button>
+
+      </div>
+
+    </div>
+
+  </div>
+
+</div>
+
+{% endblock %}

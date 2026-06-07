@@ -1,0 +1,431 @@
+{% extends 'base.html' %}
+
+{% block content %}
+
+<style>
+  .page-header {
+    background: linear-gradient(135deg, #002b55, #163b63);
+    color: white;
+    border-radius: 14px;
+    padding: 22px 26px;
+    margin-bottom: 24px;
+    box-shadow: 0 6px 18px rgba(0, 43, 85, .18);
+  }
+
+  .page-header h4 {
+    margin: 0;
+    font-weight: 700;
+  }
+
+  .page-header small {
+    opacity: .9;
+  }
+
+  .filter-card,
+  .table-card,
+  .summary-card {
+    background: #fff;
+    border-radius: 14px;
+    border: 1px solid #e5e7eb;
+    box-shadow: 0 6px 18px rgba(15, 39, 66, .08);
+  }
+
+  .summary-card {
+    padding: 18px;
+    height: 100%;
+  }
+
+  .summary-title {
+    font-size: .78rem;
+    text-transform: uppercase;
+    color: #64748b;
+    font-weight: 700;
+    margin-bottom: 6px;
+  }
+
+  .summary-value {
+    font-size: 1.7rem;
+    font-weight: 800;
+    color: #002b55;
+    line-height: 1;
+  }
+
+  .summary-icon {
+    width: 42px;
+    height: 42px;
+    border-radius: 12px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: #eef6ff;
+    color: #002b55;
+    font-size: 1.25rem;
+  }
+
+  .table thead th {
+    background: #002b55;
+    color: white;
+    text-align: center;
+    vertical-align: middle;
+    font-size: .86rem;
+    white-space: nowrap;
+  }
+
+  .table tbody td {
+    vertical-align: middle;
+    text-align: center;
+    font-size: .88rem;
+  }
+
+  .placa-box {
+    display: inline-block;
+    background: #f8fafc;
+    border: 1px solid #cbd5e1;
+    border-radius: 8px;
+    padding: 5px 10px;
+    font-weight: 800;
+    color: #111827;
+    letter-spacing: .5px;
+  }
+
+  .badge-status {
+    display: inline-block;
+    min-width: 110px;
+    padding: 6px 10px;
+    border-radius: 8px;
+    font-size: .78rem;
+    font-weight: 700;
+  }
+
+  .status-ativo {
+    background: #d1fae5;
+    color: #065f46;
+  }
+
+  .status-manutencao {
+    background: #fef3c7;
+    color: #92400e;
+  }
+
+  .status-inativo {
+    background: #fee2e2;
+    color: #991b1b;
+  }
+
+  .btn-elegant {
+    background: #002b55;
+    color: white;
+    border: none;
+    font-weight: 600;
+  }
+
+  .btn-elegant:hover {
+    background: #001f3f;
+    color: white;
+  }
+
+  .empty-state {
+    padding: 60px 20px;
+    color: #64748b;
+  }
+
+  .empty-state i {
+    font-size: 3rem;
+    color: #94a3b8;
+  }
+</style>
+
+<div class="container-fluid mt-4">
+
+  {% set total_veiculos = veiculos|length %}
+  {% set total_ativos = veiculos|selectattr('status', 'equalto', 'ativo')|list|length %}
+  {% set total_manutencao = veiculos|selectattr('status', 'equalto', 'em manutencao')|list|length %}
+  {% set total_inativos = veiculos|selectattr('status', 'equalto', 'inativo')|list|length %}
+
+  <div class="page-header d-flex justify-content-between align-items-center flex-wrap gap-2">
+
+    <div>
+      <h4>
+        <i class="bi bi-truck-front me-2"></i>
+        Veículos Cadastrados
+      </h4>
+      <small>
+        Consulta, acompanhamento e gestão dos veículos cadastrados na frota.
+      </small>
+    </div>
+
+    <a
+      href="{{ url_for('frota.cadastrar_veiculo') }}"
+      class="btn btn-light fw-semibold"
+    >
+      <i class="bi bi-plus-circle me-1"></i>
+      Novo Veículo
+    </a>
+
+  </div>
+
+  <div class="row g-3 mb-4">
+
+    <div class="col-md-3">
+      <div class="summary-card d-flex justify-content-between align-items-center">
+        <div>
+          <div class="summary-title">Total de Veículos</div>
+          <div class="summary-value">{{ total_veiculos }}</div>
+        </div>
+        <div class="summary-icon">
+          <i class="bi bi-truck-front"></i>
+        </div>
+      </div>
+    </div>
+
+    <div class="col-md-3">
+      <div class="summary-card d-flex justify-content-between align-items-center">
+        <div>
+          <div class="summary-title">Ativos</div>
+          <div class="summary-value">{{ total_ativos }}</div>
+        </div>
+        <div class="summary-icon">
+          <i class="bi bi-check-circle"></i>
+        </div>
+      </div>
+    </div>
+
+    <div class="col-md-3">
+      <div class="summary-card d-flex justify-content-between align-items-center">
+        <div>
+          <div class="summary-title">Em Manutenção</div>
+          <div class="summary-value">{{ total_manutencao }}</div>
+        </div>
+        <div class="summary-icon">
+          <i class="bi bi-tools"></i>
+        </div>
+      </div>
+    </div>
+
+    <div class="col-md-3">
+      <div class="summary-card d-flex justify-content-between align-items-center">
+        <div>
+          <div class="summary-title">Inativos</div>
+          <div class="summary-value">{{ total_inativos }}</div>
+        </div>
+        <div class="summary-icon">
+          <i class="bi bi-x-circle"></i>
+        </div>
+      </div>
+    </div>
+
+  </div>
+
+  <div class="card filter-card mb-4">
+    <div class="card-body p-4">
+
+      <form method="GET">
+
+        <div class="row g-3 align-items-end">
+
+          <div class="col-md-5">
+            <label class="form-label fw-semibold">Buscar</label>
+            <input
+              type="text"
+              name="busca"
+              class="form-control"
+              placeholder="Placa, marca, modelo ou responsável"
+              value="{{ busca or '' }}"
+            >
+          </div>
+
+          <div class="col-md-3">
+            <label class="form-label fw-semibold">Status</label>
+            <select name="status" class="form-select">
+              <option value="">Todos</option>
+
+              <option value="ativo" {% if status == 'ativo' %}selected{% endif %}>
+                Ativo
+              </option>
+
+              <option value="em manutencao" {% if status == 'em manutencao' %}selected{% endif %}>
+                Em manutenção
+              </option>
+
+              <option value="inativo" {% if status == 'inativo' %}selected{% endif %}>
+                Inativo
+              </option>
+            </select>
+          </div>
+
+          <div class="col-md-2 d-grid">
+            <button type="submit" class="btn btn-elegant">
+              <i class="bi bi-search me-1"></i>
+              Filtrar
+            </button>
+          </div>
+
+          <div class="col-md-2 d-grid">
+            <a
+              href="{{ url_for('frota.listar_veiculos') }}"
+              class="btn btn-outline-secondary"
+            >
+              <i class="bi bi-x-circle me-1"></i>
+              Limpar
+            </a>
+          </div>
+
+        </div>
+
+      </form>
+
+    </div>
+  </div>
+
+  <div class="card table-card">
+    <div class="card-body p-4">
+
+      {% if veiculos %}
+
+        <div class="d-flex justify-content-between align-items-center flex-wrap gap-2 mb-3">
+          <h6 class="mb-0 fw-bold text-primary">
+            <i class="bi bi-list-ul me-1"></i>
+            Relação de Veículos
+          </h6>
+
+          <small class="text-muted">
+            {{ veiculos|length }} registro(s) encontrado(s)
+          </small>
+        </div>
+
+        <div class="table-responsive">
+          <table class="table table-hover table-bordered align-middle">
+
+            <thead>
+              <tr>
+                <th>Placa</th>
+                <th>Veículo</th>
+                <th>Ano</th>
+                <th>Tipo</th>
+                <th>KM Atual</th>
+                <th>Responsável</th>
+                <th>Status</th>
+                <th width="130">Ações</th>
+              </tr>
+            </thead>
+
+            <tbody>
+
+              {% for veiculo in veiculos %}
+                <tr>
+
+                  <td>
+                    <span class="placa-box">
+                      {{ veiculo.placa }}
+                    </span>
+                  </td>
+
+                  <td class="text-start">
+                    <strong>{{ veiculo.marca }} {{ veiculo.modelo }}</strong>
+                    {% if veiculo.cor %}
+                      <br>
+                      <small class="text-muted">
+                        Cor: {{ veiculo.cor }}
+                      </small>
+                    {% endif %}
+                  </td>
+
+                  <td>
+                    {{ veiculo.ano or '-' }}
+                  </td>
+
+                  <td>
+                    {{ veiculo.tipo or '-' }}
+                  </td>
+
+                  <td>
+                    <strong>
+                      {{ "{:,}".format(veiculo.quilometragem_atual or 0).replace(",", ".") }}
+                    </strong>
+                    <small class="text-muted">km</small>
+                  </td>
+
+                  <td>
+                    {{ veiculo.responsavel or '-' }}
+                  </td>
+
+                  <td>
+                    {% if veiculo.status == 'ativo' %}
+                      <span class="badge-status status-ativo">
+                        Ativo
+                      </span>
+
+                    {% elif veiculo.status == 'em manutencao' %}
+                      <span class="badge-status status-manutencao">
+                        Em manutenção
+                      </span>
+
+                    {% else %}
+                      <span class="badge-status status-inativo">
+                        Inativo
+                      </span>
+                    {% endif %}
+                  </td>
+
+                  <td>
+                    <div class="d-flex justify-content-center gap-2">
+
+                      <a
+                        href="{{ url_for('frota.editar_veiculo', veiculo_id=veiculo.id) }}"
+                        class="btn btn-sm btn-outline-primary"
+                        title="Editar"
+                      >
+                        <i class="bi bi-pencil"></i>
+                      </a>
+
+                      <form
+                        method="POST"
+                        action="{{ url_for('frota.excluir_veiculo', veiculo_id=veiculo.id) }}"
+                        onsubmit="return confirm('Deseja excluir este veículo?');"
+                      >
+                        <button
+                          type="submit"
+                          class="btn btn-sm btn-outline-danger"
+                          title="Excluir"
+                        >
+                          <i class="bi bi-trash"></i>
+                        </button>
+                      </form>
+
+                    </div>
+                  </td>
+
+                </tr>
+              {% endfor %}
+
+            </tbody>
+
+          </table>
+        </div>
+
+      {% else %}
+
+        <div class="text-center empty-state">
+          <i class="bi bi-truck d-block mb-3"></i>
+          <h6 class="fw-bold">Nenhum veículo encontrado</h6>
+          <p class="mb-3">
+            Não há veículos cadastrados ou nenhum registro corresponde aos filtros informados.
+          </p>
+
+          <a
+            href="{{ url_for('frota.cadastrar_veiculo') }}"
+            class="btn btn-elegant"
+          >
+            <i class="bi bi-plus-circle me-1"></i>
+            Cadastrar Veículo
+          </a>
+        </div>
+
+      {% endif %}
+
+    </div>
+  </div>
+
+</div>
+
+{% endblock %}

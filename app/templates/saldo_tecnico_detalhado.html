@@ -1,93 +1,278 @@
 {% extends 'base.html' %}
+
 {% block content %}
-<div class="container mt-4">
-  {% with messages = get_flashed_messages(with_categories=true) %}
-    {% if messages %}
-      {% for category, message in messages %}
-        <div class="alert alert-{{ category }} alert-dismissible fade show" role="alert">
-          {{ message }}
-          <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Fechar"></button>
-        </div>
-      {% endfor %}
-    {% endif %}
-  {% endwith %}
+<div class="container-fluid mt-4">
 
-  <div class="d-flex justify-content-between align-items-center mb-4">
-    <div>
-      <h3 class="fw-bold mb-0">
-        <i class="bi bi-person-badge"></i> Saldo Técnico: {{ tecnico.nome }}
-      </h3>
-      <p class="mb-0 text-muted">
-        <strong>Área Técnica:</strong> {{ tecnico.area_tecnica }}
-      </p>
-    </div>
-    <a href="{{ url_for('saldo_tecnico.exportar_saldo_tecnico', id_tecnico=tecnico.id, tipo_servico_id=tipo_servico_id) }}" 
-       class="btn btn-success">
-      <i class="bi bi-file-earmark-excel"></i> Exportar Saldo
-    </a>
-  </div>
+  <div class="card shadow-sm border-0">
 
-  <!-- Filtro -->
-  <form method="GET" action="{{ url_for('saldo_tecnico.saldo_detalhado', id_tecnico=tecnico.id) }}" class="mb-3">
-    <div class="row">
-      <div class="col-md-4">
-        <label class="form-label">Tipo de Serviço</label>
-        <select name="tipo_servico_id" class="form-select" onchange="this.form.submit()">
-          <option value="">Todos</option>
-          {% for tipo in tipos_servico %}
-            <option value="{{ tipo.id }}" {% if tipo.id == tipo_servico_id %}selected{% endif %}>{{ tipo.nome }}</option>
-          {% endfor %}
-        </select>
+    <div class="card-header text-white d-flex justify-content-between align-items-center" style="background-color: #002b55;">
+      <div>
+        <h5 class="fw-bold mb-1">
+          <i class="bi bi-person-badge me-2"></i>
+          Saldo Técnico: {{ tecnico.nome }}
+        </h5>
+        <small>
+          <strong>Função:</strong> {{ tecnico.funcao or '-' }}
+        </small>
       </div>
+
+      <a
+        href="{{ url_for(
+          'saldo_tecnico.exportar_saldo_tecnico',
+          id_tecnico=tecnico.id,
+          tipo_servico_id=tipo_servico_id,
+          tipo_estoque=tipo_estoque,
+          cliente_id=cliente_id,
+          ordem_servico_id=ordem_servico_id
+        ) }}"
+        class="btn btn-success"
+      >
+        <i class="bi bi-file-earmark-excel"></i>
+        Exportar Saldo
+      </a>
     </div>
-  </form>
 
-  <style>
-    .tabela-container {
-      max-height: 65vh;
-      overflow-y: auto;
-    }
-    .tabela-container table thead th {
-      position: sticky;
-      top: 0;
-      z-index: 1000;
-      background: #002b55;
-      color: white;
-    }
-  </style>
+    <div class="card-body">
 
-  <!-- Tabela com rolagem interna -->
-  <div class="tabela-container shadow-sm rounded">
-    <table class="table table-hover align-middle mb-0">
-      <thead>
-        <tr>
-          <th>Código</th>
-          <th class="text-start">Descrição</th>
-          <th>Unidade</th>
-          <th>Saldo Atual</th>
-        </tr>
-      </thead>
-      <tbody>
-        {% for saldo in saldos %}
-        <tr>
-          <td>{{ saldo.codigo }}</td>
-          <td class="text-start">{{ saldo.descricao }}</td>
-          <td>{{ saldo.unidade }}</td>
-          <td class="saldo-valor">{{ saldo.quantidade }}</td>
-        </tr>
-        {% else %}
-        <tr>
-          <td colspan="4" class="text-center">Nenhum item encontrado.</td>
-        </tr>
-        {% endfor %}
-      </tbody>
-    </table>
-  </div>
+      <form
+        id="form-filtros"
+        method="GET"
+        action="{{ url_for('saldo_tecnico.saldo_detalhado', id_tecnico=tecnico.id) }}"
+        class="mb-4"
+      >
 
-  <div class="mt-3">
-    <a href="{{ url_for('saldo_tecnico.exibir_saldo') }}" class="btn btn-secondary">
-      <i class="bi bi-arrow-left"></i> Voltar
-    </a>
+        <div class="row g-3">
+
+          <div class="col-md-3">
+            <label class="form-label fw-bold">Tipo de Estoque</label>
+            <select
+              name="tipo_estoque"
+              class="form-select shadow-sm"
+              onchange="aplicarFiltros()"
+            >
+              <option value="todos" {% if tipo_estoque == 'todos' %}selected{% endif %}>Todos</option>
+              <option value="empresa" {% if tipo_estoque == 'empresa' %}selected{% endif %}>Estoque Empresa</option>
+              <option value="cliente" {% if tipo_estoque == 'cliente' %}selected{% endif %}>Estoque Cliente</option>
+            </select>
+          </div>
+
+          <div class="col-md-3">
+            <label class="form-label fw-bold">Tipo de Serviço</label>
+            <select
+              name="tipo_servico_id"
+              class="form-select shadow-sm"
+              onchange="aplicarFiltros()"
+            >
+              <option value="todos" {% if tipo_servico_id == 'todos' %}selected{% endif %}>Todos</option>
+
+              {% for tipo in tipos_servico %}
+              <option
+                value="{{ tipo.id }}"
+                {% if tipo_servico_id|string == tipo.id|string %}selected{% endif %}
+              >
+                {{ tipo.nome }}
+              </option>
+              {% endfor %}
+            </select>
+          </div>
+
+          {% if tipo_estoque == 'cliente' %}
+          <div class="col-md-3">
+            <label class="form-label fw-bold">Cliente</label>
+            <select
+              name="cliente_id"
+              class="form-select shadow-sm"
+              onchange="aplicarFiltros()"
+            >
+              <option value="">Todos / Sem Cliente</option>
+
+              {% for cliente in clientes %}
+              <option
+                value="{{ cliente.id }}"
+                {% if cliente.id == cliente_id %}selected{% endif %}
+              >
+                {{ cliente.razao_social }}
+              </option>
+              {% endfor %}
+            </select>
+          </div>
+
+          {% if cliente_id and ordens_servico %}
+          <div class="col-md-3">
+            <label class="form-label fw-bold">Ordem de Serviço</label>
+            <select
+              name="ordem_servico_id"
+              class="form-select shadow-sm"
+              onchange="aplicarFiltros()"
+            >
+              <option value="">Selecione a O.S</option>
+
+              {% for os in ordens_servico %}
+              <option
+                value="{{ os.id }}"
+                {% if os.id == ordem_servico_id %}selected{% endif %}
+              >
+                {{ os.numero_os }}
+              </option>
+              {% endfor %}
+            </select>
+          </div>
+          {% endif %}
+          {% endif %}
+
+        </div>
+
+      </form>
+
+      <!-- PESQUISA -->
+      <div class="row mb-3">
+        <div class="col-md-6">
+          <label class="form-label fw-bold">
+            Pesquisar Item
+          </label>
+
+          <input
+            type="text"
+            id="pesquisaSaldoTecnico"
+            class="form-control shadow-sm"
+            placeholder="Digite código ou descrição..."
+            onkeyup="filtrarSaldoTecnico()"
+          >
+        </div>
+      </div>
+
+      <div class="tabela-container shadow-sm rounded">
+        <table class="table table-hover align-middle mb-0">
+
+          <thead>
+            <tr>
+              <th>Código</th>
+              <th class="text-start">Descrição</th>
+              <th>Unidade de Medida</th>
+              <th>Saldo Atual</th>
+              <th>Mínimo</th>
+              <th>Reposição</th>
+            </tr>
+          </thead>
+
+          <tbody>
+
+            {% for saldo in saldos %}
+
+            {% set atual = saldo.quantidade or 0 %}
+            {% set minimo = saldo.quantidade_minima or 0 %}
+            {% set reposicao = minimo - atual if atual < minimo else 0 %}
+
+            <tr>
+              <td class="text-center">{{ saldo.codigo }}</td>
+              <td class="text-start">{{ saldo.descricao }}</td>
+              <td class="text-center">{{ saldo.unidade }}</td>
+
+              <td class="text-center fw-bold">
+                {% if minimo > 0 and atual < minimo %}
+                  <span class="badge bg-danger fs-6">{{ atual }}</span>
+                {% elif minimo > 0 and atual == minimo %}
+                  <span class="badge bg-warning text-dark fs-6">{{ atual }}</span>
+                {% else %}
+                  <span class="badge bg-success fs-6">{{ atual }}</span>
+                {% endif %}
+              </td>
+
+              <td class="text-center">
+                {{ minimo }}
+              </td>
+
+              <td class="text-center fw-bold">
+                {% if reposicao > 0 %}
+                  <span class="badge bg-danger">
+                    Repor {{ reposicao }}
+                  </span>
+                {% else %}
+                  <span class="badge bg-success">
+                    OK
+                  </span>
+                {% endif %}
+              </td>
+            </tr>
+
+            {% else %}
+            <tr>
+              <td colspan="6" class="text-center text-muted py-4">
+                Nenhum item encontrado.
+              </td>
+            </tr>
+            {% endfor %}
+
+          </tbody>
+
+        </table>
+      </div>
+
+      <div class="mt-4">
+        <a href="{{ url_for('saldo_tecnico.exibir_saldo') }}" class="btn btn-secondary">
+          <i class="bi bi-arrow-left"></i>
+          Voltar
+        </a>
+      </div>
+
+    </div>
   </div>
 </div>
+
+<script>
+
+function aplicarFiltros() {
+
+  const form = document.getElementById("form-filtros");
+
+  if (!form) return;
+
+  sessionStorage.setItem(
+    "saldo_tecnico_scroll",
+    window.scrollY
+  );
+
+  form.submit();
+}
+
+window.addEventListener("load", function () {
+
+  const posicao = sessionStorage.getItem(
+    "saldo_tecnico_scroll"
+  );
+
+  if (posicao) {
+    window.scrollTo(0, parseInt(posicao));
+    sessionStorage.removeItem("saldo_tecnico_scroll");
+  }
+});
+
+function filtrarSaldoTecnico() {
+
+  const termo = document
+    .getElementById("pesquisaSaldoTecnico")
+    .value
+    .toLowerCase()
+    .trim();
+
+  const linhas = document.querySelectorAll(
+    ".tabela-container tbody tr"
+  );
+
+  linhas.forEach((linha) => {
+
+    const texto = linha.innerText.toLowerCase();
+
+    if (texto.includes(termo)) {
+      linha.style.display = "";
+    } else {
+      linha.style.display = "none";
+    }
+
+  });
+
+}
+
+</script>
+
 {% endblock %}

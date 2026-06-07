@@ -1,0 +1,386 @@
+{% extends 'base.html' %}
+{% block content %}
+
+<style>
+  .page-header {
+    background: linear-gradient(135deg, #002b55, #163b63);
+    color: #fff;
+    border-radius: 14px;
+    padding: 22px 26px;
+    margin-bottom: 24px;
+    box-shadow: 0 6px 18px rgba(0,43,85,.18);
+  }
+
+  .page-header h4 {
+    margin: 0;
+    font-weight: 700;
+  }
+
+  .page-header small {
+    opacity: .9;
+  }
+
+  .form-card {
+    background: #fff;
+    border-radius: 14px;
+    border: 1px solid #e5e7eb;
+    box-shadow: 0 6px 18px rgba(15,39,66,.08);
+  }
+
+  .section-title {
+    font-size: .9rem;
+    font-weight: 700;
+    color: #002b55;
+    text-transform: uppercase;
+    border-bottom: 1px solid #e5e7eb;
+    padding-bottom: 8px;
+    margin-bottom: 18px;
+  }
+
+  .form-label {
+    font-weight: 600;
+    color: #374151;
+  }
+
+  .info-box {
+    background: #f8fafc;
+    border: 1px solid #dbe4ee;
+    border-left: 4px solid #002b55;
+    border-radius: 10px;
+    padding: 14px 16px;
+    color: #334155;
+    font-size: .9rem;
+  }
+
+  .check-item {
+    border: 1px solid #e5e7eb;
+    border-radius: 12px;
+    padding: 14px;
+    margin-bottom: 12px;
+    background: #fafafa;
+  }
+
+  .check-title {
+    color: #111827;
+    font-weight: 700;
+  }
+
+  .foto-box {
+    background: #f8fafc;
+    border: 1px dashed #94a3b8;
+    border-radius: 12px;
+    padding: 16px;
+  }
+
+  .foto-item {
+    border: 1px solid #e5e7eb;
+    border-radius: 10px;
+    padding: 14px;
+    margin-bottom: 10px;
+    background: #fff;
+  }
+
+  .btn-elegant {
+    background: #002b55;
+    color: #fff;
+    border: none;
+    font-weight: 600;
+  }
+
+  .btn-elegant:hover {
+    background: #001f3f;
+    color: #fff;
+  }
+
+  .text-help {
+    font-size: .82rem;
+    color: #6b7280;
+    margin-top: 4px;
+  }
+</style>
+
+<div class="container-fluid mt-4">
+
+  <div class="page-header d-flex justify-content-between align-items-center flex-wrap gap-2">
+    <div>
+      <h4>
+        <i class="bi bi-clipboard-check me-2"></i>
+        Nova Vistoria de Veículo
+      </h4>
+
+      <small>
+        Registre a condição do veículo na entrega ou devolução.
+      </small>
+    </div>
+
+    <a
+      href="{{ url_for('frota_vistoria.formulario_impressao') }}"
+      target="_blank"
+      class="btn btn-light fw-semibold"
+    >
+      <i class="bi bi-printer me-1"></i>
+      Imprimir Formulário
+    </a>
+  </div>
+
+  <div class="card form-card">
+    <div class="card-body p-4">
+
+      <div class="info-box mb-4">
+        <strong>Orientação:</strong>
+        preencha os dados da vistoria, marque a condição de cada item do checklist e anexe fotos quando necessário.
+      </div>
+
+      <form method="POST" enctype="multipart/form-data">
+
+        <div class="section-title">
+          Dados da Vistoria
+        </div>
+
+        <div class="row g-3">
+
+          <div class="col-md-4">
+            <label class="form-label">Tipo da Vistoria *</label>
+            <select name="tipo_vistoria" class="form-select" required>
+              <option value="">Selecione</option>
+              <option value="entrega">Entrega</option>
+              <option value="devolucao">Devolução</option>
+            </select>
+          </div>
+
+          <div class="col-md-4">
+            <label class="form-label">Veículo *</label>
+            <select name="veiculo_id" class="form-select" required>
+              <option value="">Selecione</option>
+
+              {% for veiculo in veiculos %}
+                <option value="{{ veiculo.id }}">
+                  {{ veiculo.placa }} - {{ veiculo.marca }} {{ veiculo.modelo }}
+                </option>
+              {% endfor %}
+            </select>
+          </div>
+
+          <div class="col-md-4">
+            <label class="form-label">Técnico *</label>
+            <select name="tecnico_id" class="form-select" required>
+              <option value="">Selecione</option>
+
+              {% for tecnico in tecnicos %}
+                <option value="{{ tecnico.id }}">
+                  {{ tecnico.nome }}
+                </option>
+              {% endfor %}
+            </select>
+          </div>
+
+          <div class="col-md-3">
+            <label class="form-label">KM Atual</label>
+            <input
+              type="number"
+              name="km_atual"
+              class="form-control"
+              min="0"
+              placeholder="Ex: 15200"
+            >
+          </div>
+
+          <div class="col-md-3">
+            <label class="form-label">Combustível</label>
+            <select name="combustivel" class="form-select">
+              <option value="">Selecione</option>
+              <option>Reserva</option>
+              <option>1/4</option>
+              <option>1/2</option>
+              <option>3/4</option>
+              <option>Tanque Cheio</option>
+            </select>
+          </div>
+
+          <div class="col-md-6">
+            <label class="form-label">Local da Vistoria</label>
+            <input
+              type="text"
+              name="local_vistoria"
+              class="form-control"
+              placeholder="Ex: Almoxarifado, garagem, base operacional..."
+            >
+          </div>
+
+          <div class="col-md-12">
+            <label class="form-label">Responsável pela Vistoria *</label>
+            <input
+              type="text"
+              name="responsavel"
+              class="form-control"
+              placeholder="Nome de quem realizou/conferiu a vistoria"
+              required
+            >
+          </div>
+
+        </div>
+
+        <hr class="my-4">
+
+        <div class="section-title">
+          Checklist do Veículo
+        </div>
+
+        {% for item in checklist %}
+          <div class="check-item">
+
+            <div class="row align-items-center g-3">
+
+              <div class="col-md-4">
+                <span class="check-title">
+                  {{ item }}
+                </span>
+              </div>
+
+              <div class="col-md-3">
+                <select name="status_{{ item }}" class="form-select">
+                  <option value="conforme">Conforme</option>
+                  <option value="nao_conforme">Não Conforme</option>
+                  <option value="nao_aplica">Não se Aplica</option>
+                </select>
+              </div>
+
+              <div class="col-md-5">
+                <input
+                  type="text"
+                  name="obs_{{ item }}"
+                  class="form-control"
+                  placeholder="Observação do item"
+                >
+              </div>
+
+            </div>
+          </div>
+        {% endfor %}
+
+        <hr class="my-4">
+
+        <div class="section-title">
+          Fotos da Vistoria
+        </div>
+
+        <div class="foto-box">
+          <label class="form-label">Fotos da Vistoria</label>
+
+          <input
+            type="file"
+            id="inputFotos"
+            class="form-control"
+            accept=".jpg,.jpeg,.png,.webp"
+            multiple
+          >
+
+          <div class="text-help">
+            Você pode selecionar uma ou várias fotos. Elas ficarão acumuladas abaixo até salvar a vistoria.
+          </div>
+
+          <div id="listaFotos" class="mt-3"></div>
+        </div>
+
+        <div class="mt-4">
+          <label class="form-label">Observações Gerais</label>
+          <textarea
+            name="observacao_geral"
+            rows="4"
+            class="form-control"
+            placeholder="Informe detalhes gerais da vistoria, avarias, pendências ou observações importantes."
+          ></textarea>
+        </div>
+
+        <hr class="my-4">
+
+        <div class="d-flex justify-content-between gap-2 flex-wrap">
+          <a
+            href="{{ url_for('frota_vistoria.historico_vistorias') }}"
+            class="btn btn-outline-secondary"
+          >
+            <i class="bi bi-arrow-left me-1"></i>
+            Voltar
+          </a>
+
+          <button
+            type="submit"
+            class="btn btn-elegant"
+          >
+            <i class="bi bi-check-circle me-1"></i>
+            Salvar Vistoria
+          </button>
+        </div>
+
+      </form>
+
+    </div>
+  </div>
+</div>
+
+<script>
+  const inputFotos = document.getElementById("inputFotos");
+  const listaFotos = document.getElementById("listaFotos");
+
+  let fotosSelecionadas = [];
+
+  inputFotos.addEventListener("change", function () {
+    Array.from(this.files).forEach(function(file) {
+      fotosSelecionadas.push(file);
+    });
+
+    atualizarListaFotos();
+    inputFotos.value = "";
+  });
+
+  function atualizarListaFotos() {
+    listaFotos.innerHTML = "";
+
+    fotosSelecionadas.forEach(function(file, index) {
+      listaFotos.innerHTML += `
+        <div class="foto-item">
+
+          <div class="fw-semibold mb-2">
+            <i class="bi bi-image me-1"></i>
+            ${index + 1}. ${file.name}
+          </div>
+
+          <input
+            type="text"
+            name="descricao_foto_${index}"
+            class="form-control mb-2"
+            placeholder="Ex.: Paralamas / Porta direita / Painel / Pneu traseiro..."
+          >
+
+          <button
+            type="button"
+            class="btn btn-sm btn-outline-danger"
+            onclick="removerFoto(${index})"
+          >
+            <i class="bi bi-trash me-1"></i>
+            Remover
+          </button>
+
+        </div>
+      `;
+    });
+  }
+
+  function removerFoto(index) {
+    fotosSelecionadas.splice(index, 1);
+    atualizarListaFotos();
+  }
+
+  document.querySelector("form").addEventListener("submit", function () {
+    const dataTransfer = new DataTransfer();
+
+    fotosSelecionadas.forEach(function(file) {
+      dataTransfer.items.add(file);
+    });
+
+    inputFotos.name = "fotos";
+    inputFotos.files = dataTransfer.files;
+  });
+</script>
+
+{% endblock %}

@@ -1,32 +1,105 @@
-{% extends 'base.html' %} {% block content %}
+{% extends 'base.html' %}
+
+{% block content %}
+
+<style>
+  .listar-card {
+    border: 0;
+    border-radius: 10px;
+    overflow: hidden;
+  }
+
+  .listar-header {
+    background: #002b55;
+    color: #fff;
+  }
+
+  .btn-padrao-azul {
+    background: #0b2e59;
+    border: 1px solid #0b2e59;
+    color: #fff;
+  }
+
+  .btn-padrao-azul:hover {
+    background: #14447f;
+    border-color: #14447f;
+    color: #fff;
+  }
+
+  .btn-excel-suave {
+    background: #edf8f1;
+    border: 1px solid #b9dfc8;
+    color: #198754;
+  }
+
+  .btn-excel-suave:hover {
+    background: #dff3e7;
+    border-color: #95c9aa;
+    color: #146c43;
+  }
+
+  .listar-table thead {
+    position: sticky;
+    top: 0;
+    z-index: 10;
+    background: #1f252b;
+    color: #fff;
+  }
+
+  .listar-empty {
+    background: #f8fafc;
+    color: #6c757d;
+    font-weight: 500;
+  }
+
+  .form-control:focus,
+  .form-select:focus {
+    border-color: #0b2e59;
+    box-shadow: 0 0 0 .15rem rgba(11, 46, 89, .12);
+  }
+
+  .btn-acao {
+    min-width: 78px;
+  }
+</style>
 
 <div class="container-fluid mt-4">
   <div class="row justify-content-center">
     <div class="col-xl-10 col-lg-11 col-md-12">
-      <div class="card shadow-sm border-0">
+
+      <div class="card shadow-sm listar-card">
+
+        <div class="card-header listar-header">
+          <h5 class="fw-semibold mb-0">
+            <i class="bi bi-list-ul me-2"></i>
+            Itens Cadastrados
+          </h5>
+        </div>
+
         <div class="card-body">
-          <h4 class="fw-bold mb-4 text-primary">📋 Itens Cadastrados</h4>
 
-          <!-- Flash messages -->
-          {% with messages = get_flashed_messages(with_categories=true) %} {% if
-          messages %} {% for category, message in messages %}
-          <div
-            class="alert alert-{{ category }} alert-dismissible fade show"
-            role="alert"
-          >
-            {{ message }}
-            <button
-              type="button"
-              class="btn-close"
-              data-bs-dismiss="alert"
-              aria-label="Fechar"
-            ></button>
-          </div>
-          {% endfor %} {% endif %} {% endwith %}
+          {% with messages = get_flashed_messages(with_categories=true) %}
+            {% if messages %}
+              {% for category, message in messages %}
+                <div
+                  class="alert alert-{{ category }} alert-dismissible fade show"
+                  role="alert"
+                >
+                  {{ message }}
+                  <button
+                    type="button"
+                    class="btn-close"
+                    data-bs-dismiss="alert"
+                    aria-label="Fechar"
+                  ></button>
+                </div>
+              {% endfor %}
+            {% endif %}
+          {% endwith %}
 
-          <!-- Filtros -->
           <form method="GET" class="row g-2 mb-3">
-            <div class="col-md-4">
+
+            <div class="col-md-3">
               <input
                 type="text"
                 name="codigo"
@@ -35,7 +108,8 @@
                 value="{{ codigo }}"
               />
             </div>
-            <div class="col-md-6">
+
+            <div class="col-md-4">
               <input
                 type="text"
                 name="descricao"
@@ -44,58 +118,115 @@
                 value="{{ descricao }}"
               />
             </div>
+
+            <div class="col-md-3">
+              <select
+                name="categoria"
+                class="form-select form-select-sm"
+              >
+                <option value="">Todas as categorias</option>
+
+                <option
+                  value="MATERIAL"
+                  {% if categoria == 'MATERIAL' %}selected{% endif %}
+                >
+                  MATERIAL
+                </option>
+
+                <option
+                  value="FERRAMENTA"
+                  {% if categoria == 'FERRAMENTA' %}selected{% endif %}
+                >
+                  FERRAMENTA
+                </option>
+
+                <option
+                  value="EPI"
+                  {% if categoria == 'EPI' %}selected{% endif %}
+                >
+                  EPI
+                </option>
+              </select>
+            </div>
+
             <div class="col-md-2 d-grid">
-              <button type="submit" class="btn btn-sm btn-primary">
-                🔍 Filtrar
+              <button type="submit" class="btn btn-sm btn-padrao-azul">
+                <i class="bi bi-search me-1"></i>
+                Filtrar
               </button>
             </div>
+
           </form>
 
-          <!-- Tabela -->
+          <div class="mb-3 d-flex justify-content-end">
+            <a
+              href="{{ url_for('estoque.exportar_excel_estoque') }}"
+              class="btn btn-excel-suave btn-sm shadow-sm"
+            >
+              <i class="bi bi-file-earmark-excel me-1"></i>
+              Exportar Excel
+            </a>
+          </div>
+
           <div
             class="table-responsive border rounded shadow-sm"
             style="max-height: 430px; overflow-y: auto"
           >
-            <table class="table table-bordered table-hover align-middle mb-0">
-              <thead class="sticky-top bg-primary text-white">
+            <table class="table table-bordered table-hover align-middle mb-0 listar-table">
+
+              <thead>
                 <tr>
                   <th scope="col" class="fw-bold">Código</th>
                   <th scope="col" class="fw-bold">Descrição</th>
-                  <th scope="col" class="fw-bold">Unidade</th>
+                  <th scope="col" class="fw-bold">Unidade de Medida</th>
                   <th scope="col" class="fw-bold">Valor (R$)</th>
-                  <th scope="col" class="fw-bold">Ações</th>
+                  <th scope="col" class="fw-bold text-center">Ações</th>
                 </tr>
               </thead>
 
               <tbody>
                 {% for item in itens %}
-                <tr class="{{ loop.index0 % 2 == 0 and 'table-light' or '' }}">
-                  <td>{{ item.codigo }}</td>
-                  <td>{{ item.descricao }}</td>
-                  <td>{{ item.unidade }}</td>
-                  <td>{{ item.valor|brl }}</td>
-                  <td>
-                    <a href="{{ url_for('itens.editar', id=item.id) }}" class="btn btn-sm btn-outline-primary me-1">
-                      ✏️ Editar
-                  </a>
-                  <a href="{{ url_for('itens.excluir', id=item.id) }}" class="btn btn-sm btn-outline-danger"
-                     onclick="return confirm('Tem certeza que deseja excluir este item?');">
-                    🗑️ Excluir
-                  </a>
-                </td>
-              </tr>
-              {% else %}
-              <tr>
-                <td colspan="5" class="text-center text-muted py-3">
-                  Nenhum item cadastrado ou encontrado.
-                </td>
-              </tr>
-              {% endfor %}
-            </tbody>
+                  <tr class="{{ loop.index0 % 2 == 0 and 'table-light' or '' }}">
+                    <td>{{ item.codigo }}</td>
+                    <td>{{ item.descricao }}</td>
+                    <td>{{ item.unidade }}</td>
+                    <td>{{ item.valor|brl }}</td>
+
+                    <td class="text-center">
+                      <a
+                        href="{{ url_for('itens.editar', id=item.id) }}"
+                        class="btn btn-sm btn-outline-primary me-1 btn-acao"
+                      >
+                        <i class="bi bi-pencil-square me-1"></i>
+                        Editar
+                      </a>
+
+                      <a
+                        href="{{ url_for('itens.excluir', id=item.id) }}"
+                        class="btn btn-sm btn-outline-danger btn-acao"
+                        onclick="return confirm('Tem certeza que deseja excluir este item?');"
+                      >
+                        <i class="bi bi-trash me-1"></i>
+                        Excluir
+                      </a>
+                    </td>
+                  </tr>
+                {% else %}
+                  <tr>
+                    <td colspan="5" class="text-center py-4 listar-empty">
+                      <i class="bi bi-info-circle me-1"></i>
+                      Nenhum item cadastrado ou encontrado.
+                    </td>
+                  </tr>
+                {% endfor %}
+              </tbody>
+
             </table>
           </div>
+
         </div>
       </div>
+
     </div>
   </div>
 </div>

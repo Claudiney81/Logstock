@@ -1,0 +1,21 @@
+{
+    "name": "Aprovador LogiStock",
+    "short_name": "Aprovador",
+    "start_url": "/baixa_tecnico/aprovador/login",
+    "display": "standalone",
+    "background_color": "#002b55",
+    "theme_color": "#002b55",
+    "orientation": "portrait",
+    "icons": [
+        {
+            "src": "/static/img/icon-192.png",
+            "sizes": "192x192",
+            "type": "image/png"
+        },
+        {
+            "src": "/static/img/icon-512.png",
+            "sizes": "512x512",
+            "type": "image/png"
+        }
+    ]
+}

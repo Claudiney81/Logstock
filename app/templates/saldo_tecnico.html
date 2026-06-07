@@ -1,10 +1,13 @@
-{% extends 'base.html' %} {% block content %}
+{% extends 'base.html' %}
+
+{% block content %}
 
 <style>
   .tabela-container {
-    max-height: 70vh; /* altura máxima ajustável */
+    max-height: 70vh;
     overflow-y: auto;
   }
+
   .tabela-container table thead th {
     position: sticky;
     top: 0;
@@ -17,92 +20,178 @@
     border-bottom: 2px solid #dee2e6;
     text-align: center;
   }
+
   .table-hover tbody tr:hover {
     background-color: #e9f4ff !important;
   }
+
   td {
     text-align: center;
     vertical-align: middle;
   }
+
   .badge {
     font-size: 0.85rem;
     font-weight: 500;
     padding: 0.35em 0.6em;
   }
+
+  .btn-acao {
+    min-width: 42px;
+  }
 </style>
 
-<div class="container mt-4">
-  {% with messages = get_flashed_messages(with_categories=true) %} {% if
-  messages %} {% for category, message in messages %}
-  <div
-    class="alert alert-{{ category }} alert-dismissible fade show"
-    role="alert"
-  >
-    {{ message }}
-    <button
-      type="button"
-      class="btn-close"
-      data-bs-dismiss="alert"
-      aria-label="Fechar"
-    ></button>
-  </div>
-  {% endfor %} {% endif %} {% endwith %}
+<div class="container-fluid mt-4">
 
-  <div class="d-flex justify-content-between align-items-center mb-4">
-    <h3 class="fw-bold">📋 Saldo por Técnico</h3>
-    <form
-      method="get"
-      action="{{ url_for('saldo_tecnico.exibir_saldo') }}"
-      class="d-flex gap-2"
+  {% with messages = get_flashed_messages(with_categories=true) %}
+    {% if messages %}
+      {% for category, message in messages %}
+      <div
+        class="alert alert-{{ category }} alert-dismissible fade show"
+        role="alert"
+      >
+        {{ message }}
+
+        <button
+          type="button"
+          class="btn-close"
+          data-bs-dismiss="alert"
+          aria-label="Fechar"
+        ></button>
+      </div>
+      {% endfor %}
+    {% endif %}
+  {% endwith %}
+
+  <div class="card shadow-sm border-0">
+
+    <!-- TOPO -->
+    <div
+      class="card-header text-white d-flex justify-content-between align-items-center"
+      style="background-color: #002b55;"
     >
-      <input
-        type="text"
-        name="tecnico"
-        class="form-control"
-        placeholder="Buscar técnico por nome..."
-        value="{{ termo_busca }}"
-      />
-      <button type="submit" class="btn btn-primary">
-        <i class="bi bi-search"></i> Buscar
-      </button>
-    </form>
+
+      <div>
+        <h4 class="fw-bold mb-0">
+          📋 Saldo por Técnico
+        </h4>
+
+        <small>
+          Técnicos instaladores ativos
+        </small>
+      </div>
+
+      <form
+        method="get"
+        action="{{ url_for('saldo_tecnico.exibir_saldo') }}"
+        class="d-flex gap-2"
+      >
+
+        <input
+          type="text"
+          name="tecnico"
+          class="form-control"
+          placeholder="Buscar técnico..."
+          value="{{ termo_busca }}"
+        >
+
+        <button type="submit" class="btn btn-light">
+          <i class="bi bi-search"></i>
+        </button>
+
+      </form>
+
+    </div>
+
+    <div class="card-body">
+
+      <div class="alert alert-info py-2">
+        Exibindo apenas técnicos ativos cadastrados com a função
+        <strong>Instalador</strong>.
+      </div>
+
+      <div class="tabela-container shadow-sm rounded">
+
+        <table class="table table-hover align-middle mb-0">
+
+          <thead>
+            <tr>
+              <th>Nome</th>
+              <th>Função</th>
+              <th>Status</th>
+              <th width="180">Ações</th>
+            </tr>
+          </thead>
+
+          <tbody>
+
+            {% for tecnico in tecnicos %}
+            <tr>
+
+              <td class="text-capitalize fw-semibold">
+                {{ tecnico.nome }}
+              </td>
+
+              <td>
+                <span class="badge bg-primary">
+                  {{ tecnico.funcao or '-' }}
+                </span>
+              </td>
+
+              <td>
+                <span class="badge bg-success">
+                  {{ tecnico.status }}
+                </span>
+              </td>
+
+              <td>
+
+                <div class="d-flex justify-content-center gap-2">
+
+                  <!-- VISUALIZAR -->
+                  <a
+                    href="{{ url_for('saldo_tecnico.saldo_detalhado', id_tecnico=tecnico.id) }}"
+                    class="btn btn-sm btn-outline-primary btn-acao"
+                    title="Visualizar saldo"
+                  >
+                    <i class="bi bi-eye"></i>
+                  </a>
+
+                  <!-- EXPORTAR -->
+                  <a
+                    href="{{ url_for('saldo_tecnico.exportar_saldo_tecnico', id_tecnico=tecnico.id) }}"
+                    class="btn btn-sm btn-outline-success btn-acao"
+                    title="Exportar Excel"
+                  >
+                    <i class="bi bi-file-earmark-excel"></i>
+                  </a>
+
+                </div>
+
+              </td>
+
+            </tr>
+
+            {% else %}
+
+            <tr>
+              <td colspan="4" class="text-center text-muted py-4">
+                Nenhum técnico instalador encontrado.
+              </td>
+            </tr>
+
+            {% endfor %}
+
+          </tbody>
+
+        </table>
+
+      </div>
+
+    </div>
+
   </div>
 
-  <div class="tabela-container shadow-sm rounded">
-    <table class="table table-hover align-middle mb-0">
-      <thead>
-        <tr>
-          <th>Nome</th>
-          <th>Área Técnica</th>
-          <th class="text-center">Ações</th>
-        </tr>
-      </thead>
-      <tbody>
-        {% for tecnico in tecnicos %}
-        <tr>
-          <td class="text-capitalize">{{ tecnico.nome }}</td>
-          <td class="text-uppercase">{{ tecnico.area_tecnica or '-' }}</td>
-          <td class="text-center">
-            <a
-              href="{{ url_for('saldo_tecnico.saldo_detalhado', id_tecnico=tecnico.id) }}"
-              class="btn btn-sm btn-outline-primary me-1"
-              title="Visualizar saldo"
-            >
-              <i class="bi bi-eye"></i>
-            </a>
-            <a
-              href="{{ url_for('saldo_tecnico.exportar_saldo_tecnico', id_tecnico=tecnico.id) }}"
-              class="btn btn-sm btn-outline-success"
-              title="Exportar Excel"
-            >
-              <i class="bi bi-file-earmark-excel"></i>
-            </a>
-          </td>
-        </tr>
-        {% endfor %}
-      </tbody>
-    </table>
-  </div>
 </div>
 
 {% endblock %}

@@ -1,46 +1,141 @@
-{% extends 'base.html' %} {% block content %}
-<div class="container mt-4">
-  <h4 class="mb-4"><i class="bi bi-file-earmark-plus"></i> Nova Nota Fiscal</h4>
+{% extends 'base.html' %}
 
-  <!-- Mensagens de feedback -->
+{% block content %}
+
+<div class="container mt-4">
+
+  <h4 class="mb-4">
+    <i class="bi bi-file-earmark-plus"></i>
+    Nova Nota Fiscal
+  </h4>
+
   <div class="d-flex justify-content-center">
-    {% with messages = get_flashed_messages(with_categories=true) %} {% if
-    messages %} {% for category, message in messages %}
-    <div
-      class="alert alert-{{ category }} flash-message mt-2 mb-2 p-2 shadow-sm"
-      style="max-width: 360px; font-size: 1rem; text-align: center"
-    >
-      {{ message }}
-    </div>
-    {% endfor %} {% endif %} {% endwith %}
+    {% with messages = get_flashed_messages(with_categories=true) %}
+      {% if messages %}
+        {% for category, message in messages %}
+        <div
+          class="alert alert-{{ category }} flash-message mt-2 mb-2 p-2 shadow-sm"
+          style="max-width: 360px; font-size: 1rem; text-align: center;"
+        >
+          {{ message }}
+        </div>
+        {% endfor %}
+      {% endif %}
+    {% endwith %}
   </div>
+
   <script>
-    setTimeout(
-      () =>
-        document
-          .querySelectorAll(".flash-message")
-          .forEach((el) => (el.style.display = "none")),
-      3000
-    );
+    setTimeout(() => {
+      document
+        .querySelectorAll(".flash-message")
+        .forEach((el) => (el.style.display = "none"));
+    }, 3000);
   </script>
 
-  <!-- Formulário principal -->
   <form
     method="POST"
     action="{{ url_for('nota_fiscal.nova_nota') }}"
     onsubmit="return validarItens()"
   >
-    <div class="row mb-2">
-      <div class="col-md-3">
-        <label>Número NF</label>
-        <input type="text" name="numero_nf" class="form-control" required />
+
+    <div class="row mb-3 g-3">
+
+      <div class="col-md-1">
+  <label>Origem</label>
+
+  <select
+    id="tipo_documento"
+    class="form-select"
+  >
+    <option value="nf" selected>NF</option>
+    <option value="inventario">Inventário</option>
+  </select>
+</div>
+
+<div class="col-md-2">
+  <label>Número NF</label>
+
+  <input
+    type="text"
+    id="numero_nf"
+    name="numero_nf"
+    class="form-control"
+    required
+  >
+</div>
+
+      <div class="col-md-2">
+        <label>Fornecedor</label>
+
+        <select
+          name="fornecedor"
+          class="form-select"
+          required
+        >
+          <option value="">Selecione</option>
+
+          {% for fornecedor in fornecedores %}
+          <option value="{{ fornecedor.razao_social }}">
+            {{ fornecedor.razao_social }}
+          </option>
+          {% endfor %}
+        </select>
       </div>
-      <div class="col-md-3">
-        <label>Reserva</label>
-        <input type="text" name="reserva" class="form-control" />
+
+      <div class="col-md-2">
+        <label>Categoria Entrada</label>
+
+        <select
+          name="categoria_entrada"
+          id="categoria_entrada"
+          class="form-select"
+          required
+        >
+          <option value="MATERIAL">Material</option>
+          <option value="FERRAMENTA">Ferramenta</option>
+          <option value="EPI">EPI</option>
+        </select>
       </div>
-      <div class="col-md-3">
+
+      <div class="col-md-2">
+        <label>Tipo de Estoque</label>
+
+        <select
+          name="tipo_estoque"
+          id="tipo_estoque"
+          class="form-select"
+          required
+        >
+          <option value="">Selecione</option>
+          <option value="empresa">Empresa</option>
+          <option value="cliente">Cliente</option>
+        </select>
+      </div>
+
+      <div
+        class="col-md-2"
+        id="campo-cliente-wrapper"
+      >
+        <label>Cliente</label>
+
+        <select
+          name="cliente_id"
+          id="cliente_id"
+          class="form-select"
+        >
+          <option value="">Selecione</option>
+
+          {% for cliente in clientes %}
+          <option value="{{ cliente.id }}">
+            {{ cliente.razao_social }}
+          </option>
+          {% endfor %}
+        </select>
+      </div>      
+
+      <div class="col-md-2" id="campo-tipo-servico-wrapper">
         <label>Tipo de Serviço</label>
+
         <select
           name="tipo_servico_id"
           id="tipo_servico_id"
@@ -48,54 +143,76 @@
           required
         >
           <option value="">Selecione</option>
+
           {% for tipo in tipos_servico %}
-          <option value="{{ tipo.id }}">{{ tipo.nome }}</option>
+          <option
+            value="{{ tipo.id }}"
+            data-tipo="{{ tipo.tipo_estoque }}"
+          >
+            {{ tipo.nome }}
+          </option>
           {% endfor %}
         </select>
       </div>
-      <div class="col-md-3">
-        <label>Resp.Projeto</label>
-        <input
-          type="text"
-          name="responsavel"
-          id="responsavel"
-          class="form-control"
-        />
-      </div>
+
     </div>
 
     <div class="row mb-3">
       <div class="col-md-12">
         <label>Observações</label>
-        <textarea name="observacao" class="form-control" rows="2"></textarea>
+        <textarea
+          name="observacao"
+          class="form-control"
+          rows="2"
+        ></textarea>
       </div>
     </div>
 
-    <!-- Adicionar item (fixo) -->
     <div
       class="bg-white border rounded shadow-sm p-3 mb-2 sticky-top"
-      style="top: 70px; z-index: 1020"
+      style="top: 70px; z-index: 1020;"
     >
       <h5 class="fw-bold">Adicionar Item</h5>
-      <div class="row align-items-end">
+
+      <div class="row align-items-end g-2">
+
         <div class="col-md-2">
           <label>Código</label>
-          <input type="text" id="codigo" class="form-control" readonly />
+          <input
+            type="text"
+            id="codigo"
+            class="form-control"
+            placeholder="Digite ou cole o código"
+          >
         </div>
+
         <div class="col-md-3">
           <label>Descrição</label>
           <select id="descricao" class="form-select">
             <option value="">Selecione um item...</option>
           </select>
         </div>
+
         <div class="col-md-2">
           <label>Quantidade</label>
-          <input type="number" id="quantidade" class="form-control" min="1" />
+          <input
+            type="number"
+            id="quantidade"
+            class="form-control"
+            min="1"
+          >
         </div>
+
         <div class="col-md-2">
           <label>Valor Unit.</label>
-          <input type="text" id="valor" class="form-control" readonly />
+          <input
+            type="text"
+            id="valor"
+            class="form-control"
+            readonly
+          >
         </div>
+
         <div class="col-md-1 d-grid">
           <button
             type="button"
@@ -105,6 +222,7 @@
             Adicionar
           </button>
         </div>
+
         <div class="col-md-2">
           <label>Importar Itens (.xlsx)</label>
           <input
@@ -112,162 +230,706 @@
             id="importarExcel"
             accept=".xlsx"
             class="form-control"
-          />
+          >
         </div>
+
       </div>
     </div>
 
-    <!-- Tabela de itens -->
-    <div style="max-height: 300px; overflow-y: auto">
+    <div style="max-height: 300px; overflow-y: auto;">
       <table class="table table-bordered table-sm">
         <thead
           class="table-light"
-          style="position: sticky; top: 0; z-index: 2; background: white"
+          style="position: sticky; top: 0; z-index: 2; background: white;"
         >
           <tr>
             <th>Código</th>
             <th>Descrição</th>
             <th>Quantidade</th>
             <th>Valor Unitário</th>
+
             <th>Ação</th>
           </tr>
         </thead>
+
         <tbody id="tabela-itens"></tbody>
       </table>
     </div>
 
     <div class="mt-3">
-      <button type="submit" class="btn btn-success">Salvar Nota Fiscal</button>
-      <button type="reset" class="btn btn-secondary" onclick="limparItens()">
+      <button type="submit" class="btn btn-success">
+        Salvar Nota Fiscal
+      </button>
+
+      <button
+        type="reset"
+        class="btn btn-secondary"
+        onclick="limparItens()"
+      >
         Limpar
       </button>
     </div>
+
   </form>
+
 </div>
 
-<!-- XLSX -->
 <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
 
+<link
+  href="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/css/select2.min.css"
+  rel="stylesheet"
+/>
+
+<script src="https://code.jquery.com/jquery-3.7.1.min.js"></script>
+
+<script src="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/js/select2.min.js"></script>
+
+<style>
+  .select2-container {
+    z-index: 2001 !important;
+  }
+</style>
+
 <script>
-  document.addEventListener("DOMContentLoaded", function () {
-    document
-      .getElementById("tipo_servico_id")
-      .addEventListener("change", function () {
-        const tipoId = this.value;
-        if (!tipoId) return;
-        fetch(`/nota/api/responsavel/${tipoId}`)
-          .then((res) => res.json())
-          .then(
-            (data) =>
-              (document.getElementById("responsavel").value =
-                data.responsavel || "")
-          )
-          .catch(() => (document.getElementById("responsavel").value = ""));
+
+function atualizarCamposDoItem(selectEl) {
+  const opt = selectEl.options[selectEl.selectedIndex];
+
+  document.getElementById("codigo").value = opt ? opt.value || "" : "";
+  document.getElementById("valor").value = opt ? opt.dataset.valor || "" : "";
+}
+
+
+document.addEventListener("DOMContentLoaded", function () {
+
+  const tipoEstoque = document.getElementById("tipo_estoque");
+  const categoriaEntrada = document.getElementById("categoria_entrada");
+
+  const campoTipoServicoWrapper =
+    document.getElementById("campo-tipo-servico-wrapper");
+
+  const campoClienteWrapper =
+    document.getElementById("campo-cliente-wrapper");
+
+  const campoOsWrapper =
+    document.getElementById("campo-os-wrapper");
+
+  const clienteId =
+    document.getElementById("cliente_id");
+
+  const selectOs =
+    document.getElementById("ordem_servico_id");
+
+  const selectTipoServico =
+    document.getElementById("tipo_servico_id");
+
+  function filtrarOrdensServico() {
+
+    const clienteSelecionado = String(clienteId.value || "");
+
+    Array.from(selectOs.options).forEach(function (option) {
+
+      if (!option.value) {
+        option.hidden = false;
+        return;
+      }
+
+      const clienteDaOs = String(option.dataset.cliente || "");
+
+      option.hidden = clienteDaOs !== clienteSelecionado;
+
+    });
+
+    selectOs.value = "";
+
+  }
+
+  function controlarCamposCategoria() {
+
+  const categoria = categoriaEntrada.value;
+  const tipo = tipoEstoque.value;
+
+  if (
+    categoria === "FERRAMENTA" ||
+    categoria === "EPI"
+  ) {
+
+    campoTipoServicoWrapper.style.display = "block";
+
+    campoClienteWrapper.style.display = "none";
+    campoOsWrapper.style.display = "none";
+
+    clienteId.value = "";
+    selectOs.value = "";
+
+    selectTipoServico.removeAttribute("required");
+    clienteId.removeAttribute("required");
+    selectOs.removeAttribute("required");
+
+    return;
+  }
+
+  campoTipoServicoWrapper.style.display = "block";
+  selectTipoServico.setAttribute("required", "required");
+
+  if (tipo === "cliente") {
+
+    campoClienteWrapper.style.display = "block";
+    campoOsWrapper.style.display = "block";
+
+    clienteId.setAttribute(
+      "required",
+      "required"
+    );
+
+    selectOs.setAttribute(
+      "required",
+      "required"
+    );
+
+    filtrarOrdensServico();
+
+  } else {
+
+    campoClienteWrapper.style.display = "none";
+    campoOsWrapper.style.display = "none";
+
+    clienteId.value = "";
+    selectOs.value = "";
+
+    clienteId.removeAttribute("required");
+    selectOs.removeAttribute("required");
+
+  }
+
+}
+
+   clienteId.addEventListener("change", function () {
+
+  const clienteSelecionado = this.value;
+
+  selectOs.innerHTML =
+    '<option value="">Carregando...</option>';
+
+  if (!clienteSelecionado) {
+
+    selectOs.innerHTML =
+      '<option value="">Selecione um cliente primeiro</option>';
+
+    return;
+  }
+
+  fetch(`/nota/api/ordens_servico/${clienteSelecionado}`)
+    .then(response => response.json())
+    .then(data => {
+
+      selectOs.innerHTML =
+        '<option value="">Selecione</option>';
+
+      data.forEach(os => {
+
+        const option =
+          document.createElement("option");
+
+        option.value = os.id;
+
+        option.textContent = os.endereco
+          ? `${os.numero_os} - ${os.endereco}`
+          : os.numero_os;
+
+        selectOs.appendChild(option);
+
       });
 
-    fetch("/nota/api/itens")
-      .then((response) => response.json())
-      .then((data) => {
-        const select = document.getElementById("descricao");
-        data.forEach((item) => {
+    });
+
+});
+
+if (clienteId.value) {
+  clienteId.dispatchEvent(new Event("change"));
+}
+
+tipoEstoque.addEventListener("change", controlarCamposCategoria);
+
+categoriaEntrada.addEventListener("change", controlarCamposCategoria);
+
+controlarCamposCategoria();
+
+});
+
+function adicionarItem() {
+
+  const codigo = document.getElementById("codigo").value.trim();
+
+  const descricao =
+    document.getElementById("descricao").options[
+      document.getElementById("descricao").selectedIndex
+    ]?.text || "";
+
+  const quantidade = document.getElementById("quantidade").value.trim();
+
+  let valor = document.getElementById("valor").value.trim().replace(",", ".");
+
+  if (!codigo || !quantidade) {
+    alert("Selecione um item e informe a quantidade.");
+    return;
+  }
+
+  valor = parseFloat(valor || 0).toFixed(2);
+
+  const tabela = document.getElementById("tabela-itens");
+
+  const row = document.createElement("tr");
+
+  row.innerHTML = `
+    <td>
+      <input type="hidden" name="codigo[]" value="${codigo}">
+      ${codigo}
+    </td>
+
+    <td>
+      <input type="hidden" name="descricao[]" value="${descricao}">
+      ${descricao}
+    </td>
+
+    <td>
+      <input type="hidden" name="quantidade[]" value="${quantidade}">
+      ${quantidade}
+    </td>
+
+    <td>
+      <input type="hidden" name="valor[]" value="${valor}">
+      R$ ${valor.replace(".", ",")}
+    </td>
+
+    <td>
+      <button
+        type="button"
+        class="btn btn-sm btn-danger"
+        onclick="this.closest('tr').remove()"
+      >
+        Excluir
+      </button>
+    </td>
+  `;
+
+  tabela.appendChild(row);
+
+  document.getElementById("codigo").value = "";
+  document.getElementById("descricao").value = "";
+  document.getElementById("quantidade").value = "";
+  document.getElementById("valor").value = "";
+
+  if (window.jQuery && $.fn.select2) {
+    $("#descricao").val(null).trigger("change");
+  }
+
+}
+
+function adicionarItem() {
+
+  const codigo =
+    document.getElementById("codigo").value.trim();
+
+  const selectDescricao =
+    document.getElementById("descricao");
+
+  const descricao =
+    selectDescricao.options[
+      selectDescricao.selectedIndex
+    ]?.text || "";
+
+  const quantidade =
+    document.getElementById("quantidade").value.trim();
+
+  let valor =
+    document.getElementById("valor").value.trim();
+
+  valor = valor.replace(",", ".");
+
+  if (!codigo || !descricao || !quantidade) {
+    alert("Selecione um item e informe a quantidade.");
+    return;
+  }
+
+  const tabela =
+    document.getElementById("tabela-itens");
+
+  const row =
+    document.createElement("tr");
+
+  row.innerHTML = `
+    <td>
+      <input type="hidden" name="codigo[]" value="${codigo}">
+      ${codigo}
+    </td>
+
+    <td>
+      <input type="hidden" name="descricao[]" value="${descricao}">
+      ${descricao}
+    </td>
+
+    <td>
+      <input type="hidden" name="quantidade[]" value="${quantidade}">
+      ${quantidade}
+    </td>
+
+    <td>
+      <input type="hidden" name="valor[]" value="${valor}">
+      R$ ${valor.replace(".", ",")}
+    </td>
+
+    <td>
+      <button
+        type="button"
+        class="btn btn-sm btn-danger"
+        onclick="this.closest('tr').remove()"
+      >
+        Excluir
+      </button>
+    </td>
+  `;
+
+  tabela.appendChild(row);
+
+  document.getElementById("codigo").value = "";
+  document.getElementById("quantidade").value = "";
+  document.getElementById("valor").value = "";
+
+  selectDescricao.selectedIndex = 0;
+
+}
+
+function limparItens() {
+  document.getElementById("tabela-itens").innerHTML = "";
+}
+
+
+function validarItens() {
+
+  const tabela = document.getElementById("tabela-itens");
+
+  if (tabela.rows.length === 0) {
+    alert("Adicione ao menos um item antes de salvar a nota fiscal!");
+    return false;
+  }
+
+  return true;
+
+}
+
+
+document
+  .getElementById("importarExcel")
+  .addEventListener("change", function (e) {
+
+    const reader = new FileReader();
+
+    reader.onload = function (e) {
+
+      const data = new Uint8Array(e.target.result);
+
+      const workbook = XLSX.read(data, { type: "array" });
+
+      const sheet = workbook.Sheets[workbook.SheetNames[0]];
+
+      const rows = XLSX.utils.sheet_to_json(sheet, {
+        defval: ""
+      });
+
+      console.log("📊 Dados do Excel:", rows);
+
+      rows.forEach((row, index) => {
+
+        let codigo = (row["codigo"] || row["Código"] || "").toString().trim();
+
+        let descricao = (row["descricao"] || row["Descrição"] || "").toString().trim();
+
+        let quantidade = row["quantidade"] || row["Quantidade"];
+
+        let valor = row["valor_unitario"] || row["Valor Unitário"] || row["valor"];
+
+        if (codigo === "") codigo = row["codigo"];
+
+        if (descricao === "") descricao = row["descricao"];
+
+        if (!quantidade) quantidade = row["quantidade"];
+
+        if (!valor) valor = row["valor"];
+
+        if (!codigo) {
+          console.warn(`Linha ${index + 2} ignorada: código vazio`, row);
+          return;
+        }
+
+        quantidade = parseFloat(quantidade);
+
+        if (isNaN(quantidade) || quantidade <= 0) {
+          console.warn(`Linha ${index + 2} ignorada: quantidade inválida`);
+          return;
+        }
+
+        valor = (valor || "0").toString();
+
+        valor = valor.replace("R$", "").trim();
+
+        valor = valor.replace(/\./g, "").replace(",", ".");
+
+        valor = parseFloat(valor);
+
+        if (isNaN(valor)) valor = 0;
+
+        adicionarItemImportado(
+          String(codigo),
+          descricao,
+          String(parseInt(quantidade)),
+          valor.toFixed(2)
+        );
+
+      });
+
+      alert("Importação concluída com sucesso!");
+
+    };
+
+    reader.readAsArrayBuffer(e.target.files[0]);
+
+  });
+
+
+function adicionarItemImportado(codigo, descricao, quantidade, valor) {
+
+  valor = parseFloat(
+    (valor || "0").toString().replace(",", ".")
+  ).toFixed(2);
+
+  const tabela = document.getElementById("tabela-itens");
+
+  const row = document.createElement("tr");
+
+  row.innerHTML = `
+    <td>
+      <input type="hidden" name="codigo[]" value="${codigo}">
+      ${codigo}
+    </td>
+
+    <td>
+      <input type="hidden" name="descricao[]" value="${descricao}">
+      ${descricao}
+    </td>
+
+    <td>
+      <input type="hidden" name="quantidade[]" value="${quantidade}">
+      ${quantidade}
+    </td>
+
+    <td>
+      <input type="hidden" name="valor[]" value="${valor}">
+      R$ ${valor.replace(".", ",")}
+    </td>
+
+    <td>
+      <button
+        type="button"
+        class="btn btn-sm btn-danger"
+        onclick="this.closest('tr').remove()"
+      >
+        Excluir
+      </button>
+    </td>
+  `;
+
+  tabela.appendChild(row);
+
+}
+
+document.addEventListener("DOMContentLoaded", function () {
+
+  const categoriaEntrada = document.getElementById("categoria_entrada");
+  const selectDescricao = document.getElementById("descricao");
+  const campoCodigo = document.getElementById("codigo");
+  const campoValor = document.getElementById("valor");
+
+  function carregarItensPorCategoria() {
+
+    const categoria = categoriaEntrada.value || "MATERIAL";
+
+    fetch(`/nota/api/itens?categoria=${categoria}`)
+      .then(response => response.json())
+      .then(data => {
+
+        selectDescricao.innerHTML =
+          '<option value="">Selecione um item...</option>';
+
+        data.forEach(item => {
+
           const option = document.createElement("option");
+
           option.value = item.codigo;
           option.dataset.valor = item.valor;
           option.textContent = item.descricao;
-          select.appendChild(option);
+
+          selectDescricao.appendChild(option);
+
         });
+
       });
 
-    document
-      .getElementById("descricao")
-      .addEventListener("change", function () {
-        const selected = this.options[this.selectedIndex];
-        document.getElementById("codigo").value = selected.value || "";
-        document.getElementById("valor").value = selected.dataset.valor || "";
-      });
+  }
+
+  selectDescricao.addEventListener("change", function () {
+
+    const opt = this.options[this.selectedIndex];
+
+    campoCodigo.value = opt ? opt.value || "" : "";
+    campoValor.value = opt ? opt.dataset.valor || "" : "";
+
   });
 
-  function adicionarItem() {
-    const codigo = document.getElementById("codigo").value.trim();
-    const descricao =
-      document.getElementById("descricao").options[
-        document.getElementById("descricao").selectedIndex
-      ].text;
-    const quantidade = document.getElementById("quantidade").value.trim();
-    let valor = document.getElementById("valor").value.trim().replace(",", ".");
+  categoriaEntrada.addEventListener("change", function () {
+    carregarItensPorCategoria();
+  });
 
-    if (!codigo || !quantidade) {
-      alert("Selecione um item e informe a quantidade.");
-      return;
+  carregarItensPorCategoria();
+
+});
+
+document.getElementById("codigo").addEventListener("blur", function () {
+  buscarItemPorCodigo();
+});
+
+document.getElementById("codigo").addEventListener("keydown", function (e) {
+  if (e.key === "Enter") {
+    e.preventDefault();
+    buscarItemPorCodigo();
+  }
+});
+
+function buscarItemPorCodigo() {
+  const codigo = document.getElementById("codigo").value.trim();
+  const descricao = document.getElementById("descricao");
+  const valor = document.getElementById("valor");
+
+  if (!codigo) return;
+
+  fetch(`/nota/api/item/${codigo}`)
+    .then(response => response.json())
+    .then(data => {
+      if (!data.success) {
+        alert("Item não encontrado para o código informado.");
+        descricao.value = "";
+        valor.value = "";
+        return;
+      }
+
+      let encontrado = false;
+
+      Array.from(descricao.options).forEach(option => {
+        if (option.value === codigo) {
+          descricao.value = codigo;
+          option.selected = true;
+          encontrado = true;
+        }
+      });
+
+      valor.value = data.valor || "";
+
+      if (window.jQuery && $.fn.select2) {
+        $("#descricao").val(codigo).trigger("change");
+      }
+    });
+}
+
+</script>
+<script>
+document.addEventListener("DOMContentLoaded", function () {
+  const tipoEstoque = document.getElementById("tipo_estoque");
+  const tipoServico = document.getElementById("tipo_servico_id");
+  const btnAdicionar = document.querySelector("button[onclick='adicionarItem()']");
+  const importarExcel = document.getElementById("importarExcel");
+
+  if (!tipoEstoque || !tipoServico) return;
+
+  function validarTipoServicoEmpresa() {
+    const nomeServico = tipoServico.options[tipoServico.selectedIndex]?.textContent
+      ?.trim()
+      ?.toLowerCase() || "";
+
+    const bloqueado =
+      nomeServico === "manutenção" ||
+      nomeServico === "manutencao" ||
+      nomeServico === "reparo";
+
+    let aviso = document.getElementById("avisoTipoServicoBloqueado");
+
+    if (!aviso) {
+      aviso = document.createElement("div");
+      aviso.id = "avisoTipoServicoBloqueado";
+      aviso.className = "alert alert-warning mt-2 mb-0";
+      tipoServico.parentElement.appendChild(aviso);
     }
 
-    valor = parseFloat(valor || 0).toFixed(2);
+    if (bloqueado) {
+      aviso.textContent = "Não é permitida entrada de materiais para este Tipo de Serviço.";
+      aviso.style.display = "block";
+      tipoServico.classList.add("is-invalid");
 
-    const tabela = document.getElementById("tabela-itens");
-    const row = document.createElement("tr");
-    row.innerHTML = `
-    <td><input type="hidden" name="codigo[]" value="${codigo}">${codigo}</td>
-    <td>${descricao}</td>
-    <td><input type="hidden" name="quantidade[]" value="${quantidade}">${quantidade}</td>
-    <td><input type="hidden" name="valor[]" value="${valor}">R$ ${valor.replace(
-      ".",
-      ","
-    )}</td>
-    <td><button type="button" class="btn btn-sm btn-danger" onclick="this.closest('tr').remove()">Excluir</button></td>
-  `;
-    tabela.appendChild(row);
+      if (btnAdicionar) btnAdicionar.disabled = true;
+      if (importarExcel) importarExcel.disabled = true;
 
-    document.getElementById("codigo").value = "";
-    document.getElementById("descricao").value = "";
-    document.getElementById("quantidade").value = "";
-    document.getElementById("valor").value = "";
-  }
-
-  function limparItens() {
-    document.getElementById("tabela-itens").innerHTML = "";
-  }
-
-  function validarItens() {
-    const tabela = document.getElementById("tabela-itens");
-    if (tabela.rows.length === 0) {
-      alert("Adicione ao menos um item antes de salvar a nota fiscal!");
       return false;
     }
+
+    aviso.style.display = "none";
+    tipoServico.classList.remove("is-invalid");
+
+    if (btnAdicionar) btnAdicionar.disabled = false;
+    if (importarExcel) importarExcel.disabled = false;
+
     return true;
   }
 
-  document
-    .getElementById("importarExcel")
-    .addEventListener("change", function (e) {
-      const reader = new FileReader();
-      reader.onload = function (e) {
-        const data = new Uint8Array(e.target.result);
-        const workbook = XLSX.read(data, { type: "array" });
-        const sheet = workbook.Sheets[workbook.SheetNames[0]];
-        const rows = XLSX.utils.sheet_to_json(sheet, { header: 1, defval: "" });
-        rows.slice(1).forEach((row) => {
-          if (row[0] && row[2])
-            adicionarItemImportado(row[0], row[1], row[2], row[3]);
-        });
-      };
-      reader.readAsArrayBuffer(e.target.files[0]);
-    });
+  tipoEstoque.addEventListener("change", validarTipoServicoEmpresa);
+  tipoServico.addEventListener("change", validarTipoServicoEmpresa);
 
-  function adicionarItemImportado(codigo, descricao, quantidade, valor) {
-    valor = parseFloat((valor || "0").toString().replace(",", ".")).toFixed(2);
-    const tabela = document.getElementById("tabela-itens");
-    const row = document.createElement("tr");
-    row.innerHTML = `
-    <td><input type="hidden" name="codigo[]" value="${codigo}">${codigo}</td>
-    <td>${descricao}</td>
-    <td><input type="hidden" name="quantidade[]" value="${quantidade}">${quantidade}</td>
-    <td><input type="hidden" name="valor[]" value="${valor}">R$ ${valor.replace(
-      ".",
-      ","
-    )}</td>
-    <td><button type="button" class="btn btn-sm btn-danger" onclick="this.closest('tr').remove()">Excluir</button></td>
-  `;
-    tabela.appendChild(row);
-  }
+  validarTipoServicoEmpresa();
+});
 </script>
+
+<script>
+document.addEventListener("DOMContentLoaded", function () {
+  const tipoDocumento = document.getElementById("tipo_documento");
+  const numeroNF = document.getElementById("numero_nf");
+  const observacao = document.querySelector("textarea[name='observacao']");
+
+  if (!tipoDocumento || !numeroNF || !observacao) return;
+
+  function atualizarOrigem() {
+    if (tipoDocumento.value === "inventario") {
+      numeroNF.value = "INV0001";
+      numeroNF.readOnly = true;
+
+      if (!observacao.value.trim()) {
+        observacao.value = "Regularização de inventário técnico.";
+      }
+    } else {
+      numeroNF.readOnly = false;
+
+      if (numeroNF.value === "INV0001") {
+        numeroNF.value = "";
+      }
+
+      if (observacao.value.trim() === "Regularização de inventário técnico.") {
+        observacao.value = "";
+      }
+    }
+  }
+
+  tipoDocumento.addEventListener("change", atualizarOrigem);
+
+  atualizarOrigem();
+});
+</script>
+
 {% endblock %}

@@ -1,62 +1,226 @@
 {% extends 'base.html' %}
 {% block content %}
-<div class="container mt-4">
-  <h4 class="mb-4">
-    <i class="bi bi-clipboard-check"></i>
-    Detalhes do Inventário
-  </h4>
 
-  <div class="card shadow-sm mb-4">
+<style>
+  .detalhe-card {
+    border: 0;
+    border-radius: 10px;
+    overflow: hidden;
+  }
+
+  .detalhe-header {
+    background: #002b55;
+    color: #fff;
+  }
+
+  .subtitulo-secao {
+    color: #0b2e59;
+    font-weight: 700;
+  }
+
+  .table-detalhe thead {
+    background: #1f252b;
+    color: #fff;
+  }
+
+  .btn-excel-suave {
+    background: #edf8f1;
+    border: 1px solid #b9dfc8;
+    color: #198754;
+  }
+
+  .btn-excel-suave:hover {
+    background: #dff3e7;
+    border-color: #95c9aa;
+    color: #146c43;
+  }
+
+  .btn-voltar-suave {
+    background: #f5f7fa;
+    border: 1px solid #cfd6df;
+    color: #495057;
+  }
+
+  .btn-voltar-suave:hover {
+    background: #e9eef5;
+    color: #0b2e59;
+  }
+
+  .form-control:read-only {
+    background: #f8fafc;
+  }
+
+  .form-control:focus {
+    border-color: #0b2e59;
+    box-shadow: 0 0 0 .15rem rgba(11,46,89,.12);
+  }
+</style>
+
+<div class="container mt-4">
+
+  <div class="card shadow-sm detalhe-card mb-4">
+
+    <div class="card-header detalhe-header">
+      <h5 class="fw-semibold mb-0">
+        <i class="bi bi-clipboard-check me-2"></i>
+        Detalhes do Inventário
+      </h5>
+    </div>
+
     <div class="card-body">
-      <div class="row mb-2">
+
+      <div class="row g-3">
+
         <div class="col-md-4">
           <label class="fw-bold">Responsável</label>
-          <input type="text" class="form-control" value="{{ inventario.responsavel }}" readonly>
+          <input
+            type="text"
+            class="form-control"
+            value="{{ inventario.responsavel }}"
+            readonly
+          >
         </div>
+
         <div class="col-md-4">
           <label class="fw-bold">Data/Hora</label>
-          <input type="text" class="form-control" value="{{ inventario.data_hora.strftime('%d/%m/%Y %H:%M') }}" readonly>
+          <input
+            type="text"
+            class="form-control"
+            value="{{ inventario.data_hora.strftime('%d/%m/%Y %H:%M') }}"
+            readonly
+          >
         </div>
+
+        <div class="col-md-4">
+          <label class="fw-bold">Tipo de Serviço</label>
+          <input
+            type="text"
+            class="form-control"
+            value="{{ inventario.tipo_servico.nome if inventario.tipo_servico else 'Todos' }}"
+            readonly
+          >
+        </div>
+
         <div class="col-md-4">
           <label class="fw-bold">Total de Itens Contados</label>
-          <input type="text" class="form-control" value="{{ itens|length }}" readonly>
+          <input
+            type="text"
+            class="form-control"
+            value="{{ itens|length }}"
+            readonly
+          >
         </div>
+
+        <div class="col-md-8">
+          <label class="fw-bold">Observação</label>
+          <input
+            type="text"
+            class="form-control"
+            value="{{ inventario.observacao or '-' }}"
+            readonly
+          >
+        </div>
+
       </div>
+
     </div>
   </div>
 
-  <h5 class="mt-3"><i class="bi bi-box-seam"></i> Itens Contados</h5>
-  <div class="table-responsive shadow-sm">
-    <table class="table table-bordered table-hover table-sm align-middle">
-      <thead class="table-light">
+  <h5 class="mt-3 mb-3 subtitulo-secao">
+    <i class="bi bi-box-seam me-1"></i>
+    Itens Contados
+  </h5>
+
+  <div class="table-responsive shadow-sm rounded border">
+
+    <table
+      class="table table-bordered table-hover table-sm align-middle mb-0 table-detalhe"
+    >
+
+      <thead>
+
         <tr>
-          <th>Código</th>
+          <th style="width: 140px;">Código</th>
           <th>Descrição</th>
-          <th>Unidade</th>
-          <th>Quantidade Contada</th>
+          <th style="width: 160px;">Unidade de Medida</th>
+          <th style="width: 180px;">Quantidade Anterior</th>
+          <th style="width: 180px;">Quantidade Contada</th>
         </tr>
+
       </thead>
+
       <tbody>
-        {% for item, codigo, descricao, unidade, quantidade in itens %}
+
+        {% for codigo, descricao, unidade, categoria, quantidade_estoque, quantidade_contada in itens %}
+
         <tr>
-          <td>{{ codigo }}</td>
-          <td>{{ descricao }}</td>
-          <td>{{ unidade }}</td>
-          <td>{{ quantidade }}</td>
+
+          <td>
+            {{ codigo }}
+          </td>
+
+          <td>
+            {{ descricao }}
+          </td>
+
+          <td>
+            {{ unidade }}
+          </td>
+
+          <td>
+            {{ quantidade_estoque }}
+          </td>
+
+          <td
+            class="{% if quantidade_contada != quantidade_estoque %}table-warning fw-bold{% endif %}"
+          >
+            {{ quantidade_contada }}
+          </td>
+
         </tr>
+
         {% else %}
+
         <tr>
-          <td colspan="4" class="text-center text-muted">Nenhum item contado.</td>
+          <td
+            colspan="5"
+            class="text-center text-muted py-4"
+          >
+            Nenhum item contado.
+          </td>
         </tr>
+
         {% endfor %}
+
       </tbody>
+
     </table>
+
   </div>
 
-  <div class="mt-3">
-    <a href="{{ url_for('inventario_estoque.historico_inventarios') }}" class="btn btn-secondary">
+  <div class="mt-4 d-flex gap-2">
+
+    <a
+      href="{{ url_for(
+        'inventario_estoque.exportar_inventario_excel',
+        inventario_id=inventario.id
+      ) }}"
+      class="btn btn-excel-suave"
+    >
+      <i class="bi bi-file-earmark-excel me-1"></i>
+      Exportar Excel
+    </a>
+
+    <a
+      href="{{ url_for('inventario_estoque.historico_inventarios') }}"
+      class="btn btn-voltar-suave"
+    >
+      <i class="bi bi-arrow-left me-1"></i>
       Voltar ao Histórico
     </a>
+
   </div>
+
 </div>
+
 {% endblock %}

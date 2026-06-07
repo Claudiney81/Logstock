@@ -1,0 +1,221 @@
+{% extends "base.html" %}
+
+{% block content %}
+
+<div class="container-fluid mt-4">
+
+    <div class="card shadow-sm border-0">
+
+        <div class="card-header text-white d-flex justify-content-between align-items-center"
+             style="background:#002b55;">
+
+            <h5 class="mb-0 fw-semibold">
+                <i class="bi bi-arrow-left-right me-2"></i>
+                Devolução • Ferramentas & EPIs
+            </h5>
+
+            <div class="d-flex gap-2">
+                <a href="{{ url_for('ferramentas_epis.nova_entrega') }}"
+                   class="btn btn-light btn-sm">
+                    <i class="bi bi-plus-circle me-1"></i>
+                    Nova Entrega
+                </a>
+
+                <a href="{{ url_for('ferramentas_epis.historico') }}"
+                   class="btn btn-light btn-sm">
+                    <i class="bi bi-clock-history me-1"></i>
+                    Histórico
+                </a>
+            </div>
+
+        </div>
+
+        <div class="card-body">
+
+            <form method="POST">
+
+                <div class="row g-3 mb-3">
+
+                    <div class="col-md-4">
+                        <label class="form-label fw-semibold">
+                            Técnico
+                        </label>
+
+                        <select name="tecnico_id"
+                                id="tecnico_id"
+                                class="form-select"
+                                required>
+                            <option value="">Selecione</option>
+
+                            {% for tecnico in tecnicos %}
+                            <option value="{{ tecnico.id }}">
+                                {{ tecnico.nome }}
+                            </option>
+                            {% endfor %}
+                        </select>
+                    </div>
+
+                    <div class="col-md-5">
+                        <label class="form-label fw-semibold">
+                            Item em posse do técnico
+                        </label>
+
+                        <select name="item_id"
+                                id="item_id"
+                                class="form-select"
+                                required>
+                            <option value="">Selecione um técnico primeiro</option>
+                        </select>
+                    </div>
+
+                    <div class="col-md-3">
+                        <label class="form-label fw-semibold">
+                            Quantidade
+                        </label>
+
+                        <input type="number"
+                               name="quantidade"
+                               id="quantidade"
+                               class="form-control"
+                               min="1"
+                               value="1"
+                               required>
+
+                        <small class="text-muted" id="saldo_info"></small>
+                    </div>
+
+                </div>
+
+                <div class="row g-3 mb-3">
+
+                    <div class="col-md-6">
+                        <label class="form-label fw-semibold">
+                            Tipo de devolução
+                        </label>
+
+                        <select name="tipo_devolucao"
+                                class="form-select"
+                                required>
+                            <option value="">Selecione</option>
+                            <option value="normal">
+                                Devolução normal — retorna ao estoque da empresa
+                            </option>
+                            <option value="desgaste">
+                                Devolução por desgaste — não retorna ao estoque disponível
+                            </option>
+                        </select>
+                    </div>
+
+                    <div class="col-md-6">
+                        <label class="form-label fw-semibold">
+                            Fluxo
+                        </label>
+
+                        <input type="text"
+                               class="form-control bg-light"
+                               value="Técnico → Empresa / Descarte-Manutenção"
+                               readonly>
+                    </div>
+
+                </div>
+
+                <div class="mb-4">
+                    <label class="form-label fw-semibold">
+                        Observação
+                    </label>
+
+                    <textarea name="observacao"
+                              rows="3"
+                              class="form-control"
+                              placeholder="Ex.: devolução normal, desgaste por uso, enviado para manutenção..."></textarea>
+                </div>
+
+                <div class="alert alert-info border-0 shadow-sm">
+                    <strong>Regra:</strong>
+                    devolução normal retorna para o estoque da empresa.
+                    devolução por desgaste remove da posse do técnico, mas não retorna para estoque disponível.
+                </div>
+
+                <div class="d-flex justify-content-end gap-2">
+
+                    <a href="{{ url_for('ferramentas_epis.saldo_tecnico') }}"
+                       class="btn btn-outline-primary">
+                        <i class="bi bi-person-lines-fill me-1"></i>
+                        Saldo por Técnico
+                    </a>
+
+                    <button type="submit"
+                            class="btn btn-success px-4">
+                        <i class="bi bi-check-circle me-1"></i>
+                        Registrar Devolução
+                    </button>
+
+                </div>
+
+            </form>
+
+        </div>
+
+    </div>
+
+</div>
+
+<script>
+const tecnicoSelect = document.getElementById("tecnico_id");
+const itemSelect = document.getElementById("item_id");
+const quantidadeInput = document.getElementById("quantidade");
+const saldoInfo = document.getElementById("saldo_info");
+
+tecnicoSelect.addEventListener("change", async function () {
+    const tecnicoId = this.value;
+
+    itemSelect.innerHTML = '<option value="">Carregando...</option>';
+    saldoInfo.innerText = "";
+
+    if (!tecnicoId) {
+        itemSelect.innerHTML = '<option value="">Selecione um técnico primeiro</option>';
+        return;
+    }
+
+    try {
+        const response = await fetch(`/ferramentas-epis/api/itens-tecnico/${tecnicoId}`);
+        const itens = await response.json();
+
+        if (!itens.length) {
+            itemSelect.innerHTML = '<option value="">Nenhum item em posse deste técnico</option>';
+            return;
+        }
+
+        itemSelect.innerHTML = '<option value="">Selecione</option>';
+
+        itens.forEach(item => {
+            const option = document.createElement("option");
+
+            option.value = item.item_id;
+            option.dataset.saldo = item.quantidade;
+
+            option.textContent = `${item.codigo} - ${item.descricao} (${item.categoria}) | Saldo: ${item.quantidade}`;
+
+            itemSelect.appendChild(option);
+        });
+
+    } catch (error) {
+        itemSelect.innerHTML = '<option value="">Erro ao carregar itens</option>';
+    }
+});
+
+itemSelect.addEventListener("change", function () {
+    const option = this.options[this.selectedIndex];
+    const saldo = option ? option.dataset.saldo : "";
+
+    if (saldo) {
+        saldoInfo.innerText = `Saldo disponível com o técnico: ${saldo}`;
+        quantidadeInput.max = saldo;
+    } else {
+        saldoInfo.innerText = "";
+        quantidadeInput.removeAttribute("max");
+    }
+});
+</script>
+
+{% endblock %}

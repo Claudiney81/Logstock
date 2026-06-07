@@ -1,0 +1,407 @@
+{% extends 'base.html' %}
+
+{% block content %}
+
+<style>
+  .page-header {
+    background: linear-gradient(135deg, #002b55, #163b63);
+    color: white;
+    border-radius: 14px;
+    padding: 22px 26px;
+    margin-bottom: 24px;
+    box-shadow: 0 6px 18px rgba(0, 43, 85, .18);
+  }
+
+  .page-header h4 {
+    margin: 0;
+    font-weight: 700;
+  }
+
+  .filter-card,
+  .table-card,
+  .summary-card {
+    background: #fff;
+    border-radius: 14px;
+    border: 1px solid #e5e7eb;
+    box-shadow: 0 6px 18px rgba(15, 39, 66, .08);
+  }
+
+  .summary-card {
+    padding: 18px;
+    height: 100%;
+  }
+
+  .summary-title {
+    font-size: .78rem;
+    text-transform: uppercase;
+    color: #64748b;
+    font-weight: 700;
+    margin-bottom: 6px;
+  }
+
+  .summary-value {
+    font-size: 1.45rem;
+    font-weight: 800;
+    color: #002b55;
+    line-height: 1.1;
+  }
+
+  .summary-icon {
+    width: 42px;
+    height: 42px;
+    border-radius: 12px;
+    background: #eef6ff;
+    color: #002b55;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 1.25rem;
+  }
+
+  .form-label {
+    font-weight: 600;
+    color: #374151;
+  }
+
+  .table thead th {
+    background: #002b55;
+    color: #fff;
+    text-align: center;
+    vertical-align: middle;
+    white-space: nowrap;
+    font-size: .85rem;
+  }
+
+  .table tbody td {
+    text-align: center;
+    vertical-align: middle;
+    font-size: .88rem;
+  }
+
+  .placa-box {
+    display: inline-block;
+    background: #f8fafc;
+    border: 1px solid #cbd5e1;
+    border-radius: 8px;
+    padding: 5px 10px;
+    font-weight: 800;
+    color: #111827;
+  }
+
+  .tipo-badge {
+    display: inline-block;
+    min-width: 120px;
+    padding: 6px 10px;
+    border-radius: 8px;
+    background: #eef6ff;
+    color: #002b55;
+    font-weight: 700;
+    font-size: .78rem;
+  }
+
+  .obs-col {
+    max-width: 280px;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+
+  .btn-elegant {
+    background: #002b55;
+    color: white;
+    border: none;
+    font-weight: 600;
+  }
+
+  .btn-elegant:hover {
+    background: #001f3f;
+    color: white;
+  }
+
+  .empty-box {
+    padding: 45px 20px;
+    text-align: center;
+    color: #64748b;
+  }
+</style>
+
+<div class="container-fluid mt-4">
+
+  {% set total_manutencoes = manutencoes|length %}
+  {% set total_valor = namespace(valor=0) %}
+  {% set maior_km = namespace(km=0) %}
+
+  {% for manutencao in manutencoes %}
+    {% set total_valor.valor = total_valor.valor + (manutencao.valor or 0) %}
+    {% if manutencao.quilometragem and manutencao.quilometragem > maior_km.km %}
+      {% set maior_km.km = manutencao.quilometragem %}
+    {% endif %}
+  {% endfor %}
+
+  <div class="page-header d-flex justify-content-between align-items-center flex-wrap gap-2">
+    <div>
+      <h4>
+        <i class="bi bi-tools me-2"></i>
+        Histórico de Manutenções
+      </h4>
+      <small>
+        Consulta gerencial das manutenções realizadas por veículo, tipo e período.
+      </small>
+    </div>
+
+    <div class="d-flex gap-2 flex-wrap">
+      <a
+        href="{{ url_for(
+          'frota.pdf_manutencoes',
+          veiculo_id=veiculo_id,
+          tipo_manutencao=tipo_manutencao,
+          data_inicio=data_inicio,
+          data_fim=data_fim
+        ) }}"
+        class="btn btn-danger"
+      >
+        <i class="bi bi-file-earmark-pdf me-1"></i>
+        Exportar PDF
+      </a>
+
+      <a href="{{ url_for('frota.nova_manutencao') }}" class="btn btn-light fw-semibold">
+        <i class="bi bi-plus-circle me-1"></i>
+        Nova Manutenção
+      </a>
+    </div>
+  </div>
+
+  <div class="row g-3 mb-4">
+
+    <div class="col-md-3">
+      <div class="summary-card d-flex justify-content-between align-items-center">
+        <div>
+          <div class="summary-title">Manutenções</div>
+          <div class="summary-value">{{ total_manutencoes }}</div>
+        </div>
+        <div class="summary-icon">
+          <i class="bi bi-wrench-adjustable"></i>
+        </div>
+      </div>
+    </div>
+
+    <div class="col-md-3">
+      <div class="summary-card d-flex justify-content-between align-items-center">
+        <div>
+          <div class="summary-title">Valor Total</div>
+          <div class="summary-value">{{ total_valor.valor|brl }}</div>
+        </div>
+        <div class="summary-icon">
+          <i class="bi bi-cash-coin"></i>
+        </div>
+      </div>
+    </div>
+
+    <div class="col-md-3">
+      <div class="summary-card d-flex justify-content-between align-items-center">
+        <div>
+          <div class="summary-title">Maior KM Registrado</div>
+          <div class="summary-value">
+            {{ "{:,}".format(maior_km.km).replace(",", ".") }} km
+          </div>
+        </div>
+        <div class="summary-icon">
+          <i class="bi bi-speedometer2"></i>
+        </div>
+      </div>
+    </div>
+
+    <div class="col-md-3">
+      <div class="summary-card d-flex justify-content-between align-items-center">
+        <div>
+          <div class="summary-title">Registros Filtrados</div>
+          <div class="summary-value">{{ manutencoes|length }}</div>
+        </div>
+        <div class="summary-icon">
+          <i class="bi bi-funnel"></i>
+        </div>
+      </div>
+    </div>
+
+  </div>
+
+  <div class="card filter-card mb-4">
+    <div class="card-body p-4">
+
+      <form method="GET" action="{{ url_for('frota.historico_manutencao') }}">
+        <div class="row g-3 align-items-end">
+
+          <div class="col-md-3">
+            <label class="form-label">Veículo</label>
+            <select name="veiculo_id" class="form-select">
+              <option value="">Todos</option>
+
+              {% for veiculo in veiculos %}
+                <option value="{{ veiculo.id }}" {% if veiculo_id == veiculo.id %}selected{% endif %}>
+                  {{ veiculo.placa }} - {{ veiculo.marca }} {{ veiculo.modelo }}
+                </option>
+              {% endfor %}
+            </select>
+          </div>
+
+          <div class="col-md-3">
+            <label class="form-label">Tipo de Manutenção</label>
+            <input
+              type="text"
+              name="tipo_manutencao"
+              class="form-control"
+              placeholder="Ex: Óleo, pneus, revisão"
+              value="{{ tipo_manutencao }}"
+            >
+          </div>
+
+          <div class="col-md-2">
+            <label class="form-label">Data Inicial</label>
+            <input
+              type="date"
+              name="data_inicio"
+              class="form-control"
+              value="{{ data_inicio }}"
+            >
+          </div>
+
+          <div class="col-md-2">
+            <label class="form-label">Data Final</label>
+            <input
+              type="date"
+              name="data_fim"
+              class="form-control"
+              value="{{ data_fim }}"
+            >
+          </div>
+
+          <div class="col-md-1 d-grid">
+            <button type="submit" class="btn btn-elegant">
+              <i class="bi bi-search"></i>
+            </button>
+          </div>
+
+          <div class="col-md-1 d-grid">
+            <a
+              href="{{ url_for('frota.historico_manutencao') }}"
+              class="btn btn-outline-secondary"
+              title="Limpar filtros"
+            >
+              <i class="bi bi-x-circle"></i>
+            </a>
+          </div>
+
+        </div>
+      </form>
+
+    </div>
+  </div>
+
+  <div class="card table-card">
+    <div class="card-body p-4">
+
+      {% if manutencoes %}
+
+        <div class="d-flex justify-content-between align-items-center flex-wrap gap-2 mb-3">
+          <h6 class="mb-0 fw-bold text-primary">
+            <i class="bi bi-list-check me-1"></i>
+            Registros de Manutenção
+          </h6>
+
+          <small class="text-muted">
+            {{ manutencoes|length }} manutenção(ões) encontrada(s)
+          </small>
+        </div>
+
+        <div class="table-responsive">
+          <table class="table table-bordered table-hover align-middle mb-0">
+            <thead>
+              <tr>
+                <th>Data</th>
+                <th>Veículo</th>
+                <th>Placa</th>
+                <th>Tipo</th>
+                <th>KM</th>
+                <th>Valor</th>
+                <th>Oficina</th>
+                <th>Responsável</th>
+                <th>Detalhes</th>
+              </tr>
+            </thead>
+
+            <tbody>
+              {% for manutencao in manutencoes %}
+                <tr>
+                  <td>
+                    <strong>
+                      {{ manutencao.data_manutencao.strftime('%d/%m/%Y') if manutencao.data_manutencao else '-' }}
+                    </strong>
+                  </td>
+
+                  <td class="text-start">
+                    <strong>
+                      {{ manutencao.veiculo.marca if manutencao.veiculo else '-' }}
+                      {{ manutencao.veiculo.modelo if manutencao.veiculo else '' }}
+                    </strong>
+                  </td>
+
+                  <td>
+                    <span class="placa-box">
+                      {{ manutencao.veiculo.placa if manutencao.veiculo else '-' }}
+                    </span>
+                  </td>
+
+                  <td>
+                    <span class="tipo-badge">
+                      {{ manutencao.tipo_manutencao or '-' }}
+                    </span>
+                  </td>
+
+                  <td>
+                    {% if manutencao.quilometragem %}
+                      <strong>{{ "{:,}".format(manutencao.quilometragem).replace(",", ".") }}</strong>
+                      <small class="text-muted">km</small>
+                    {% else %}
+                      -
+                    {% endif %}
+                  </td>
+
+                  <td>
+                    <strong>{{ manutencao.valor|brl }}</strong>
+                  </td>
+
+                  <td>
+                    {{ manutencao.oficina or '-' }}
+                  </td>
+
+                  <td>
+                    {{ manutencao.responsavel or '-' }}
+                  </td>
+
+                  <td class="text-start obs-col" title="{{ manutencao.observacao or '-' }}">
+                    {{ manutencao.observacao or '-' }}
+                  </td>
+                </tr>
+              {% endfor %}
+            </tbody>
+          </table>
+        </div>
+
+      {% else %}
+
+        <div class="empty-box">
+          <i class="bi bi-info-circle fs-3 d-block mb-2"></i>
+          <h6 class="fw-bold">Nenhuma manutenção encontrada</h6>
+          <p class="mb-0">
+            Não há registros para os filtros informados.
+          </p>
+        </div>
+
+      {% endif %}
+
+    </div>
+  </div>
+
+</div>
+
+{% endblock %}

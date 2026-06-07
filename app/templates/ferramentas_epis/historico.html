@@ -1,0 +1,295 @@
+{% extends "base.html" %}
+{% block content %}
+
+<style>
+  .badge-soft {
+    display: inline-block;
+    min-width: 145px;
+    padding: 6px 12px;
+    border-radius: 6px;
+    font-size: 0.78rem;
+    font-weight: 700;
+    text-align: center;
+  }
+
+  .badge-soft-blue {
+    background: #e8f1fb;
+    color: #24527a;
+    border: 1px solid #c8ddf2;
+  }
+
+  .badge-soft-green {
+    background: #eaf7ee;
+    color: #2f6b43;
+    border: 1px solid #cfe8d6;
+  }
+
+  .badge-soft-red {
+    background: #fdeeee;
+    color: #a94444;
+    border: 1px solid #f3caca;
+  }
+
+  .badge-soft-yellow {
+    background: #fff7e6;
+    color: #8a5a00;
+    border: 1px solid #f1d28a;
+  }
+
+  .btn-search-custom {
+    background: #002b55;
+    color: #fff;
+    border: none;
+  }
+
+  .btn-search-custom:hover {
+    background: #01427f;
+    color: #fff;
+  }
+
+  .table th {
+    font-size: 0.88rem;
+    color: #111827;
+  }
+
+  .table td {
+    font-size: 0.88rem;
+  }
+</style>
+
+<div class="container-fluid mt-4">
+
+  <div class="card shadow-sm border-0">
+
+    <div class="card-header text-white d-flex justify-content-between align-items-center"
+         style="background:#002b55;">
+
+      <h5 class="mb-0 fw-semibold">
+        <i class="bi bi-clock-history me-2"></i>
+        Histórico - Ferramentas & EPIs
+      </h5>
+
+      <div class="d-flex gap-2">
+
+        <a href="{{ url_for('ferramentas_epis.exportar_relatorio_gerencial') }}"
+           class="btn btn-success btn-sm">
+          <i class="bi bi-file-earmark-excel me-1"></i>
+          Relatório Gerencial
+        </a>
+               
+      </div>
+
+    </div>
+
+    <div class="card-body">
+
+      <form method="GET" class="mb-4">
+
+        <div class="row g-3 align-items-end">
+
+          <div class="col-md-3">
+            <label class="form-label fw-semibold">Técnico</label>
+            <select name="tecnico_id" class="form-select">
+              <option value="">Todos</option>
+
+              {% for tecnico in tecnicos %}
+              <option value="{{ tecnico.id }}"
+                {% if filtros.tecnico_id == tecnico.id|string %}selected{% endif %}>
+                {{ tecnico.nome }}
+              </option>
+              {% endfor %}
+            </select>
+          </div>
+
+          <div class="col-md-3">
+            <label class="form-label fw-semibold">Movimento</label>
+            <select name="tipo_movimentacao" class="form-select">
+              <option value="">Todos</option>
+
+              <option value="saida"
+                {% if filtros.tipo_movimentacao == 'saida' %}selected{% endif %}>
+                Saída
+              </option>
+
+              <option value="retorno"
+                {% if filtros.tipo_movimentacao == 'retorno' %}selected{% endif %}>
+                Retorno
+              </option>
+            </select>
+          </div>
+
+          <div class="col-md-2">
+            <label class="form-label fw-semibold">Data Inicial</label>
+            <input type="date"
+                   name="data_inicio"
+                   class="form-control"
+                   value="{{ filtros.data_inicio or '' }}">
+          </div>
+
+          <div class="col-md-2">
+            <label class="form-label fw-semibold">Data Final</label>
+            <input type="date"
+                   name="data_fim"
+                   class="form-control"
+                   value="{{ filtros.data_fim or '' }}">
+          </div>
+
+          <div class="col-md-1 d-grid">
+            <button type="submit" class="btn btn-search-custom">
+              <i class="bi bi-search"></i>
+            </button>
+          </div>
+
+          <div class="col-md-1 d-grid">
+            <a href="{{ url_for('ferramentas_epis.historico') }}"
+               class="btn btn-outline-secondary">
+              <i class="bi bi-x-lg"></i>
+            </a>
+          </div>
+
+        </div>
+
+      </form>
+
+      <div class="table-responsive">
+
+        <table class="table table-hover align-middle">
+
+          <thead class="table-light">
+            <tr>
+              <th>Data</th>
+              <th>Operação</th>
+              <th>Técnico</th>
+              <th class="text-center">Qtde Itens</th>
+              <th>Ocorrência / Motivo</th>
+              <th class="text-center">Situação</th>
+              <th class="text-center">Ações</th>
+            </tr>
+          </thead>
+
+          <tbody>
+
+            {% for h in historico %}
+
+            <tr>
+
+              <td>
+                {{ h.data_hora.strftime('%d/%m/%Y %H:%M') if h.data_hora else '-' }}
+              </td>
+
+              <td>
+                {% if h.tipo_movimentacao == 'saida' %}
+                  <span class="badge-soft badge-soft-blue">Saída</span>
+                {% elif h.tipo_movimentacao == 'retorno' %}
+                  <span class="badge-soft badge-soft-green">Retorno</span>
+                {% else %}
+                  <span class="badge-soft badge-soft-yellow">
+                    {{ h.tipo_movimentacao or '-' }}
+                  </span>
+                {% endif %}
+              </td>
+
+              <td>
+                {{ h.tecnico.nome if h.tecnico else '-' }}
+              </td>
+
+              <td class="text-center">
+                {% if h.itens %}
+                  {{ h.itens|length }}
+                {% else %}
+                  0
+                {% endif %}
+              </td>
+
+              <td>
+                {{ h.motivo or '-' }}
+              </td>
+
+              <td class="text-center">
+                {% if h.status == 'tecnico' %}
+                  <span class="badge-soft badge-soft-blue">
+                    Em posse do técnico
+                  </span>
+
+                {% elif h.status == 'devolvido' %}
+                  <span class="badge-soft badge-soft-green">
+                    Devolvido ao estoque
+                  </span>
+
+                {% elif h.status == 'extraviado' %}
+                  <span class="badge-soft badge-soft-red">
+                    Descontado
+                  </span>
+
+                {% elif h.status == 'perdido' %}
+                  <span class="badge-soft badge-soft-red">
+                    Descontado
+                  </span>
+
+                {% elif h.status == 'desgaste' %}
+                  <span class="badge-soft badge-soft-yellow">
+                    Desgaste
+                  </span>
+
+                {% elif h.status == 'troca' %}
+                  <span class="badge-soft badge-soft-yellow">
+                    Troca
+                  </span>
+
+                {% else %}
+                  <span class="badge-soft badge-soft-yellow">
+                    {{ h.status or '-' }}
+                  </span>
+                {% endif %}
+              </td>
+
+              <td class="text-center">
+                <div class="d-flex justify-content-center gap-1">
+
+                  <a href="{{ url_for('ferramentas_epis.detalhes', id=h.id) }}"
+                     class="btn btn-sm btn-outline-primary"
+                     title="Ver detalhes">
+                    <i class="bi bi-eye"></i>
+                  </a>
+
+                  <a href="{{ url_for('ferramentas_epis.gerar_termo', id=h.id) }}"
+                     class="btn btn-sm btn-outline-danger"
+                     target="_blank"
+                     title="Gerar PDF">
+                    <i class="bi bi-file-earmark-pdf"></i>
+                  </a>
+
+                </div>
+              </td>
+
+            </tr>
+
+            {% else %}
+
+            <tr>
+              <td colspan="7" class="text-center text-muted py-4">
+                Nenhuma transferência encontrada.
+              </td>
+            </tr>
+
+            {% endfor %}
+
+          </tbody>
+
+        </table>
+
+      </div>
+
+      <div class="text-muted small mt-3">
+        O saldo atual dos itens deve ser consultado em
+        <strong>Saldo Técnico</strong>.
+        Esta tela exibe apenas o histórico das transferências realizadas.
+      </div>
+
+    </div>
+
+  </div>
+
+</div>
+
+{% endblock %}

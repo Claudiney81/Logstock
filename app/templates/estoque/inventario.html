@@ -12,37 +12,62 @@
 
     <div class="card-body">
       <form method="POST" action="{{ url_for('inventario_estoque.finalizar_inventario') }}">
-        <!-- FILTROS -->
+
+        <!-- CAMPOS PRINCIPAIS -->
         <div class="row g-3 mb-4">
+
+          <!-- RESPONSÁVEL -->
           <div class="col-md-4">
             <label for="responsavel" class="form-label fw-bold">Responsável</label>
-            <input type="text" name="responsavel" id="responsavel" class="form-control shadow-sm"
-                   value="{{ current_user.nome }}" required>
+
+            <input type="text" id="responsavel" class="form-control shadow-sm"
+              value="{{ current_user.nome if current_user.nome else current_user.username }}" readonly>
           </div>
-          <div class="col-md-4">
-            <label for="local" class="form-label fw-bold">Local</label>
-            <input type="text" name="local" id="local" class="form-control shadow-sm" required>
-          </div>
+
+          <!-- DATA (AGORA NO MEIO) -->
           <div class="col-md-4">
             <label for="data" class="form-label fw-bold">Data</label>
-            <input type="date" name="data" id="data" class="form-control shadow-sm"
-                   value="{{ data_hoje }}" required>
+            <input type="date" name="data" id="data" class="form-control shadow-sm" value="{{ data_hoje }}" required>
           </div>
+
+          <!-- OBSERVAÇÃO (ANTES ERA LOCAL) -->
+          <div class="col-md-4">
+            <label for="observacao" class="form-label fw-bold">Observação</label>
+            <input type="text" name="observacao" id="observacao" class="form-control shadow-sm"
+              placeholder="Digite alguma observação">
+          </div>
+
         </div>
 
+        <!-- FILTROS -->
         <div class="row g-3 mb-4">
+
+          <!-- FILTRO TIPO DE SERVIÇO -->
           <div class="col-md-4">
             <label for="tipo_servico" class="form-label fw-bold">Filtrar por Tipo de Serviço</label>
             <select name="tipo_servico" id="tipo_servico" class="form-select shadow-sm"
-                    onchange="window.location.href='?tipo_servico='+this.value">
+              onchange="aplicarFiltrosInventario()">
               <option value="">Todos</option>
               {% for tipo in tipos_servico %}
-                <option value="{{ tipo.id }}" {% if tipo.id == tipo_servico_filtro|int %}selected{% endif %}>
-                  {{ tipo.nome }}
-                </option>
+              <option value="{{ tipo.id }}" {% if tipo.id==tipo_servico_filtro|int %}selected{% endif %}>
+                {{ tipo.nome }}
+              </option>
               {% endfor %}
             </select>
           </div>
+
+          <!-- FILTRO CATEGORIA -->
+          <div class="col-md-4">
+            <label for="categoria" class="form-label fw-bold">Filtrar por Categoria</label>
+            <select name="categoria" id="categoria" class="form-select shadow-sm"
+              onchange="aplicarFiltrosInventario()">
+              <option value="">Todas</option>
+              <option value="MATERIAL" {% if categoria_filtro == 'MATERIAL' %}selected{% endif %}>MATERIAL</option>
+              <option value="FERRAMENTA" {% if categoria_filtro == 'FERRAMENTA' %}selected{% endif %}>FERRAMENTA</option>
+              <option value="EPI" {% if categoria_filtro == 'EPI' %}selected{% endif %}>EPI</option>
+            </select>
+          </div>
+
         </div>
 
         <!-- TABELA -->
@@ -52,7 +77,8 @@
               <tr>
                 <th>Código</th>
                 <th>Descrição</th>
-                <th>Unidade</th>
+                <th>Unidade de Medida</th>
+                <th>Categoria</th>
                 <th>Tipo de Serviço</th>
                 <th>Quantidade Atual</th>
                 <th>Quantidade Contada</th>
@@ -64,13 +90,12 @@
                 <td>{{ item.codigo }}</td>
                 <td>{{ item.descricao }}</td>
                 <td>{{ item.unidade }}</td>
-                <td>{{ tipo.nome if tipo else '-' }}</td>
+                <td>{{ item.categoria or 'MATERIAL' }}</td>
+                <td>{{ tipo.nome if tipo else 'Todos' }}</td>
                 <td class="quantidade-atual">{{ estoque.quantidade }}</td>
                 <td>
-                  <input type="number" name="contada_{{ estoque.id }}" 
-                         class="form-control shadow-sm quantidade-contada"
-                         min="0" data-quantidade="{{ estoque.quantidade }}"
-                         style="width: 100px;">
+                  <input type="number" name="contada_{{ estoque.id }}" class="form-control shadow-sm quantidade-contada"
+                    min="0" data-quantidade="{{ estoque.quantidade }}" style="width: 100px;">
                 </td>
               </tr>
               {% endfor %}
@@ -78,34 +103,60 @@
           </table>
         </div>
 
+        <!-- BOTÃO -->
         {% if resultados %}
-          <div class="text-end mt-3">
-            <button type="submit" class="btn btn-success shadow-sm">
-              ✅ Finalizar Inventário
-            </button>
-          </div>
+        <div class="text-end mt-3">
+          <button
+            type="submit"
+            class="btn shadow-sm text-white"
+            style="background:#0b2e59; border-color:#0b2e59;"
+          >
+            ✅ Finalizar Inventário
+          </button>
+        </div>
         {% else %}
-          <p class="text-muted mt-4">Nenhum item encontrado para este filtro.</p>
+        <p class="text-muted mt-4">Nenhum item encontrado para este filtro.</p>
         {% endif %}
+
       </form>
     </div>
   </div>
 </div>
 
+<!-- SCRIPT DE CORES -->
 <script>
-document.querySelectorAll('.quantidade-contada').forEach(input => {
-  input.addEventListener('input', function() {
-    const qtdAtual = parseInt(this.dataset.quantidade);
-    const qtdContada = parseInt(this.value || 0);
-    const row = this.closest('tr');
-    if (qtdContada < qtdAtual) {
-      row.style.backgroundColor = '#f8d7da';
-    } else if (qtdContada > qtdAtual) {
-      row.style.backgroundColor = '#fff3cd';
-    } else {
-      row.style.backgroundColor = '';
+  function aplicarFiltrosInventario() {
+    const tipoServico = document.getElementById('tipo_servico').value;
+    const categoria = document.getElementById('categoria').value;
+
+    const params = new URLSearchParams();
+
+    if (tipoServico) {
+      params.set('tipo_servico', tipoServico);
     }
+
+    if (categoria) {
+      params.set('categoria', categoria);
+    }
+
+    window.location.href = '?' + params.toString();
+  }
+
+  document.querySelectorAll('.quantidade-contada').forEach(input => {
+    input.addEventListener('input', function () {
+      const qtdAtual = parseInt(this.dataset.quantidade);
+      const qtdContada = parseInt(this.value || 0);
+      const row = this.closest('tr');
+
+      if (qtdContada < qtdAtual) {
+        row.style.backgroundColor = '#f8d7da'; // vermelho
+      } else if (qtdContada > qtdAtual) {
+        row.style.backgroundColor = '#fff3cd'; // amarelo
+      } else {
+        row.style.backgroundColor = '';
+      }
+    });
   });
-});
 </script>
+
 {% endblock %}

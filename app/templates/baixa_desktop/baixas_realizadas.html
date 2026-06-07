@@ -1,91 +1,242 @@
 {% extends 'base.html' %}
 {% block content %}
-<div class="container mt-4">
-  <h4 class="text-primary"><i class="bi bi-check2-circle"></i> Baixas Realizadas</h4>
 
-  <!-- Filtro por Técnico e Período -->
-  <form method="GET" class="row g-3 mb-3">
-    <div class="col-md-4">
-      <label class="form-label">Técnico</label>
-      <select name="tecnico_id" class="form-select">
-        <option value="">Todos</option>
-        {% for t in tecnicos %}
-        <option value="{{ t.id }}" {% if tecnico_id == t.id %}selected{% endif %}>{{ t.nome }}</option>
-        {% endfor %}
-      </select>
-    </div>
-    <div class="col-md-4">
-      <label class="form-label">Período</label>
-      <input type="date" name="data_inicio" class="form-control" value="{{ data_inicio }}">
-      <input type="date" name="data_fim" class="form-control mt-1" value="{{ data_fim }}">
-    </div>
-    <div class="col-md-4 align-self-end">
-      <button type="submit" class="btn btn-primary w-100">
-        <i class="bi bi-search"></i> Filtrar
-      </button>
-    </div>
-  </form>
+<style>
+.table-baixas td,
+.table-baixas th {
+  vertical-align: middle !important;
+}
 
-  <!-- Tabela com cabeçalho fixo e sem barra externa -->
-  <style>
-    .tableFixHead {
-      border-collapse: collapse;
-      width: 100%;
-    }
-    .tableFixHead thead th {
-      position: sticky;
-      top: 0;
-      z-index: 2;
-      background: #002b55;
-      color: #fff;
-      text-align: center;
-    }
-    .tableFixHead tbody {
-      display: block;
-      max-height: 65vh;
-      overflow-y: auto;
-      width: 100%;
-    }
-    .tableFixHead thead,
-    .tableFixHead tbody tr {
-      display: table;
-      width: 100%;
-      table-layout: fixed;
-    }
-  </style>
+.table-baixas td:nth-child(9),
+.table-baixas th:nth-child(9) {
+  width: 70px;
+  min-width: 70px;
+  text-align: center !important;
+}
 
-  <table class="table table-hover table-striped align-middle tableFixHead">
-    <thead>
-      <tr>
-        <th>ID</th>
-        <th>Data</th>
-        <th>Responsável</th>
-        <th>Técnico</th>
-        <th>Status</th>
-        <th>Ações</th>
-      </tr>
-    </thead>
-    <tbody>
-      {% for baixa in baixas %}
-      <tr>
-        <td class="text-center">{{ baixa.id }}</td>
-        <td class="text-center">{{ baixa.data_hora.strftime('%d/%m/%Y %H:%M') if baixa.data_hora else '' }}</td>
-        <td>{{ baixa.responsavel }}</td>
-        <td>{{ baixa.tecnico.nome }}</td>
-        <td class="text-center"><span class="badge bg-success">Confirmado</span></td>
-        <td class="text-center">
-          <a href="{{ url_for('baixa_desktop.detalhe_baixa', baixa_id=baixa.id) }}"
-             class="btn btn-sm btn-primary" target="_blank">
-            Detalhes
+.table-baixas td:nth-child(10),
+.table-baixas th:nth-child(10) {
+  width: 130px;
+  min-width: 130px;
+  text-align: center !important;
+}
+
+.table-baixas td:nth-child(11),
+.table-baixas th:nth-child(11) {
+  width: 140px;
+  min-width: 140px;
+  text-align: center !important;
+}
+
+.table-baixas td:nth-child(12),
+.table-baixas th:nth-child(12) {
+  width: 110px;
+  min-width: 110px;
+  text-align: center !important;
+}
+</style>
+
+<div class="container-fluid mt-4">
+
+  <div class="card shadow-sm border-0">
+
+    <div class="card-header text-white d-flex justify-content-between align-items-center"
+         style="background:#002b55;">
+      <h5 class="mb-0 fw-semibold">
+        <i class="bi bi-check2-circle me-2"></i>
+        Baixas Realizadas
+      </h5>
+    </div>
+
+    <div class="card-body">
+
+      <form method="GET" class="row g-3 mb-4 align-items-end">
+
+        <div class="col-md-4">
+          <label class="form-label fw-semibold">Técnico</label>
+          <select name="tecnico_id" class="form-select" onchange="this.form.submit()">
+            <option value="">Todos</option>
+            {% for t in tecnicos %}
+            <option value="{{ t.id }}" {% if tecnico_id == t.id %}selected{% endif %}>
+              {{ t.nome }}
+            </option>
+            {% endfor %}
+          </select>
+        </div>
+
+        <div class="col-md-3">
+          <label class="form-label fw-semibold">De</label>
+          <input type="date"
+                 name="data_inicio"
+                 class="form-control"
+                 value="{{ data_inicio or '' }}"
+                 onchange="this.form.submit()">
+        </div>
+
+        <div class="col-md-3">
+          <label class="form-label fw-semibold">Até</label>
+          <input type="date"
+                 name="data_fim"
+                 class="form-control"
+                 value="{{ data_fim or '' }}"
+                 onchange="this.form.submit()">
+        </div>
+
+        <div class="col-md-2 d-grid">
+          <a class="btn btn-outline-secondary"
+             href="{{ url_for('baixa_desktop.baixas_realizadas') }}">
+            <i class="bi bi-x-lg me-1"></i>
+            Limpar
           </a>
-        </td>
-      </tr>
-      {% else %}
-      <tr>
-        <td colspan="6" class="text-center">Nenhuma baixa realizada.</td>
-      </tr>
-      {% endfor %}
-    </tbody>
-  </table>
+        </div>
+
+      </form>
+
+      <div class="tabela-container table-responsive">
+
+        <table class="table table-hover align-middle table-baixas">
+
+          <thead class="table-light">
+            <tr>
+              <th class="col-id">ID</th>
+              <th class="col-data">Data</th>
+              <th class="col-tecnico">Técnico</th>
+              <th class="col-cliente">Cliente</th>
+              <th class="col-os">O.S</th>
+              <th class="col-servico">Tipo Serviço</th>
+              <th class="col-estoque">Tipo Estoque</th>
+              <th class="col-resp">Responsável</th>
+              <th class="col-itens">Itens</th>
+              <th class="col-obs">Observação</th>
+              <th class="col-status">Status</th>
+              <th class="col-acoes">Ações</th>
+            </tr>
+          </thead>
+
+          <tbody>
+
+            {% for baixa in baixas %}
+
+            {% set tipos_estoque = [] %}
+            {% for item in baixa.itens %}
+              {% if item.tipo_estoque and item.tipo_estoque not in tipos_estoque %}
+                {% set _ = tipos_estoque.append(item.tipo_estoque) %}
+              {% endif %}
+            {% endfor %}
+
+            <tr>
+
+              <td class="fw-semibold">
+                {{ baixa.id }}
+              </td>
+
+              <td>
+                {{ baixa.data_hora.strftime('%d/%m/%Y %H:%M') if baixa.data_hora else '-' }}
+              </td>
+
+              <td class="text-left">
+                {{ baixa.tecnico.nome if baixa.tecnico else '-' }}
+              </td>
+
+              <td class="text-left">
+                {{ baixa.cliente.razao_social if baixa.cliente else '-' }}
+              </td>
+
+              <td>
+                {% if baixa.ordem_servico %}
+                  {{ baixa.ordem_servico.numero_os }}
+                {% elif baixa.os_cliente %}
+                  {{ baixa.os_cliente.split(' - ')[-1] }}
+                {% else %}
+                  -
+                {% endif %}
+              </td>
+
+              <td>
+                {{ baixa.tipo_servico.nome if baixa.tipo_servico else '-' }}
+              </td>
+
+              <td>
+                {% if 'empresa' in tipos_estoque and 'cliente' in tipos_estoque %}
+                  <span class="badge-tipo-estoque badge-empresa">
+                    Empresa / Cliente
+                  </span>
+                {% elif 'empresa' in tipos_estoque %}
+                  <span class="badge-tipo-estoque badge-empresa">
+                    Empresa
+                  </span>
+                {% elif 'cliente' in tipos_estoque %}
+                  <span class="badge-tipo-estoque badge-cliente">
+                    Cliente
+                  </span>
+                {% else %}
+                  -
+                {% endif %}
+              </td>
+
+              <td class="text-left">
+                {{ baixa.responsavel or '-' }}
+              </td>
+
+              <td class="fw-semibold">
+                {{ baixa.itens|length if baixa.itens is not none else 0 }}
+              </td>
+
+              <td>
+                {% if baixa.observacao %}
+                  <span title="{{ baixa.observacao|e }}">
+                    {{ baixa.observacao[:18] }}{% if baixa.observacao|length > 18 %}...{% endif %}
+                  </span>
+                {% else %}
+                  <span class="text-muted">—</span>
+                {% endif %}
+              </td>
+
+              <td>
+                <span class="badge-confirmado">
+                  Confirmado
+                </span>
+              </td>
+
+              <td>
+                <a href="{{ url_for('baixa_desktop.detalhe_baixa', baixa_id=baixa.id) }}"
+                   class="btn btn-outline-primary btn-sm btn-icon-text"
+                   target="_blank">
+                  <i class="bi bi-eye me-1"></i>
+                  Detalhes
+                </a>
+              </td>
+
+            </tr>
+
+            {% else %}
+
+            <tr>
+              <td colspan="12" class="text-center text-muted py-4">
+                Nenhuma baixa realizada.
+              </td>
+            </tr>
+
+            {% endfor %}
+
+          </tbody>
+
+        </table>
+
+      </div>
+
+    </div>
+
+  </div>
+
 </div>
+
+<script>
+document.querySelectorAll('[title]').forEach(function(el){
+  if (window.bootstrap && bootstrap.Tooltip) {
+    new bootstrap.Tooltip(el);
+  }
+});
+</script>
+
 {% endblock %}

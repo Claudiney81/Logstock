@@ -1,0 +1,94 @@
+{% extends "base_mobile.html" %}
+
+{% block content %}
+
+<div class="container d-flex justify-content-center align-items-center"
+     style="min-height: 85vh;">
+
+    <div class="card shadow border-0"
+         style="width: 100%; max-width: 420px; border-radius: 14px; overflow: hidden;">
+
+        <!-- TOPO -->
+        <div class="card-header text-center text-white py-4"
+             style="background-color: #002b55;">
+
+            <h3 class="fw-bold mb-1">
+                Portal Técnico
+            </h3>
+
+            <small>
+                Requisição Mobile
+            </small>
+
+        </div>
+
+        <!-- CORPO -->
+        <div class="card-body p-4">
+
+            <!-- FLASH -->
+            {% with messages = get_flashed_messages(with_categories=true) %}
+                {% if messages %}
+
+                    {% for category, message in messages %}
+
+                        <div class="alert alert-{{ category }}">
+                            {{ message }}
+                        </div>
+
+                    {% endfor %}
+
+                {% endif %}
+            {% endwith %}
+
+            <!-- FORM -->
+            <form method="POST">
+
+                <div class="mb-3">
+
+                    <label class="form-label fw-semibold">
+                        Email
+                    </label>
+
+                    <input
+                        type="email"
+                        name="email"
+                        class="form-control"
+                        required
+                    >
+
+                </div>
+
+                <div class="mb-4">
+
+                    <label class="form-label fw-semibold">
+                        Senha
+                    </label>
+
+                    <input
+                        type="password"
+                        name="senha"
+                        class="form-control"
+                        required
+                    >
+
+                </div>
+
+                <button
+                    type="submit"
+                    class="btn w-100 text-white fw-semibold"
+                    style="background-color: #002b55;"
+                >
+
+                    Entrar
+
+                </button>
+
+            </form>
+
+        </div>
+
+    </div>
+
+</div>
+
+{% endblock %}

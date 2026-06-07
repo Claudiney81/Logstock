@@ -1,16 +1,12 @@
 /* ==== MENUS PRINCIPAIS (apenas texto colorido) ==== */
 .menu-header {
   background: none !important;
-  /* remove qualquer fundo */
   color: #64798b !important;
-  /* azul ciano suave */
   font-size: 0.95rem;
-  /* um pouco maior que os submenus */
   font-weight: bold;
   text-transform: uppercase;
   letter-spacing: 1px;
   padding: 4px 16px;
-  /* alinhamento com submenus */
   margin: 10px 0 5px 0;
 }
 
@@ -27,16 +23,17 @@
 }
 
 #sidebar .nav-link:hover {
-  background-color: rgba(255, 255, 255, 0.15) !important;
-  color: #ffffff !important;
+  background-color: rgba(255, 152, 0, 0.15) !important;
+  color: #ff9800 !important;
   box-shadow: 0 4px 8px rgba(0, 0, 0, 0.25);
   transform: translateY(-2px);
 }
 
 #sidebar .nav-link.active {
-  background-color: #2563EB !important;
-  color: #ffffff !important;
+  background-color: rgba(255, 152, 0, 0.18) !important;
+  color: #ff9800 !important;
   font-weight: bold;
+  border-left: 3px solid #ff9800;
   box-shadow: 0 4px 8px rgba(0, 0, 0, 0.25);
 }
 
@@ -52,7 +49,6 @@ body {
   display: flex;
   flex-direction: column;
   background: #f1f5f9;
-  /* cor clara do fundo */
 }
 
 /* Área principal cresce empurrando o rodapé */
@@ -70,7 +66,6 @@ body {
 footer.footer {
   margin-top: auto;
   padding: 4px 0;
-  /* Reduzido de 30px para 20px */
   background-color: #1E3A8A !important;
   color: white;
   text-align: center;
@@ -81,7 +76,6 @@ footer.footer {
 .welcome-container {
   flex: 1;
   min-height: calc(100vh - 120px);
-  /* considera navbar + rodapé */
   display: flex;
   flex-direction: column;
   align-items: center;
@@ -101,11 +95,44 @@ footer.footer {
 
 .welcome-container p {
   color: #6b7280;
-  /* cinza suave */
 }
 
 .welcome-container .btn {
   font-size: 1rem;
   border-radius: 8px;
   margin-top: 1rem;
+}
+
+/* ==== NAVBAR SUPERIOR - HOVER LARANJA ==== */
+.navbar .nav-link {
+  color: #ffffff !important;
+  transition: all 0.25s ease-in-out;
+}
+
+.navbar .nav-link:hover {
+  color: #ff9800 !important;
+}
+
+/* Ícones da navbar */
+.navbar .nav-link i {
+  transition: all 0.25s ease-in-out;
+}
+
+.navbar .nav-link:hover i {
+  color: #ff9800 !important;
+}
+
+/* Dropdown */
+.navbar .dropdown-item {
+  transition: all 0.25s ease-in-out;
+}
+
+.navbar .dropdown-item:hover {
+  background-color: rgba(255, 152, 0, 0.12) !important;
+  color: #ff9800 !important;
+}
+
+/* Ícones do dropdown */
+.navbar .dropdown-item:hover i {
+  color: #ff9800 !important;
 }

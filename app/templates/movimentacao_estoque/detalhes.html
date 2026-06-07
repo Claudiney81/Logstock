@@ -1,0 +1,189 @@
+{% extends 'base.html' %}
+
+{% block content %}
+<div class="container-fluid mt-4">
+
+  <div class="card shadow-sm border-0">
+
+    <div
+      class="card-header text-white d-flex justify-content-between align-items-center"
+      style="background-color:#002b55;"
+    >
+
+      <h5 class="mb-0 fw-semibold">
+        <i class="bi bi-file-earmark-text me-2"></i>
+        Documento da Movimentação
+      </h5>
+
+      <div class="d-flex gap-2">
+
+        <a
+          href="{{ url_for('movimentacao_estoque.detalhes_pdf', id=movimentacao.id) }}"
+          class="btn btn-warning btn-sm"
+          target="_blank"
+        >
+          <i class="bi bi-file-earmark-pdf"></i>
+          Ver PDF
+        </a>
+
+        <a
+          href="{{ url_for('movimentacao_estoque.historico') }}"
+          class="btn btn-light btn-sm"
+        >
+          <i class="bi bi-arrow-left"></i>
+          Voltar
+        </a>
+
+      </div>
+
+    </div>
+
+    <div class="card-body">
+
+      <div class="row g-3 mb-4">
+
+        <div class="col-md-3">
+          <label class="fw-bold">Origem</label>
+          <input class="form-control" readonly
+            value="{% if movimentacao.origem_tipo == 'empresa' %}Empresa{% elif movimentacao.origem_tipo == 'cliente' %}Cliente{% elif movimentacao.origem_tipo == 'tecnico' %}Técnico{% else %}-{% endif %}">
+        </div>
+
+        <div class="col-md-3">
+          <label class="fw-bold">Destino</label>
+          <input class="form-control" readonly
+            value="{% if movimentacao.destino_tipo == 'empresa' %}Empresa{% elif movimentacao.destino_tipo == 'tecnico' %}Técnico{% else %}-{% endif %}">
+        </div>
+
+        <div class="col-md-3">
+          <label class="fw-bold">Técnico</label>
+          <input class="form-control" readonly
+            value="{% if movimentacao.destino_tipo == 'tecnico' %}{{ tecnicos_dict.get(movimentacao.destino_id|int, '-') }}{% elif movimentacao.origem_tipo == 'tecnico' %}{{ tecnicos_dict.get(movimentacao.origem_id|int, '-') }}{% else %}-{% endif %}">
+        </div>
+
+        {% if movimentacao.origem_tipo == 'cliente' %}
+        <div class="col-md-3">
+          <label class="fw-bold">Cliente</label>
+          <input
+            class="form-control"
+            readonly
+            value="{{ empresas_dict.get(movimentacao.origem_id|int, '-') }}"
+          >
+        </div>
+        {% endif %}
+        {% if movimentacao.ordem_servico %}
+        <div class="col-md-3">
+          <label class="fw-bold">O.S</label>
+          <input
+            class="form-control"
+            readonly
+            value="{{ movimentacao.ordem_servico.numero_os }}"
+          >
+        </div>
+        {% endif %}
+        <div class="col-md-3">
+          <label class="fw-bold">Tipo de Serviço</label>
+          <input class="form-control" readonly
+            value="{{ movimentacao.tipo_servico.nome if movimentacao.tipo_servico else '-' }}">
+        </div>
+
+        <div class="col-md-3">
+          <label class="fw-bold">Data / Hora</label>
+          <input class="form-control" readonly
+            value="{{ movimentacao.data_hora.strftime('%d/%m/%Y %H:%M') if movimentacao.data_hora else '-' }}">
+        </div>
+
+        <div class="col-md-3">
+          <label class="fw-bold">E-mail</label>
+          <input class="form-control" readonly
+            value="{% if movimentacao.email_enviado %}Enviado{% else %}Pendente{% endif %}">
+        </div>
+
+        <div class="col-md-3">
+          <label class="fw-bold">Assinatura</label>
+          <input class="form-control" readonly
+            value="{% if movimentacao.assinatura %}Assinado{% else %}Sem assinatura{% endif %}">
+        </div>
+
+        <div class="col-md-12">
+          <label class="fw-bold">Observação</label>
+          <input class="form-control" readonly
+            value="{{ movimentacao.observacao or '-' }}">
+        </div>
+
+      </div>
+
+      <div class="table-responsive shadow-sm rounded border">
+
+        <table class="table table-hover table-sm align-middle mb-0">
+
+          <thead class="table-light text-center">
+            <tr>
+              <th>Código</th>
+              <th>Descrição</th>
+              <th>Unidade</th>
+              <th>Quantidade</th>
+              <th>Valor Unitário</th>
+              <th>Total</th>
+            </tr>
+          </thead>
+
+          <tbody>
+
+            {% for i in itens %}
+            <tr>
+              <td class="text-center">{{ i.item.codigo if i.item else '-' }}</td>
+              <td>{{ i.item.descricao if i.item else '-' }}</td>
+              <td class="text-center">{{ i.item.unidade if i.item else '-' }}</td>
+              <td class="text-center fw-semibold">{{ i.quantidade }}</td>
+              <td class="text-end">
+                R$ {{ "%.2f"|format(i.valor_unitario or 0) }}
+              </td>
+              <td class="text-end fw-semibold">
+                R$ {{ "%.2f"|format((i.quantidade or 0) * (i.valor_unitario or 0)) }}
+              </td>
+            </tr>
+            {% else %}
+            <tr>
+              <td colspan="6" class="text-center text-muted py-3">
+                Nenhum item encontrado.
+              </td>
+            </tr>
+            {% endfor %}
+
+          </tbody>
+
+        </table>
+
+      </div>
+
+      {% if movimentacao.assinatura %}
+      <div class="card shadow-sm border-0 mt-4">
+
+        <div
+          class="card-header text-white"
+          style="background-color:#002b55;"
+        >
+          <strong>
+            <i class="bi bi-pen me-2"></i>
+            Assinatura do Técnico
+          </strong>
+        </div>
+
+        <div class="card-body text-center">
+          <img
+            src="{{ movimentacao.assinatura }}"
+            alt="Assinatura"
+            class="img-fluid border rounded p-2 bg-white"
+            style="max-height:160px;"
+          >
+        </div>
+
+      </div>
+      {% endif %}
+
+    </div>
+
+  </div>
+
+</div>
+{% endblock %}

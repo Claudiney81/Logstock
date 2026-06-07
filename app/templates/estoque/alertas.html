@@ -1,72 +1,71 @@
 {% extends 'base.html' %}
 {% block content %}
-<div class="container-fluid mt-3">
-  <div class="row justify-content-center">
-    <div class="col-12 col-lg-11">
-      <div class="card shadow-sm">
-        <!-- TOPO AZUL -->
-        <div class="card-header" style="background-color: #002b55; color: white;">
-          <h5 class="fw-semibold mb-0">
-            <i class="bi bi-exclamation-triangle-fill text-warning me-2"></i>
-            Alertas de Estoque Baixo
-          </h5>
-        </div>
-
-        <div class="card-body py-3">
-          <div class="table-responsive">
-            <table class="table table-bordered table-hover table-sm align-middle">
-              <thead style="position: sticky; top: 0; z-index: 10; background-color: #002b55; color: white;">
-                <tr>
-                  <th>Código</th>
-                  <th>Descrição</th>
-                  <th>Tipo de Serviço</th>
-                  <th>Unidade</th>
-                  <th>Valor (R$)</th>
-                  <th class="text-danger">Estoque Atual</th>
-                  <th>Mínimo</th>
-                  <th>Endereço</th>
-                </tr>
-              </thead>
-              <tbody>
-                {% if resultados %}
-                  {% for estoque, item in resultados %}
-                  <tr>
-                    <td>{{ item.codigo }}</td>
-                    <td>{{ item.descricao }}</td>
-                    <td>{{ estoque.tipo_servico.nome if estoque.tipo_servico else '-' }}</td>
-                    <td>{{ item.unidade }}</td>
-                    <td>{{ "%.2f"|format(item.valor) }}</td>
-                    <td class="text-danger fw-bold">{{ estoque.quantidade }}</td>
-                    <td>
-                      {{ estoque.quantidade_minima }}
-                      {% if estoque.quantidade > 0 %}
-                        {% set percentual_calc = (estoque.quantidade_minima / estoque.quantidade * 100) %}
-                        <span class="text-muted small">(≈ {{ percentual_calc|round(0) }}%)</span>
-                      {% endif %}
-                    </td>
-                    <td>{{ estoque.endereco or '-' }}</td>
-                  </tr>
-                  {% endfor %}
-                {% else %}
-                  <tr>
-                    <td colspan="8" class="text-center text-muted">
-                      Nenhum item crítico no estoque.
-                    </td>
-                  </tr>
-                {% endif %}
-              </tbody>
-            </table>
-          </div>
-        </div>
-      </div>
-    </div>
-  </div>
-</div>
 
 <style>
-  .card {
+  .alerta-card {
     margin-top: 10px;
     margin-bottom: 16px;
+    border: 0;
+    border-radius: 10px;
+    overflow: hidden;
+  }
+
+  .alerta-header {
+    background: #002b55;
+    color: #fff;
+  }
+
+  .btn-alerta-primary {
+    background: #0b2e59;
+    border: 1px solid #0b2e59;
+    color: #fff;
+  }
+
+  .btn-alerta-primary:hover {
+    background: #14447f;
+    border-color: #14447f;
+    color: #fff;
+  }
+
+  .btn-export-excel {
+    background: #f7fbf9;
+    border: 1px solid #8cc9a7;
+    color: #146c43;
+  }
+
+  .btn-export-excel:hover {
+    background: #e8f6ee;
+    color: #146c43;
+  }
+
+  .btn-export-pdf {
+    background: #fff1f1;
+    border: 1px solid #e6a1a1;
+    color: #9f1c1c;
+  }
+
+  .btn-export-pdf:hover {
+    background: #ffe4e4;
+    color: #8f1616;
+  }
+
+  .alerta-table thead {
+    position: sticky;
+    top: 0;
+    z-index: 10;
+    background: #1f252b;
+    color: #fff;
+  }
+
+  .alerta-empty {
+    background: #f8fafc;
+    color: #6c757d;
+    font-weight: 500;
+  }
+
+  .form-select:focus {
+    border-color: #0b2e59;
+    box-shadow: 0 0 0 .15rem rgba(11, 46, 89, .12);
   }
 
   @media (min-width: 1200px) {
@@ -75,4 +74,122 @@
     }
   }
 </style>
+
+<div class="container-fluid mt-3">
+  <div class="row justify-content-center">
+    <div class="col-12 col-lg-11">
+      <div class="card shadow-sm alerta-card">
+
+        <!-- TOPO -->
+        <div class="card-header alerta-header">
+          <h5 class="fw-semibold mb-0">
+            <i class="bi bi-exclamation-triangle-fill text-warning me-2"></i>
+            Alertas de Estoque Baixo
+          </h5>
+        </div>
+
+        <div class="card-body py-3">
+
+          <!-- FILTRO -->
+          <form method="GET" class="row mb-3">
+            <div class="col-md-4">
+              <label class="form-label fw-semibold">Tipo de Serviço</label>
+              <select name="tipo_servico" class="form-select">
+                <option value="">Todos</option>
+                {% for ts in tipos_servico %}
+                  <option value="{{ ts.id }}"
+                    {% if request.args.get('tipo_servico') == ts.id|string %}selected{% endif %}>
+                    {{ ts.nome }}
+                  </option>
+                {% endfor %}
+              </select>
+            </div>
+
+            <div class="col-md-2 d-flex align-items-end">
+              <button class="btn btn-alerta-primary w-100">
+                <i class="bi bi-search me-1"></i>
+                Filtrar
+              </button>
+            </div>
+          </form>
+
+          <!-- BOTÕES DE EXPORTAÇÃO -->
+          <div class="d-flex justify-content-end gap-2 mb-3">
+            <a
+              href="{{ url_for('estoque.exportar_alertas_excel', tipo_servico=tipo_servico_filtro) }}"
+              class="btn btn-export-excel btn-sm shadow-sm"
+            >
+              <i class="bi bi-file-earmark-excel me-1"></i>
+              Exportar Excel
+            </a>
+
+            <a
+              href="{{ url_for('estoque.exportar_alertas_pdf', tipo_servico=tipo_servico_filtro) }}"
+              class="btn btn-export-pdf btn-sm shadow-sm"
+            >
+              <i class="bi bi-file-earmark-pdf me-1"></i>
+              Exportar PDF
+            </a>
+          </div>
+
+          <!-- TABELA -->
+          <div class="table-responsive">
+            <table class="table table-bordered table-hover table-sm align-middle alerta-table">
+              <thead>
+                <tr>
+                  <th>Código</th>
+                  <th>Descrição</th>
+                  <th>Tipo de Serviço</th>
+                  <th>Unidade de Medida</th>
+                  <th>Valor (R$)</th>
+                  <th class="text-warning">Estoque Atual</th>
+                  <th>Mínimo</th>
+                  <th>Endereço</th>
+                </tr>
+              </thead>
+
+              <tbody>
+                {% if resultados %}
+                  {% for estoque, item, tipo_servico in resultados %}
+                  <tr>
+                    <td>{{ item.codigo }}</td>
+                    <td>{{ item.descricao }}</td>
+                    <td>{{ tipo_servico.nome if tipo_servico else '-' }}</td>
+                    <td>{{ item.unidade }}</td>
+                    <td>{{ "%.2f"|format(item.valor or 0) }}</td>
+
+                    <td class="text-danger fw-bold">
+                      {{ estoque.quantidade }}
+                    </td>
+
+                    <td>
+                      {{ estoque.quantidade_minima }}
+                      {% if estoque.quantidade > 0 and estoque.quantidade_minima %}
+                        {% set percentual_calc = (estoque.quantidade_minima / estoque.quantidade * 100) %}
+                        <span class="text-muted small">(≈ {{ percentual_calc|round(0) }}%)</span>
+                      {% endif %}
+                    </td>
+
+                    <td>{{ estoque.endereco or '-' }}</td>
+                  </tr>
+                  {% endfor %}
+                {% else %}
+                  <tr>
+                    <td colspan="8" class="text-center py-4 alerta-empty">
+                      <i class="bi bi-check-circle me-1"></i>
+                      Nenhum item crítico no estoque.
+                    </td>
+                  </tr>
+                {% endif %}
+              </tbody>
+
+            </table>
+          </div>
+
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
 {% endblock %}
