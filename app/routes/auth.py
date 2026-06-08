@@ -214,10 +214,18 @@ def registro():
     if request.method == 'POST':
 
         nome = request.form.get('nome', '').strip()
-        email = request.form.get('email', '').strip()
-        senha = request.form.get('senha', '').strip()
-        perfil = request.form.get('perfil', '').strip()
 
+        email = request.form.get(
+            'cadastro_usuario_email',
+            ''
+        ).strip()
+
+        senha = request.form.get(
+            'cadastro_usuario_senha',
+            ''
+        ).strip()
+
+        perfil = request.form.get('perfil', '').strip()
         mapa_perfis = {
             'Administrador': 'admin',
             'Estoque': 'estoque',
