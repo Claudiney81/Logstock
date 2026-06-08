@@ -168,5 +168,21 @@
 
 </div>
 
+<script>
+if ('serviceWorker' in navigator) {
+    window.addEventListener('load', function () {
+        navigator.serviceWorker.register(
+            "{{ url_for('static', filename='sw_aprovador.js') }}"
+        )
+        .then(function(registration) {
+            console.log('Service Worker registrado:', registration.scope);
+        })
+        .catch(function(error) {
+            console.error('Erro ao registrar Service Worker:', error);
+        });
+    });
+}
+</script>
+
 </body>
 </html>
