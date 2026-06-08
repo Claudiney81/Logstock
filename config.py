@@ -4,7 +4,7 @@ SECRET_KEY = os.getenv("SECRET_KEY", "chave-local-dev")
 
 SQLALCHEMY_DATABASE_URI = os.getenv(
     "DATABASE_URL",
-    "sqlite:///logistock.db"
+    "sqlite:////var/data/logistock.db"
 )
 
 if SQLALCHEMY_DATABASE_URI.startswith("postgres://"):
