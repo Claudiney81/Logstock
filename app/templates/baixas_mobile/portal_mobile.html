@@ -17,6 +17,7 @@
 
             <div class="row">
 
+                <!-- PORTAL TÉCNICO -->
                 <div class="col-md-6 mb-4">
 
                     <div class="card h-100 border-primary">
@@ -31,12 +32,35 @@
                                 Link de acesso
                             </label>
 
-                            <input
-                                type="text"
-                                class="form-control"
-                                readonly
-                                value="https://logstock.onrender.com/tecnico-mobile/login"
-                            >
+                            <div class="input-group">
+
+                                <input
+                                    type="text"
+                                    class="form-control"
+                                    id="link_tecnico"
+                                    readonly
+                                    value="https://logstock.onrender.com/tecnico-mobile/login"
+                                >
+
+                                <button
+                                    class="btn btn-primary"
+                                    type="button"
+                                    onclick="copiarLink('link_tecnico')"
+                                >
+                                    <i class="bi bi-clipboard"></i>
+                                    Copiar
+                                </button>
+
+                                <a
+                                    href="https://logstock.onrender.com/tecnico-mobile/login"
+                                    target="_blank"
+                                    class="btn btn-success"
+                                >
+                                    <i class="bi bi-box-arrow-up-right"></i>
+                                    Abrir
+                                </a>
+
+                            </div>
 
                         </div>
 
@@ -44,6 +68,7 @@
 
                 </div>
 
+                <!-- PORTAL APROVADOR -->
                 <div class="col-md-6 mb-4">
 
                     <div class="card h-100 border-success">
@@ -58,12 +83,35 @@
                                 Link de acesso
                             </label>
 
-                            <input
-                                type="text"
-                                class="form-control"
-                                readonly
-                                value="https://logstock.onrender.com/baixa_tecnico/aprovador/login"
-                            >
+                            <div class="input-group">
+
+                                <input
+                                    type="text"
+                                    class="form-control"
+                                    id="link_aprovador"
+                                    readonly
+                                    value="https://logstock.onrender.com/baixa_tecnico/aprovador/login"
+                                >
+
+                                <button
+                                    class="btn btn-primary"
+                                    type="button"
+                                    onclick="copiarLink('link_aprovador')"
+                                >
+                                    <i class="bi bi-clipboard"></i>
+                                    Copiar
+                                </button>
+
+                                <a
+                                    href="https://logstock.onrender.com/baixa_tecnico/aprovador/login"
+                                    target="_blank"
+                                    class="btn btn-success"
+                                >
+                                    <i class="bi bi-box-arrow-up-right"></i>
+                                    Abrir
+                                </a>
+
+                            </div>
 
                         </div>
 
@@ -78,5 +126,17 @@
     </div>
 
 </div>
+
+<script>
+function copiarLink(id) {
+
+    const campo = document.getElementById(id);
+
+    navigator.clipboard.writeText(campo.value);
+
+    alert("Link copiado com sucesso!");
+
+}
+</script>
 
 {% endblock %}

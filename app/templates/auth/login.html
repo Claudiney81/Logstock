@@ -41,7 +41,26 @@
       {% endwith %}
 
       <!-- Formulário -->
-      <form method="POST" action="{{ url_for('auth.login') }}">
+      <form
+        method="POST"
+        action="{{ url_for('auth.login') }}"
+        autocomplete="off"
+      >
+
+        <!-- Campos ocultos para reduzir autocomplete -->
+        <input
+          type="text"
+          name="fakeusernameremembered"
+          autocomplete="username"
+          style="display:none"
+        >
+
+        <input
+          type="password"
+          name="fakepasswordremembered"
+          autocomplete="current-password"
+          style="display:none"
+        >
 
         <div class="mb-3">
           <label for="email" class="form-label fw-semibold">
@@ -49,11 +68,15 @@
           </label>
 
           <input
-            type="email"
+            type="text"
             id="email"
             name="email"
             class="form-control form-control-sm"
             placeholder="seu@email.com"
+            autocomplete="off"
+            autocorrect="off"
+            autocapitalize="off"
+            spellcheck="false"
             required
             autofocus
           >
@@ -70,6 +93,7 @@
             name="senha"
             class="form-control form-control-sm"
             placeholder="••••••••"
+            autocomplete="new-password"
             required
           >
         </div>
@@ -93,4 +117,9 @@
           Esqueci minha senha
         </a>
       </div>
+
+    </div>
+  </div>
+</div>
+
 {% endblock %}
