@@ -808,7 +808,19 @@ def recusar_mobile(baixa_id):
         url_for("baixa_tecnico.pendentes_mobile")
     )
     
-   # ==========================================================
+# ==========================================================
+# PORTAL MOBILE
+# ==========================================================
+
+@bp_baixa_tecnico.route("/portal-mobile")
+@login_required
+def portal_mobile():
+
+    return render_template(
+        "baixas_mobile/portal_mobile.html"
+    )
+    
+# ==========================================================
 # LOGIN APROVADOR MOBILE
 # ==========================================================
 
