@@ -54,10 +54,20 @@
     </div>
 
     <div>
-      <span class="label-info">O.S</span>
-      <strong>
-        {{ baixa.cliente.numero_os if baixa.cliente and baixa.cliente.numero_os else '-' }}
-      </strong>
+        <span class="label-info">O.S</span>
+        <strong>
+
+            {% if baixa.ordem_servico %}
+                {{ baixa.ordem_servico.numero_os }}
+
+            {% elif baixa.os_cliente %}
+                {{ baixa.os_cliente }}
+
+            {% else %}
+                -
+            {% endif %}
+
+        </strong>
     </div>
 
     <div>
