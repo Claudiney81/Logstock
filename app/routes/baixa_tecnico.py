@@ -127,17 +127,8 @@ def formulario_mobile_dedicado(tecnico_id=None):
     clientes = (
     db.session.query(Empresa)
     .join(
-        SaldoTecnico,
-        SaldoTecnico.cliente_id == Empresa.id
-    )
-    .filter(
-        SaldoTecnico.tecnico_id == tecnico.id
-    )
-    .filter(
-        SaldoTecnico.cliente_id.isnot(None)
-    )
-    .filter(
-        SaldoTecnico.quantidade > 0
+        OrdemServico,
+        OrdemServico.cliente_id == Empresa.id
     )
     .filter(
         Empresa.razao_social.notilike("%CCM%")
@@ -186,39 +177,14 @@ def api_os_por_cliente():
     if not tecnico_id or not cliente_id:
         return jsonify({"ordens": []})
 
-    if not OrdemServico:
-        return jsonify({"ordens": []})
-
     registros = (
         db.session.query(
-            SaldoTecnico.ordem_servico_id,
+            OrdemServico.id.label("ordem_servico_id"),
             OrdemServico.numero_os,
-            OrdemServico.endereco,
-            SaldoTecnico.endereco.label("endereco_saldo"),
-            SaldoTecnico.tipo_servico_id,
-            TipoServico.nome.label("tipo_servico_nome")
-        )
-        .join(
-            OrdemServico,
-            OrdemServico.id == SaldoTecnico.ordem_servico_id
-        )
-        .join(
-            TipoServico,
-            TipoServico.id == SaldoTecnico.tipo_servico_id
+            OrdemServico.endereco
         )
         .filter(
-            SaldoTecnico.tecnico_id == tecnico_id,
-            SaldoTecnico.cliente_id == cliente_id,
-            SaldoTecnico.ordem_servico_id.isnot(None),
-            SaldoTecnico.quantidade > 0
-        )
-        .group_by(
-            SaldoTecnico.ordem_servico_id,
-            OrdemServico.numero_os,
-            OrdemServico.endereco,
-            SaldoTecnico.endereco,
-            SaldoTecnico.tipo_servico_id,
-            TipoServico.nome
+            OrdemServico.cliente_id == cliente_id
         )
         .order_by(
             OrdemServico.numero_os
@@ -227,21 +193,14 @@ def api_os_por_cliente():
     )
 
     ordens = []
-    os_adicionadas = set()
 
     for r in registros:
-
-        if r.ordem_servico_id in os_adicionadas:
-            continue
-
-        os_adicionadas.add(r.ordem_servico_id)
-
         ordens.append({
             "ordem_servico_id": r.ordem_servico_id,
             "numero_os": r.numero_os,
-            "endereco": r.endereco or r.endereco_saldo or "",
-            "tipo_servico_id": r.tipo_servico_id,
-            "tipo_servico_nome": r.tipo_servico_nome or ""
+            "endereco": r.endereco or "",
+            "tipo_servico_id": "",
+            "tipo_servico_nome": ""
         })
 
     return jsonify({"ordens": ordens})
@@ -678,24 +637,27 @@ def aprovar_mobile(baixa_id):
             if qtd_aprovar <= 0:
                 continue
 
-            cliente_ref = (
-                item_baixa.cliente_estoque_id
-                if item_baixa.tipo_estoque == "cliente"
-                else baixa.cliente_id
+            tipo_item = (item_baixa.tipo_estoque or "empresa").strip().lower()
+
+            query_saldo = SaldoTecnico.query.filter(
+                SaldoTecnico.tecnico_id == baixa.tecnico_id,
+                SaldoTecnico.item_id == item_baixa.item_id,
+                SaldoTecnico.tipo_servico_id == baixa.tipo_servico_id,
+                SaldoTecnico.tipo_estoque == tipo_item
             )
 
-            saldo = (
-                SaldoTecnico.query
-                .filter(
-                    SaldoTecnico.tecnico_id == baixa.tecnico_id,
-                    SaldoTecnico.item_id == item_baixa.item_id,
-                    SaldoTecnico.tipo_servico_id == baixa.tipo_servico_id,
-                    SaldoTecnico.tipo_estoque == (item_baixa.tipo_estoque or "empresa"),
-                    SaldoTecnico.cliente_id == cliente_ref,
+            if tipo_item == "cliente":
+                query_saldo = query_saldo.filter(
+                    SaldoTecnico.cliente_id == baixa.cliente_id,
                     SaldoTecnico.ordem_servico_id == baixa.ordem_servico_id
                 )
-                .first()
-            )
+            else:
+                query_saldo = query_saldo.filter(
+                    SaldoTecnico.cliente_id.is_(None),
+                    SaldoTecnico.ordem_servico_id.is_(None)
+                )
+
+            saldo = query_saldo.first()
 
             if not saldo:
                 codigo = getattr(item_baixa.item, "codigo", item_baixa.item_id)
