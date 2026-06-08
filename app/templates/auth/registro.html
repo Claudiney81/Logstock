@@ -40,17 +40,20 @@
 
       <form method="POST" autocomplete="off">
 
-        <!-- Campo fake para enganar autocomplete -->
         <input
           type="text"
-          style="display:none"
+          name="fake_user"
+          style="position:absolute; left:-9999px; top:-9999px;"
           autocomplete="username"
+          tabindex="-1"
         >
 
         <input
           type="password"
-          style="display:none"
+          name="fake_pass"
+          style="position:absolute; left:-9999px; top:-9999px;"
           autocomplete="current-password"
+          tabindex="-1"
         >
 
         <div class="mb-3">
@@ -70,76 +73,82 @@
         </div>
 
         <div class="mb-3">
-          <label for="email" class="form-label fw-semibold">
+          <label for="cadastro_usuario_email" class="form-label fw-semibold">
             Email
           </label>
 
           <input
             type="email"
-            id="email"
-            name="email"
+            id="cadastro_usuario_email"
+            name="cadastro_usuario_email"
             class="form-control form-control-sm"
-            autocomplete="off"
+            autocomplete="new-email"
             autocorrect="off"
             autocapitalize="off"
             spellcheck="false"
+            value=""
             required
           />
         </div>
 
         <div class="mb-3">
-          <label for="senha" class="form-label fw-semibold">
+          <label for="cadastro_usuario_senha" class="form-label fw-semibold">
             Senha
           </label>
 
           <input
             type="password"
-            id="senha"
+            id="cadastro_usuario_senha"
             name="cadastro_usuario_senha"
             class="form-control form-control-sm"
             autocomplete="new-password"
+            value=""
             required
           />
         </div>
 
         <div class="mb-3">
-  <label for="perfil" class="form-label fw-semibold">
-    Perfil
-  </label>
+          <label for="perfil" class="form-label fw-semibold">
+            Perfil
+          </label>
 
-  <select
-    id="perfil"
-    name="perfil"
-    class="form-select form-select-sm"
-    autocomplete="off"
-    required
-  >
-    <option value="Administrador">
-      Administrador
-    </option>
+          <select
+            id="perfil"
+            name="perfil"
+            class="form-select form-select-sm"
+            autocomplete="off"
+            required
+          >
+            <option value="" selected disabled>
+              Selecione o perfil
+            </option>
 
-    <option value="Estoque">
-      Estoque
-    </option>
+            <option value="Administrador">
+              Administrador
+            </option>
 
-    <option value="Área Técnica">
-      Área Técnica
-    </option>
+            <option value="Estoque">
+              Estoque
+            </option>
 
-    <option value="Técnico">
-      Técnico Instalador
-    </option>
-  </select>
-</div>
+            <option value="Área Técnica">
+              Área Técnica
+            </option>
 
-<div class="d-grid mt-3">
-  <button
-    type="submit"
-    class="btn btn-success fw-semibold"
-  >
-    Cadastrar
-  </button>
-</div>
+            <option value="Técnico">
+              Técnico Instalador
+            </option>
+          </select>
+        </div>
+
+        <div class="d-grid mt-3">
+          <button
+            type="submit"
+            class="btn btn-success fw-semibold"
+          >
+            Cadastrar
+          </button>
+        </div>
 
       </form>
 
@@ -155,4 +164,21 @@
     </div>
   </div>
 </div>
+
+<script>
+  window.addEventListener('load', function () {
+    setTimeout(function () {
+      const email = document.getElementById('cadastro_usuario_email');
+      const senha = document.getElementById('cadastro_usuario_senha');
+
+      if (email) {
+        email.value = '';
+      }
+
+      if (senha) {
+        senha.value = '';
+      }
+    }, 300);
+  });
+</script>
 {% endblock %}
