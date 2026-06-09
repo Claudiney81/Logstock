@@ -618,18 +618,21 @@ ordemServico.addEventListener("change", function (e) {
 });
 
 tipoEstoque.addEventListener("change", function () {
+
   limparItensDisponiveis();
 
-  if (tipoEstoque.value === "empresa") {
-    clienteId.value = "";
-    ordemServico.innerHTML = '<option value="">Estoque empresa não usa O.S</option>';
-    endereco.value = "";
-  }
+  // NÃO limpa cliente, O.S. nem endereço.
+  // Apenas muda a origem do saldo.
 
   if (tipoEstoque.value === "cliente") {
-    carregarOrdensServico();
+
+    if (clienteId.value) {
+      carregarOrdensServico();
+    }
+
   }
-}); 
+
+});
 
 async function selecionarOrdemServicoPorId(osId, numeroOs = "", enderecoOs = "") {
   await carregarOrdensServico();
