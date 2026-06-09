@@ -7,6 +7,7 @@ from app.models import (
     Estoque,
     Item,
     TipoServico,
+    Empresa,
     InventarioEstoque,
     InventarioEstoqueItem
 )
@@ -18,67 +19,22 @@ bp = Blueprint(
 )
 
 
-# ===================== Inventário Principal =====================
 @bp.route('/', methods=['GET'])
 @login_required
 def inventario():
 
+    tipo_estoque = request.args.get('tipo_estoque', 'empresa')
+    cliente_id = request.args.get('cliente_id', type=int)
     tipo_servico_filtro = request.args.get('tipo_servico')
     categoria_filtro = request.args.get('categoria', '').strip().upper()
+    modo_exibicao = request.args.get('modo_exibicao', 'com_saldo')
 
-    # ==================================================
-    # REGRA OFICIAL:
-    # Estoque Empresa só possui saldo em Instalação.
-    # Manutenção e Reparo devem aparecer vazios no Inventário.
-    # ==================================================
-    if tipo_servico_filtro and tipo_servico_filtro.isdigit():
-
-        tipo_servico_id_filtro = int(tipo_servico_filtro)
-
-        tipo_servico = TipoServico.query.get(tipo_servico_id_filtro)
-
-        if tipo_servico and tipo_servico.nome.strip().lower() in [
-            'manutenção',
-            'manutencao',
-            'reparo'
-        ]:
-            tipos_servico = (
-                TipoServico.query
-                .order_by(TipoServico.nome.asc())
-                .all()
-            )
-
-            return render_template(
-                'estoque/inventario.html',
-                resultados=[],
-                tipos_servico=tipos_servico,
-                tipo_servico_filtro=tipo_servico_filtro,
-                categoria_filtro=categoria_filtro,
-                data_hoje=datetime.now().strftime('%Y-%m-%d')
-            )
-
-    query = (
-        db.session.query(Estoque, Item, TipoServico)
-        .join(Item, Estoque.item_id == Item.id)
-        .outerjoin(TipoServico, Estoque.tipo_servico_id == TipoServico.id)
-        .filter(Estoque.tipo_estoque == "empresa")
+    clientes = (
+        Empresa.query
+        .filter_by(tipo_empresa="cliente")
+        .order_by(Empresa.razao_social.asc())
+        .all()
     )
-
-    # FILTRO TIPO SERVIÇO
-    if tipo_servico_filtro and tipo_servico_filtro.isdigit():
-
-        query = query.filter(
-            TipoServico.id == int(tipo_servico_filtro)
-        )
-
-    # FILTRO CATEGORIA
-    if categoria_filtro in ['MATERIAL', 'FERRAMENTA', 'EPI']:
-
-        query = query.filter(
-            Item.categoria == categoria_filtro
-        )
-
-    resultados = query.all()
 
     tipos_servico = (
         TipoServico.query
@@ -86,12 +42,79 @@ def inventario():
         .all()
     )
 
+    query = (
+        db.session.query(Estoque, Item, TipoServico)
+        .join(Item, Estoque.item_id == Item.id)
+        .outerjoin(TipoServico, Estoque.tipo_servico_id == TipoServico.id)
+    )
+
+    if tipo_estoque == "cliente":
+
+        if not cliente_id:
+            return render_template(
+                'estoque/inventario.html',
+                resultados=[],
+                clientes=clientes,
+                tipos_servico=tipos_servico,
+                tipo_estoque=tipo_estoque,
+                cliente_id=cliente_id,
+                tipo_servico_filtro=tipo_servico_filtro,
+                categoria_filtro=categoria_filtro,
+                modo_exibicao=modo_exibicao,
+                data_hoje=datetime.now().strftime('%Y-%m-%d')
+            )
+
+        query = query.filter(
+            Estoque.tipo_estoque == "cliente",
+            Estoque.cliente_id == cliente_id
+        )
+
+    else:
+        tipo_estoque = "empresa"
+
+        query = query.filter(
+            db.or_(
+                Estoque.tipo_estoque == "empresa",
+                Estoque.tipo_estoque == None
+            )
+        )
+
+    if tipo_servico_filtro and tipo_servico_filtro.isdigit():
+        query = query.filter(
+            Estoque.tipo_servico_id == int(tipo_servico_filtro)
+        )
+
+    if categoria_filtro in ['MATERIAL', 'FERRAMENTA', 'EPI']:
+        query = query.filter(
+            Item.categoria == categoria_filtro
+        )
+
+    resultados = query.all()
+
+    if modo_exibicao == "com_saldo":
+        resultados = [
+            (estoque, item, tipo)
+            for estoque, item, tipo in resultados
+            if (estoque.quantidade or 0) > 0
+        ]
+
+    elif modo_exibicao == "zerados":
+        resultados = [
+            (estoque, item, tipo)
+            for estoque, item, tipo in resultados
+            if (estoque.quantidade or 0) <= 0
+        ]
+
     return render_template(
         'estoque/inventario.html',
         resultados=resultados,
+        clientes=clientes,
         tipos_servico=tipos_servico,
+        tipo_estoque=tipo_estoque,
+        cliente_id=cliente_id,
         tipo_servico_filtro=tipo_servico_filtro,
         categoria_filtro=categoria_filtro,
+        modo_exibicao=modo_exibicao,
         data_hoje=datetime.now().strftime('%Y-%m-%d')
     )
 
