@@ -96,12 +96,12 @@
             Senha
           </label>
 
-          <div class="input-group">
+          <div class="input-group input-group-sm">
             <input
               type="password"
               id="cadastro_usuario_senha"
               name="cadastro_usuario_senha"
-              class="form-control form-control-sm"
+              class="form-control"
               autocomplete="new-password"
               value=""
               required
@@ -111,6 +111,7 @@
               type="button"
               class="btn btn-outline-secondary"
               id="btnMostrarSenha"
+              title="Mostrar/Ocultar senha"
             >
               <i class="bi bi-eye" id="iconeSenha"></i>
             </button>
@@ -175,27 +176,14 @@
   </div>
 </div>
 
-document.getElementById('btnMostrarSenha').addEventListener('click', function () {
-
-  const campoSenha = document.getElementById('cadastro_usuario_senha');
-  const icone = document.getElementById('iconeSenha');
-
-  if (campoSenha.type === 'password') {
-    campoSenha.type = 'text';
-    icone.className = 'bi bi-eye-slash';
-  } else {
-    campoSenha.type = 'password';
-    icone.className = 'bi bi-eye';
-  }
-
-});
-
 <script>
-  window.addEventListener('load', function () {
-    setTimeout(function () {
-      const email = document.getElementById('cadastro_usuario_email');
-      const senha = document.getElementById('cadastro_usuario_senha');
+  document.addEventListener('DOMContentLoaded', function () {
+    const email = document.getElementById('cadastro_usuario_email');
+    const senha = document.getElementById('cadastro_usuario_senha');
+    const btnMostrarSenha = document.getElementById('btnMostrarSenha');
+    const iconeSenha = document.getElementById('iconeSenha');
 
+    setTimeout(function () {
       if (email) {
         email.value = '';
       }
@@ -204,6 +192,18 @@ document.getElementById('btnMostrarSenha').addEventListener('click', function ()
         senha.value = '';
       }
     }, 300);
+
+    if (btnMostrarSenha && senha && iconeSenha) {
+      btnMostrarSenha.addEventListener('click', function () {
+        if (senha.type === 'password') {
+          senha.type = 'text';
+          iconeSenha.className = 'bi bi-eye-slash';
+        } else {
+          senha.type = 'password';
+          iconeSenha.className = 'bi bi-eye';
+        }
+      });
+    }
   });
 </script>
 {% endblock %}
