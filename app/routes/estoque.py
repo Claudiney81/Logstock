@@ -306,6 +306,7 @@ def buscar_alertas_estoque(tipo_servico_id=None):
 
         if (
             estoque.quantidade_minima is not None
+            and estoque.quantidade_minima > 0
             and estoque.quantidade <= estoque.quantidade_minima
         ):
             alertas.append(
@@ -690,6 +691,8 @@ def exportar_criticos():
         "tipo_servico_id",
         type=int
     )
+    
+    categoria = request.args.get("categoria", "").strip().upper()
 
     alertas = buscar_alertas_estoque(
         tipo_servico_id
@@ -698,6 +701,8 @@ def exportar_criticos():
     dados = []
 
     for estoque, item, tipo_servico in alertas:
+        if categoria and (item.categoria or "").upper() != categoria:
+            continue
 
         dados.append({
             "Código": item.codigo,
