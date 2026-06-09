@@ -102,6 +102,26 @@
         </div>
 
         <div class="col-md-4">
+          <label class="fw-bold">Tipo de Estoque</label>
+          <input
+            type="text"
+            class="form-control"
+            value="{{ 'Cliente' if inventario.tipo_estoque == 'cliente' else 'Empresa' }}"
+            readonly
+          >
+        </div>
+
+        <div class="col-md-4">
+          <label class="fw-bold">Cliente</label>
+          <input
+            type="text"
+            class="form-control"
+            value="{{ inventario.cliente.razao_social if inventario.cliente else '-' }}"
+            readonly
+          >
+        </div>
+
+        <div class="col-md-4">
           <label class="fw-bold">Total de Itens Contados</label>
           <input
             type="text"
@@ -111,7 +131,7 @@
           >
         </div>
 
-        <div class="col-md-8">
+        <div class="col-md-12">
           <label class="fw-bold">Observação</label>
           <input
             type="text"
@@ -133,20 +153,17 @@
 
   <div class="table-responsive shadow-sm rounded border">
 
-    <table
-      class="table table-bordered table-hover table-sm align-middle mb-0 table-detalhe"
-    >
+    <table class="table table-bordered table-hover table-sm align-middle mb-0 table-detalhe">
 
       <thead>
-
         <tr>
           <th style="width: 140px;">Código</th>
           <th>Descrição</th>
           <th style="width: 160px;">Unidade de Medida</th>
+          <th style="width: 150px;">Categoria</th>
           <th style="width: 180px;">Quantidade Anterior</th>
           <th style="width: 180px;">Quantidade Contada</th>
         </tr>
-
       </thead>
 
       <tbody>
@@ -154,38 +171,20 @@
         {% for codigo, descricao, unidade, categoria, quantidade_estoque, quantidade_contada in itens %}
 
         <tr>
-
-          <td>
-            {{ codigo }}
-          </td>
-
-          <td>
-            {{ descricao }}
-          </td>
-
-          <td>
-            {{ unidade }}
-          </td>
-
-          <td>
-            {{ quantidade_estoque }}
-          </td>
-
-          <td
-            class="{% if quantidade_contada != quantidade_estoque %}table-warning fw-bold{% endif %}"
-          >
+          <td>{{ codigo }}</td>
+          <td>{{ descricao }}</td>
+          <td>{{ unidade }}</td>
+          <td>{{ categoria or 'MATERIAL' }}</td>
+          <td>{{ quantidade_estoque }}</td>
+          <td class="{% if quantidade_contada != quantidade_estoque %}table-warning fw-bold{% endif %}">
             {{ quantidade_contada }}
           </td>
-
         </tr>
 
         {% else %}
 
         <tr>
-          <td
-            colspan="5"
-            class="text-center text-muted py-4"
-          >
+          <td colspan="6" class="text-center text-muted py-4">
             Nenhum item contado.
           </td>
         </tr>

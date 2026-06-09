@@ -30,7 +30,8 @@
     color:#fff;
   }
 
-  .form-control:focus{
+  .form-control:focus,
+  .form-select:focus{
     border-color:#0b2e59;
     box-shadow:0 0 0 .15rem rgba(11,46,89,.12);
   }
@@ -41,6 +42,18 @@
 
   .page-link:hover{
     color:#14447f;
+  }
+
+  .badge-empresa{
+    background:#e8f1ff;
+    color:#0b2e59;
+    border:1px solid #b9d4ff;
+  }
+
+  .badge-cliente{
+    background:#eaf8ef;
+    color:#146c43;
+    border:1px solid #b7e0c2;
   }
 </style>
 
@@ -63,33 +76,67 @@
         class="row g-2 mb-4"
       >
 
-        <div class="col-md-4">
+        <div class="col-md-3">
           <input
             type="text"
             class="form-control shadow-sm"
             name="responsavel"
             placeholder="Filtrar por Responsável"
-            value="{{ responsavel }}"
-          >
-        </div>
-
-        <div class="col-md-3">
-          <input
-            type="date"
-            class="form-control shadow-sm"
-            name="data"
-            value="{{ data_filtro }}"
+            value="{{ responsavel or '' }}"
           >
         </div>
 
         <div class="col-md-2">
+          <input
+            type="date"
+            class="form-control shadow-sm"
+            name="data"
+            value="{{ data_filtro or '' }}"
+          >
+        </div>
+
+        <div class="col-md-2">
+          <select name="tipo_estoque" class="form-select shadow-sm">
+            <option value="">Tipo Estoque</option>
+            <option value="empresa" {% if tipo_estoque == 'empresa' %}selected{% endif %}>
+              Empresa
+            </option>
+            <option value="cliente" {% if tipo_estoque == 'cliente' %}selected{% endif %}>
+              Cliente
+            </option>
+          </select>
+        </div>
+
+        <div class="col-md-3">
+          <select name="cliente_id" class="form-select shadow-sm">
+            <option value="">Todos os Clientes</option>
+            {% for cliente in clientes %}
+              <option
+                value="{{ cliente.id }}"
+                {% if cliente_id|string == cliente.id|string %}selected{% endif %}
+              >
+                {{ cliente.razao_social }}
+              </option>
+            {% endfor %}
+          </select>
+        </div>
+
+        <div class="col-md-1">
           <button
             type="submit"
             class="btn btn-padrao-azul w-100 shadow-sm"
           >
-            <i class="bi bi-search me-1"></i>
-            Buscar
+            <i class="bi bi-search"></i>
           </button>
+        </div>
+
+        <div class="col-md-1">
+          <a
+            href="{{ url_for('inventario_estoque.historico_inventarios') }}"
+            class="btn btn-secondary w-100 shadow-sm"
+          >
+            Limpar
+          </a>
         </div>
 
       </form>
@@ -101,6 +148,8 @@
             <tr>
               <th>Data/Hora</th>
               <th>Responsável</th>
+              <th>Tipo Estoque</th>
+              <th>Cliente</th>
               <th>Tipo de Serviço</th>
               <th>Observação</th>
               <th class="text-center">Ações</th>
@@ -112,6 +161,23 @@
             <tr>
               <td>{{ inv.data_hora.strftime('%d/%m/%Y %H:%M') }}</td>
               <td>{{ inv.responsavel }}</td>
+
+              <td>
+                {% if inv.tipo_estoque == 'cliente' %}
+                  <span class="badge badge-cliente">Cliente</span>
+                {% else %}
+                  <span class="badge badge-empresa">Empresa</span>
+                {% endif %}
+              </td>
+
+              <td>
+                {% if inv.tipo_estoque == 'cliente' and inv.cliente %}
+                  {{ inv.cliente.razao_social }}
+                {% else %}
+                  -
+                {% endif %}
+              </td>
+
               <td>{{ inv.tipo_servico.nome if inv.tipo_servico else 'Todos' }}</td>
               <td>{{ inv.observacao or '-' }}</td>
 
@@ -128,7 +194,7 @@
 
             {% else %}
             <tr>
-              <td colspan="5" class="text-center text-muted py-4">
+              <td colspan="7" class="text-center text-muted py-4">
                 Nenhum inventário encontrado.
               </td>
             </tr>
@@ -149,7 +215,9 @@
                 'inventario_estoque.historico_inventarios',
                 page=inventarios.prev_num,
                 responsavel=responsavel,
-                data=data_filtro
+                data=data_filtro,
+                tipo_estoque=tipo_estoque,
+                cliente_id=cliente_id
               ) }}"
             >
               Anterior
@@ -175,7 +243,9 @@
                 'inventario_estoque.historico_inventarios',
                 page=inventarios.next_num,
                 responsavel=responsavel,
-                data=data_filtro
+                data=data_filtro,
+                tipo_estoque=tipo_estoque,
+                cliente_id=cliente_id
               ) }}"
             >
               Próxima

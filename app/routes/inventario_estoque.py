@@ -117,6 +117,13 @@ def finalizar_inventario():
         observacao = request.form.get('observacao', '').strip()
         tipo_servico_id = request.form.get('tipo_servico')
 
+        tipo_estoque = request.form.get('tipo_estoque', 'empresa')
+        cliente_id = request.form.get('cliente_id', type=int)
+
+        if tipo_estoque != 'cliente':
+            tipo_estoque = 'empresa'
+            cliente_id = None
+
         responsavel_logado = (
             getattr(current_user, 'nome', None)
             or getattr(current_user, 'username', None)
@@ -128,6 +135,8 @@ def finalizar_inventario():
             data_hora=datetime.now(),
             responsavel=responsavel_logado,
             observacao=observacao,
+            tipo_estoque=tipo_estoque,
+            cliente_id=cliente_id,
             tipo_servico_id=int(tipo_servico_id)
             if tipo_servico_id else None
         )
@@ -217,7 +226,6 @@ def finalizar_inventario():
         return redirect(
             url_for('inventario_estoque.inventario')
         )
-
 
 # ===================== Histórico =====================
 @bp.route('/historico')

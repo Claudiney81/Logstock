@@ -851,14 +851,39 @@ class InventarioEstoque(db.Model):
     responsavel = db.Column(db.String(100), nullable=False)
     observacao = db.Column(db.String(255), nullable=True)
 
-    tipo_servico_id = db.Column(db.Integer, db.ForeignKey('tipo_servico.id'), nullable=True)
-    tipo_servico = db.relationship('TipoServico', foreign_keys=[tipo_servico_id])
+    tipo_estoque = db.Column(
+        db.String(20),
+        default='empresa'
+    )
+
+    cliente_id = db.Column(
+        db.Integer,
+        db.ForeignKey('empresas.id'),
+        nullable=True
+    )
+
+    cliente = db.relationship(
+        'Empresa',
+        foreign_keys=[cliente_id]
+    )
+
+    tipo_servico_id = db.Column(
+        db.Integer,
+        db.ForeignKey('tipo_servico.id'),
+        nullable=True
+    )
+
+    tipo_servico = db.relationship(
+        'TipoServico',
+        foreign_keys=[tipo_servico_id]
+    )
 
     itens = db.relationship(
         'InventarioEstoqueItem',
         backref='inventario',
         cascade='all, delete-orphan'
     )
+
 
 class InventarioEstoqueItem(db.Model):
     __tablename__ = 'inventario_estoque_item'
