@@ -1284,11 +1284,18 @@ def exportar_saldo_excel():
         worksheet.merge_range("A1:G1", "RELATÓRIO DE SALDO DE ESTOQUE", titulo_format)
 
         worksheet.write("A3", "Tipo de Estoque:", info_format)
-        worksheet.write("B3", "Empresa" if tipo_estoque == "empresa" else "Cliente", normal_format)
+        worksheet.write(
+            "B3",
+            "EMPRESA" if tipo_estoque == "empresa" else "CLIENTE",
+            normal_format
+        )
 
-        if tipo_estoque == "cliente":
-            worksheet.write("D3", "Cliente/O.S:", info_format)
-            worksheet.write("E3", cliente_nome, normal_format)
+        worksheet.write("D3", "Cliente:", info_format)
+        worksheet.write(
+            "E3",
+            cliente_nome if cliente_id else "TODOS",
+            normal_format
+        )
 
         worksheet.write("A4", "Tipo de Serviço:", info_format)
         worksheet.write("B4", tipo_servico_nome, normal_format)
