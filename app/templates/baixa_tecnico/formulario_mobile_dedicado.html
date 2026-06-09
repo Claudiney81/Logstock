@@ -41,8 +41,10 @@
 
               <div class="mb-2">
                 <strong>O.S:</strong><br>
-                {% if baixa.cliente and baixa.cliente.numero_os %}
-                  {{ baixa.cliente.numero_os }}
+                {% if baixa.ordem_servico %}
+                  {{ baixa.ordem_servico.numero_os }}
+                {% elif baixa.os_cliente %}
+                  {{ baixa.os_cliente.split(' - ')[-1] }}
                 {% else %}
                   -
                 {% endif %}
