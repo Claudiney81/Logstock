@@ -691,8 +691,11 @@ def exportar_criticos():
         "tipo_servico_id",
         type=int
     )
-    
-    categoria = request.args.get("categoria", "").strip().upper()
+
+    categoria = request.args.get(
+        "categoria",
+        ""
+    ).strip().upper()
 
     alertas = buscar_alertas_estoque(
         tipo_servico_id
@@ -701,6 +704,7 @@ def exportar_criticos():
     dados = []
 
     for estoque, item, tipo_servico in alertas:
+
         if categoria and (item.categoria or "").upper() != categoria:
             continue
 
@@ -711,11 +715,21 @@ def exportar_criticos():
             "Categoria": item.categoria or "MATERIAL",
             "Tipo Serviço": tipo_servico.nome if tipo_servico else "-",
             "Quantidade Atual": estoque.quantidade or 0,
-            "Estoque Mínimo": estoque.quantidade_minima or 0,
-            "Endereço": estoque.endereco or ""
+            "Estoque Mínimo": estoque.quantidade_minima or 0
         })
 
-    df = pd.DataFrame(dados)
+    df = pd.DataFrame(
+        dados,
+        columns=[
+            "Código",
+            "Descrição",
+            "Unidade",
+            "Categoria",
+            "Tipo Serviço",
+            "Quantidade Atual",
+            "Estoque Mínimo"
+        ]
+    )
 
     output = io.BytesIO()
 
@@ -782,13 +796,13 @@ def exportar_criticos():
         })
 
         worksheet.merge_range(
-            'A1:H1',
+            'A1:G1',
             'RELATÓRIO DE ALERTA DE PEDIDO - ITENS CRÍTICOS',
             titulo_format
         )
 
         worksheet.merge_range(
-            'A2:H2',
+            'A2:G2',
             f'Gerado em {datetime.now().strftime("%d/%m/%Y %H:%M")}',
             subtitulo_format
         )
@@ -812,7 +826,6 @@ def exportar_criticos():
             worksheet.write(row_num, 4, item_linha["Tipo Serviço"], normal_format)
             worksheet.write(row_num, 5, item_linha["Quantidade Atual"], qtd_alerta_format)
             worksheet.write(row_num, 6, item_linha["Estoque Mínimo"], minimo_alerta_format)
-            worksheet.write(row_num, 7, item_linha["Endereço"], normal_format)
 
         worksheet.set_column('A:A', 14)
         worksheet.set_column('B:B', 48)
@@ -821,7 +834,6 @@ def exportar_criticos():
         worksheet.set_column('E:E', 24)
         worksheet.set_column('F:F', 18)
         worksheet.set_column('G:G', 18)
-        worksheet.set_column('H:H', 42)
 
         worksheet.set_row(0, 26)
         worksheet.set_row(1, 20)
@@ -833,7 +845,7 @@ def exportar_criticos():
             linha_header,
             0,
             linha_header + len(dados),
-            len(df.columns) - 1
+            6
         )
 
     output.seek(0)
