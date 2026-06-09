@@ -423,105 +423,105 @@ def nova_movimentacao():
             # 3 - ENTRADA NO DESTINO
             # ==================================================
 
-        if destino_tipo == 'tecnico':
-    
-            if origem_tipo == 'empresa':
+            if destino_tipo == 'tecnico':
+        
+                if origem_tipo == 'empresa':
 
-                tipo_estoque_destino = 'empresa'
-                cliente_destino_id = None
-                ordem_servico_destino_id = None
-                endereco_destino = ""
-                bairro_destino = ""
-                codigo_imovel_destino = ""
-                tipo_servico_destino = tipo_servico_saldo
+                    tipo_estoque_destino = 'empresa'
+                    cliente_destino_id = None
+                    ordem_servico_destino_id = None
+                    endereco_destino = ""
+                    bairro_destino = ""
+                    codigo_imovel_destino = ""
+                    tipo_servico_destino = tipo_servico_saldo
 
-            elif origem_tipo == 'cliente':
+                elif origem_tipo == 'cliente':
 
-                tipo_estoque_destino = 'cliente'
-                cliente_destino_id = int(cliente_os_id) if cliente_os_id else None
-                ordem_servico_destino_id = ordem_servico_id
-                endereco_destino = endereco_os
-                bairro_destino = bairro_os
-                codigo_imovel_destino = codigo_imovel_os
-                tipo_servico_destino = int(tipo_servico_id)
+                    tipo_estoque_destino = 'cliente'
+                    cliente_destino_id = int(cliente_os_id) if cliente_os_id else None
+                    ordem_servico_destino_id = ordem_servico_id
+                    endereco_destino = endereco_os
+                    bairro_destino = bairro_os
+                    codigo_imovel_destino = codigo_imovel_os
+                    tipo_servico_destino = int(tipo_servico_id)
 
-            else:
+                else:
 
-                tipo_estoque_destino = 'empresa'
-                cliente_destino_id = None
-                ordem_servico_destino_id = None
-                endereco_destino = ""
-                bairro_destino = ""
-                codigo_imovel_destino = ""
-                tipo_servico_destino = tipo_servico_saldo
+                    tipo_estoque_destino = 'empresa'
+                    cliente_destino_id = None
+                    ordem_servico_destino_id = None
+                    endereco_destino = ""
+                    bairro_destino = ""
+                    codigo_imovel_destino = ""
+                    tipo_servico_destino = tipo_servico_saldo
 
-            saldo_destino = SaldoTecnico.query.filter_by(
-                tecnico_id=int(tecnico_id),
-                item_id=item.id,
-                tipo_servico_id=tipo_servico_destino,
-                tipo_estoque=tipo_estoque_destino,
-                cliente_id=cliente_destino_id,
-                ordem_servico_id=ordem_servico_destino_id
-            ).first()
-
-            if saldo_destino:
-                saldo_destino.quantidade += quantidade
-                saldo_destino.quantidade_minima = (
-                    quantidade_minima
-                    if origem_tipo == 'empresa'
-                    else saldo_destino.quantidade_minima
-                )
-                saldo_destino.endereco = endereco_destino
-                saldo_destino.bairro = bairro_destino
-                saldo_destino.codigo_imovel = codigo_imovel_destino
-
-            else:
-                novo_saldo = SaldoTecnico(
+                saldo_destino = SaldoTecnico.query.filter_by(
                     tecnico_id=int(tecnico_id),
                     item_id=item.id,
                     tipo_servico_id=tipo_servico_destino,
-                    quantidade=quantidade,
-                    quantidade_minima=quantidade_minima if origem_tipo == 'empresa' else 0,
                     tipo_estoque=tipo_estoque_destino,
                     cliente_id=cliente_destino_id,
-                    ordem_servico_id=ordem_servico_destino_id,
-                    endereco=endereco_destino,
-                    bairro=bairro_destino,
-                    codigo_imovel=codigo_imovel_destino
-                )
-
-                db.session.add(novo_saldo)
-
-        elif destino_tipo == 'empresa':
-
-            volta_para_estoque = True
-
-            if categoria_movimentacao == 'PATRIMONIO':
-                volta_para_estoque = motivo_retorno == 'devolucao'
-
-            if volta_para_estoque:
-
-                estoque_destino = Estoque.query.filter_by(
-                    item_id=item.id,
-                    tipo_servico_id=tipo_servico_saldo,
-                    tipo_estoque='empresa'
+                    ordem_servico_id=ordem_servico_destino_id
                 ).first()
 
-                if estoque_destino:
-                    estoque_destino.quantidade += quantidade
+                if saldo_destino:
+                    saldo_destino.quantidade += quantidade
+                    saldo_destino.quantidade_minima = (
+                        quantidade_minima
+                        if origem_tipo == 'empresa'
+                        else saldo_destino.quantidade_minima
+                    )
+                    saldo_destino.endereco = endereco_destino
+                    saldo_destino.bairro = bairro_destino
+                    saldo_destino.codigo_imovel = codigo_imovel_destino
 
                 else:
-                    novo_estoque = Estoque(
+                    novo_saldo = SaldoTecnico(
+                        tecnico_id=int(tecnico_id),
                         item_id=item.id,
-                        tipo_servico_id=tipo_servico_saldo,
-                        tipo_estoque='empresa',
+                        tipo_servico_id=tipo_servico_destino,
                         quantidade=quantidade,
-                        quantidade_minima=0
+                        quantidade_minima=quantidade_minima if origem_tipo == 'empresa' else 0,
+                        tipo_estoque=tipo_estoque_destino,
+                        cliente_id=cliente_destino_id,
+                        ordem_servico_id=ordem_servico_destino_id,
+                        endereco=endereco_destino,
+                        bairro=bairro_destino,
+                        codigo_imovel=codigo_imovel_destino
                     )
 
-                    db.session.add(novo_estoque)
+                    db.session.add(novo_saldo)
 
-        sucesso = True
+            elif destino_tipo == 'empresa':
+
+                volta_para_estoque = True
+
+                if categoria_movimentacao == 'PATRIMONIO':
+                    volta_para_estoque = motivo_retorno == 'devolucao'
+
+                if volta_para_estoque:
+
+                    estoque_destino = Estoque.query.filter_by(
+                        item_id=item.id,
+                        tipo_servico_id=tipo_servico_saldo,
+                        tipo_estoque='empresa'
+                    ).first()
+
+                    if estoque_destino:
+                        estoque_destino.quantidade += quantidade
+
+                    else:
+                        novo_estoque = Estoque(
+                            item_id=item.id,
+                            tipo_servico_id=tipo_servico_saldo,
+                            tipo_estoque='empresa',
+                            quantidade=quantidade,
+                            quantidade_minima=0
+                        )
+
+                        db.session.add(novo_estoque)
+
+            sucesso = True
 
         # ==================================================
         # FINALIZAÇÃO
@@ -531,7 +531,6 @@ def nova_movimentacao():
             db.session.rollback()
             flash('Nenhum item movimentado.', 'danger')
             return redirect(url_for('movimentacao_estoque.nova_movimentacao'))
-
         # ==================================================
         # ATUALIZA STATUS DA O.S SOMENTE MATERIAL
         # ==================================================
