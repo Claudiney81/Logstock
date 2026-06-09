@@ -143,30 +143,7 @@
                   <option value="FERRAMENTA" {% if categoria_filtro == 'FERRAMENTA' %}selected{% endif %}>FERRAMENTA</option>
                   <option value="EPI" {% if categoria_filtro == 'EPI' %}selected{% endif %}>EPI</option>
                 </select>
-              </div>
-
-              <div class="col-md-2">
-                <label for="modo_exibicao" class="form-label fw-bold">
-                  Exibir Itens
-                </label>
-
-                <select
-                  name="modo_exibicao"
-                  id="modo_exibicao"
-                  class="form-select shadow-sm"
-                  onchange="aplicarFiltrosInventario()"
-                >
-                  <option value="com_saldo" {% if modo_exibicao == 'com_saldo' or not modo_exibicao %}selected{% endif %}>
-                    Com saldo
-                  </option>
-                  <option value="zerados" {% if modo_exibicao == 'zerados' %}selected{% endif %}>
-                    Zerados
-                  </option>
-                  <option value="todos" {% if modo_exibicao == 'todos' %}selected{% endif %}>
-                    Todos
-                  </option>
-                </select>
-              </div>
+              </div>         
 
             </div>
 
@@ -178,8 +155,7 @@
         <input type="hidden" name="tipo_estoque" value="{{ tipo_estoque }}">
         <input type="hidden" name="cliente_id" value="{{ cliente_id }}">
         <input type="hidden" name="categoria_filtro" value="{{ categoria_filtro }}">
-        <input type="hidden" name="modo_exibicao" value="{{ modo_exibicao }}">
-
+        
         <!-- TABELA -->
         <div class="table-responsive" style="max-height:70vh; overflow-y:auto;">
 
@@ -287,7 +263,7 @@
     const clienteId = document.getElementById('cliente_id').value;
     const tipoServico = document.getElementById('tipo_servico').value;
     const categoria = document.getElementById('categoria').value;
-    const modoExibicao = document.getElementById('modo_exibicao').value;
+    
 
     const params = new URLSearchParams();
 
@@ -305,11 +281,7 @@
 
     if (categoria) {
       params.set('categoria', categoria);
-    }
-
-    if (modoExibicao) {
-      params.set('modo_exibicao', modoExibicao);
-    }
+    }    
 
     window.location.href = '?' + params.toString();
   }

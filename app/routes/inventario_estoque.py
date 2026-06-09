@@ -27,8 +27,7 @@ def inventario():
     cliente_id = request.args.get('cliente_id', type=int)
     tipo_servico_filtro = request.args.get('tipo_servico')
     categoria_filtro = request.args.get('categoria', '').strip().upper()
-    modo_exibicao = request.args.get('modo_exibicao', 'com_saldo')
-
+    
     clientes = (
         Empresa.query
         .filter_by(tipo_empresa="cliente")
@@ -60,8 +59,7 @@ def inventario():
                 cliente_id=cliente_id,
                 tipo_servico_filtro=tipo_servico_filtro,
                 categoria_filtro=categoria_filtro,
-                modo_exibicao=modo_exibicao,
-                data_hoje=datetime.now().strftime('%Y-%m-%d')
+                data_hoje=datetime.now().strftime('%Y-%m-%d')                
             )
 
         query = query.filter(
@@ -91,19 +89,11 @@ def inventario():
 
     resultados = query.all()
 
-    if modo_exibicao == "com_saldo":
-        resultados = [
-            (estoque, item, tipo)
-            for estoque, item, tipo in resultados
-            if (estoque.quantidade or 0) > 0
-        ]
-
-    elif modo_exibicao == "zerados":
-        resultados = [
-            (estoque, item, tipo)
-            for estoque, item, tipo in resultados
-            if (estoque.quantidade or 0) <= 0
-        ]
+    resultados = [
+        (estoque, item, tipo)
+        for estoque, item, tipo in resultados
+        if (estoque.quantidade or 0) > 0
+    ]
 
     return render_template(
         'estoque/inventario.html',
@@ -114,7 +104,6 @@ def inventario():
         cliente_id=cliente_id,
         tipo_servico_filtro=tipo_servico_filtro,
         categoria_filtro=categoria_filtro,
-        modo_exibicao=modo_exibicao,
         data_hoje=datetime.now().strftime('%Y-%m-%d')
     )
 
