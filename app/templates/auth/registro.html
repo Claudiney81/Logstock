@@ -96,15 +96,25 @@
             Senha
           </label>
 
-          <input
-            type="password"
-            id="cadastro_usuario_senha"
-            name="cadastro_usuario_senha"
-            class="form-control form-control-sm"
-            autocomplete="new-password"
-            value=""
-            required
-          />
+          <div class="input-group">
+            <input
+              type="password"
+              id="cadastro_usuario_senha"
+              name="cadastro_usuario_senha"
+              class="form-control form-control-sm"
+              autocomplete="new-password"
+              value=""
+              required
+            />
+
+            <button
+              type="button"
+              class="btn btn-outline-secondary"
+              id="btnMostrarSenha"
+            >
+              <i class="bi bi-eye" id="iconeSenha"></i>
+            </button>
+          </div>
         </div>
 
         <div class="mb-3">
@@ -164,6 +174,21 @@
     </div>
   </div>
 </div>
+
+document.getElementById('btnMostrarSenha').addEventListener('click', function () {
+
+  const campoSenha = document.getElementById('cadastro_usuario_senha');
+  const icone = document.getElementById('iconeSenha');
+
+  if (campoSenha.type === 'password') {
+    campoSenha.type = 'text';
+    icone.className = 'bi bi-eye-slash';
+  } else {
+    campoSenha.type = 'password';
+    icone.className = 'bi bi-eye';
+  }
+
+});
 
 <script>
   window.addEventListener('load', function () {
