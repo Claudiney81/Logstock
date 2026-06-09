@@ -867,6 +867,7 @@ def exportar_criticos():
 @login_required
 def exportar_alertas_excel():
     from flask import send_file
+    import pandas as pd
     import io
     from datetime import datetime
 
@@ -876,54 +877,137 @@ def exportar_alertas_excel():
     dados = []
 
     for estoque, item, tipo_servico in alertas:
-        quantidade_atual = estoque.quantidade or 0
-        valor_unitario = float(item.valor or 0)
-
         dados.append({
             "Código": item.codigo,
             "Descrição": item.descricao,
             "Unidade": item.unidade,
             "Categoria": item.categoria or "MATERIAL",
-            "Tipo de Serviço": tipo_servico.nome if tipo_servico else "-",
-            "Quantidade Atual": quantidade_atual,
-            "Quantidade Mínima": estoque.quantidade_minima or 0,
-            "Endereço": estoque.endereco or "-",
-            "Valor Unitário (R$)": valor_unitario,
-            "Valor Total Atual (R$)": quantidade_atual * valor_unitario
+            "Tipo Serviço": tipo_servico.nome if tipo_servico else "-",
+            "Quantidade Atual": estoque.quantidade or 0,
+            "Estoque Mínimo": estoque.quantidade_minima or 0
         })
 
-    df = pd.DataFrame(dados)
+    df = pd.DataFrame(
+        dados,
+        columns=[
+            "Código",
+            "Descrição",
+            "Unidade",
+            "Categoria",
+            "Tipo Serviço",
+            "Quantidade Atual",
+            "Estoque Mínimo"
+        ]
+    )
 
     output = io.BytesIO()
 
     with pd.ExcelWriter(output, engine='xlsxwriter') as writer:
-        df.to_excel(writer, index=False, sheet_name='Estoque Baixo')
-
         workbook = writer.book
-        worksheet = writer.sheets['Estoque Baixo']
+        worksheet = workbook.add_worksheet('Estoque Baixo')
+        writer.sheets['Estoque Baixo'] = worksheet
 
-        header_format = workbook.add_format({
+        titulo_format = workbook.add_format({
             'bold': True,
-            'bg_color': '#002B55',
+            'font_size': 14,
             'font_color': 'white',
+            'bg_color': '#002B55',
+            'align': 'center',
+            'valign': 'vcenter',
             'border': 1
         })
 
-        money_format = workbook.add_format({
-            'num_format': 'R$ #,##0.00'
+        subtitulo_format = workbook.add_format({
+            'italic': True,
+            'font_color': '#4B5563',
+            'align': 'center',
+            'valign': 'vcenter'
         })
 
-        for col_num, value in enumerate(df.columns.values):
-            worksheet.write(0, col_num, value, header_format)
+        header_format = workbook.add_format({
+            'bold': True,
+            'font_color': 'white',
+            'bg_color': '#002B55',
+            'border': 1,
+            'align': 'center',
+            'valign': 'vcenter'
+        })
 
-        worksheet.set_column('A:A', 15)
-        worksheet.set_column('B:B', 45)
-        worksheet.set_column('C:C', 15)
-        worksheet.set_column('D:D', 18)
-        worksheet.set_column('E:E', 25)
-        worksheet.set_column('F:G', 18)
-        worksheet.set_column('H:H', 35)
-        worksheet.set_column('I:J', 22, money_format)
+        normal_format = workbook.add_format({
+            'border': 1,
+            'valign': 'vcenter'
+        })
+
+        center_format = workbook.add_format({
+            'border': 1,
+            'align': 'center',
+            'valign': 'vcenter'
+        })
+
+        qtd_alerta_format = workbook.add_format({
+            'bold': True,
+            'bg_color': '#F8D7DA',
+            'font_color': '#842029',
+            'border': 1,
+            'align': 'center',
+            'valign': 'vcenter'
+        })
+
+        minimo_alerta_format = workbook.add_format({
+            'bold': True,
+            'bg_color': '#DC3545',
+            'font_color': 'white',
+            'border': 1,
+            'align': 'center',
+            'valign': 'vcenter'
+        })
+
+        worksheet.merge_range(
+            'A1:G1',
+            'RELATÓRIO DE ESTOQUE BAIXO - ITENS CRÍTICOS',
+            titulo_format
+        )
+
+        worksheet.merge_range(
+            'A2:G2',
+            f'Gerado em {datetime.now().strftime("%d/%m/%Y %H:%M")}',
+            subtitulo_format
+        )
+
+        linha_header = 3
+
+        for col_num, value in enumerate(df.columns.values):
+            worksheet.write(linha_header, col_num, value, header_format)
+
+        for row_num, item_linha in enumerate(dados, start=linha_header + 1):
+            worksheet.write(row_num, 0, item_linha["Código"], center_format)
+            worksheet.write(row_num, 1, item_linha["Descrição"], normal_format)
+            worksheet.write(row_num, 2, item_linha["Unidade"], center_format)
+            worksheet.write(row_num, 3, item_linha["Categoria"], center_format)
+            worksheet.write(row_num, 4, item_linha["Tipo Serviço"], normal_format)
+            worksheet.write(row_num, 5, item_linha["Quantidade Atual"], qtd_alerta_format)
+            worksheet.write(row_num, 6, item_linha["Estoque Mínimo"], minimo_alerta_format)
+
+        worksheet.set_column('A:A', 14)
+        worksheet.set_column('B:B', 48)
+        worksheet.set_column('C:C', 12)
+        worksheet.set_column('D:D', 16)
+        worksheet.set_column('E:E', 24)
+        worksheet.set_column('F:F', 18)
+        worksheet.set_column('G:G', 18)
+
+        worksheet.set_row(0, 26)
+        worksheet.set_row(1, 20)
+        worksheet.set_row(linha_header, 22)
+
+        worksheet.freeze_panes(4, 0)
+
+        worksheet.autofilter(
+            linha_header,
+            0,
+            linha_header + len(dados),
+            6
+        )
 
     output.seek(0)
 
