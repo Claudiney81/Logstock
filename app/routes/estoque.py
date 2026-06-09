@@ -1162,6 +1162,8 @@ def exportar_saldo_excel():
         tipo_servico_nome = tipo_servico.nome if tipo_servico else "Todos"
 
     query = db.session.query(
+        Estoque.tipo_estoque,
+        Empresa.razao_social.label("cliente_nome"),
         Item.codigo,
         Item.descricao,
         Item.unidade,
@@ -1172,6 +1174,9 @@ def exportar_saldo_excel():
     ).join(
         Item,
         Estoque.item_id == Item.id
+    ).outerjoin(
+        Empresa,
+        Estoque.cliente_id == Empresa.id
     )
 
     if categoria:
@@ -1195,6 +1200,9 @@ def exportar_saldo_excel():
         query = query.filter(Estoque.tipo_servico_id == tipo_servico_id)
 
     resultados = query.group_by(
+        Estoque.tipo_estoque,
+        Estoque.cliente_id,
+        Empresa.razao_social,
         Estoque.item_id,
         Item.codigo,
         Item.descricao,
@@ -1203,6 +1211,8 @@ def exportar_saldo_excel():
     ).having(
         func.sum(Estoque.quantidade) > 0
     ).order_by(
+        Estoque.tipo_estoque,
+        Empresa.razao_social,
         Item.descricao
     ).all()
 
@@ -1210,6 +1220,8 @@ def exportar_saldo_excel():
 
     for r in resultados:
         dados.append({
+            "Tipo Estoque": "EMPRESA" if (r.tipo_estoque or "empresa") == "empresa" else "CLIENTE",
+            "Cliente": r.cliente_nome or "-",
             "Código": r.codigo,
             "Descrição": r.descricao,
             "Unidade": r.unidade,
@@ -1281,12 +1293,12 @@ def exportar_saldo_excel():
             "valign": "vcenter"
         })
 
-        worksheet.merge_range("A1:G1", "RELATÓRIO DE SALDO DE ESTOQUE", titulo_format)
+        worksheet.merge_range("A1:I1", "RELATÓRIO DE SALDO DE ESTOQUE", titulo_format)
 
         worksheet.write("A3", "Tipo de Estoque:", info_format)
         worksheet.write(
             "B3",
-            "EMPRESA" if tipo_estoque == "empresa" else "CLIENTE",
+            "EMPRESA" if tipo_estoque == "empresa" else "CLIENTE" if tipo_estoque == "cliente" else "TODOS",
             normal_format
         )
 
@@ -1312,35 +1324,44 @@ def exportar_saldo_excel():
             worksheet.write(linha_header, col_num, coluna, header_format)
 
         for row_num, item in enumerate(dados, start=linha_header + 1):
-            worksheet.write(row_num, 0, item["Código"], center_format)
-            worksheet.write(row_num, 1, item["Descrição"], normal_format)
-            worksheet.write(row_num, 2, item["Unidade"], center_format)
-            worksheet.write(row_num, 3, item["Valor (R$)"], money_format)
+            worksheet.write(row_num, 0, item["Tipo Estoque"], center_format)
+            worksheet.write(row_num, 1, item["Cliente"], normal_format)
+            worksheet.write(row_num, 2, item["Código"], center_format)
+            worksheet.write(row_num, 3, item["Descrição"], normal_format)
+            worksheet.write(row_num, 4, item["Unidade"], center_format)
+            worksheet.write(row_num, 5, item["Valor (R$)"], money_format)
 
             minimo = item["Estoque Mínimo"] or 0
             quantidade = item["Quantidade"] or 0
 
             if minimo and quantidade <= minimo:
-                worksheet.write(row_num, 4, quantidade, qtd_alerta_format)
+                worksheet.write(row_num, 6, quantidade, qtd_alerta_format)
             else:
-                worksheet.write(row_num, 4, quantidade, center_format)
+                worksheet.write(row_num, 6, quantidade, center_format)
 
-            worksheet.write(row_num, 5, item["Estoque Mínimo"], center_format)
-            worksheet.write(row_num, 6, item["Endereço"], normal_format)
+            worksheet.write(row_num, 7, item["Estoque Mínimo"], center_format)
+            worksheet.write(row_num, 8, item["Endereço"], normal_format)
 
-        worksheet.set_column("A:A", 14)
-        worksheet.set_column("B:B", 45)
-        worksheet.set_column("C:C", 12)
-        worksheet.set_column("D:D", 16)
-        worksheet.set_column("E:E", 14)
-        worksheet.set_column("F:F", 18)
-        worksheet.set_column("G:G", 42)
+        worksheet.set_column("A:A", 16)
+        worksheet.set_column("B:B", 28)
+        worksheet.set_column("C:C", 14)
+        worksheet.set_column("D:D", 45)
+        worksheet.set_column("E:E", 12)
+        worksheet.set_column("F:F", 16)
+        worksheet.set_column("G:G", 14)
+        worksheet.set_column("H:H", 18)
+        worksheet.set_column("I:I", 42)
 
         worksheet.set_row(0, 26)
         worksheet.set_row(linha_header, 22)
 
         worksheet.freeze_panes(linha_header + 1, 0)
-        worksheet.autofilter(linha_header, 0, linha_header + len(dados), len(df.columns) - 1)
+        worksheet.autofilter(
+            linha_header,
+            0,
+            linha_header + len(dados),
+            len(df.columns) - 1
+        )
 
     output.seek(0)
 
