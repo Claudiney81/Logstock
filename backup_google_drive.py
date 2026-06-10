@@ -26,7 +26,7 @@ def criar_zip_backup():
         "backups",
     }
 
-    with zipfile.ZipFile(caminho_zip, "w", zipfile.ZIP_DEFLATED) as zipf:
+    with zipfile.ZipFile(caminho_zip, "w", zipfile.ZIP_DEFLATED, strict_timestamps=False) as zipf:
         for raiz, pastas, arquivos in os.walk("."):
             pastas[:] = [p for p in pastas if p not in ignorar]
 
