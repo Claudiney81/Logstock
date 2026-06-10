@@ -21,3 +21,6 @@ wkhtmltopdf/temp/
 google_drive_oauth.json
 token_drive.json
 backups/
+google_drive_oauth.json
+token_drive.json
+dark-depth-*.json
