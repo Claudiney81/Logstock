@@ -100,6 +100,12 @@ class Estoque(db.Model):
         default='empresa'
     )
 
+    # Condição do material
+    condicao_material = db.Column(
+        db.String(30),
+        nullable=True
+    )
+
     # Cliente vinculado ao estoque
     cliente_id = db.Column(
         db.Integer,
@@ -123,13 +129,6 @@ class Estoque(db.Model):
         'TipoServico',
         backref='estoques'
     )
-
-    def __repr__(self):
-        return f"<Estoque Item:{self.item_id} Qtd:{self.quantidade} Tipo:{self.tipo_estoque}>"
-
-    # 🔗 Relacionamentos existentes
-    item = db.relationship('Item', backref='estoques')
-    tipo_servico = db.relationship('TipoServico', backref='estoques')
 
     def __repr__(self):
         return f"<Estoque Item:{self.item_id} Qtd:{self.quantidade} Tipo:{self.tipo_estoque}>"
@@ -589,6 +588,11 @@ class MovimentacaoEstoqueItem(db.Model):
         default=0
     )
 
+    condicao_material = db.Column(
+        db.String(30),
+        nullable=True
+    )
+
     item = db.relationship('Item')
 
 # =======================
@@ -851,39 +855,14 @@ class InventarioEstoque(db.Model):
     responsavel = db.Column(db.String(100), nullable=False)
     observacao = db.Column(db.String(255), nullable=True)
 
-    tipo_estoque = db.Column(
-        db.String(20),
-        default='empresa'
-    )
-
-    cliente_id = db.Column(
-        db.Integer,
-        db.ForeignKey('empresas.id'),
-        nullable=True
-    )
-
-    cliente = db.relationship(
-        'Empresa',
-        foreign_keys=[cliente_id]
-    )
-
-    tipo_servico_id = db.Column(
-        db.Integer,
-        db.ForeignKey('tipo_servico.id'),
-        nullable=True
-    )
-
-    tipo_servico = db.relationship(
-        'TipoServico',
-        foreign_keys=[tipo_servico_id]
-    )
+    tipo_servico_id = db.Column(db.Integer, db.ForeignKey('tipo_servico.id'), nullable=True)
+    tipo_servico = db.relationship('TipoServico', foreign_keys=[tipo_servico_id])
 
     itens = db.relationship(
         'InventarioEstoqueItem',
         backref='inventario',
         cascade='all, delete-orphan'
     )
-
 
 class InventarioEstoqueItem(db.Model):
     __tablename__ = 'inventario_estoque_item'

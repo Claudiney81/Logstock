@@ -13,9 +13,23 @@ from app.models import (
 
 from flask_login import current_user
 from datetime import datetime
-import os
+import os, pdfkit
 
 bp = Blueprint('nota_fiscal', __name__, url_prefix='/nota')
+
+# ------------------------
+# Configuração do wkhtmltopdf (ajuste o caminho se necessário)
+# ------------------------
+if os.name == 'nt':
+    # Caminho no Windows - usar executável incluído no projeto
+    WKHTMLTOPDF_PATH = os.path.abspath(os.path.join(
+        os.path.dirname(__file__), '..', '..', 'wkhtmltopdf', 'bin', 'wkhtmltopdf.exe'
+    ))
+else:
+    # Caminho no Linux/Servidor - assume instalação global
+    WKHTMLTOPDF_PATH = '/usr/local/bin/wkhtmltopdf'
+
+_pdfcfg = pdfkit.configuration(wkhtmltopdf=WKHTMLTOPDF_PATH)
 
 # ------------------------
 # Função auxiliar para converter valores BR
@@ -212,15 +226,18 @@ def nova_nota():
                 db.session.flush()
 
             else:
+    
                 if descricao_item and descricao_item != item.descricao:
                     item.descricao = descricao_item
 
+                item.valor = valor_convertido
+
                 item.categoria = categoria_entrada
+
                 item.eh_equipamento = categoria_entrada in [
                     'FERRAMENTA',
                     'EPI'
                 ]
-
             nota_item = NotaFiscalItem(
                 nota_fiscal_id=nova_nota.id,
                 item_id=item.id,
@@ -350,177 +367,71 @@ def detalhes(id):
 # ------------------------
 @bp.route('/<int:id>/pdf', endpoint='exportar_pdf')
 def exportar_pdf(id):
-    import io
-    from reportlab.lib import colors
-    from reportlab.lib.pagesizes import A4, landscape
-    from reportlab.lib.styles import getSampleStyleSheet, ParagraphStyle
-    from reportlab.lib.units import cm
-    from reportlab.platypus import (
-        SimpleDocTemplate,
-        Table,
-        TableStyle,
-        Paragraph,
-        Spacer
-    )
-
     nota = NotaFiscalEntrada.query.get_or_404(id)
     itens_nf = NotaFiscalItem.query.filter_by(nota_fiscal_id=nota.id).all()
 
-    buffer = io.BytesIO()
-
-    doc = SimpleDocTemplate(
-        buffer,
-        pagesize=landscape(A4),
-        rightMargin=1 * cm,
-        leftMargin=1 * cm,
-        topMargin=1 * cm,
-        bottomMargin=1 * cm
-    )
-
-    styles = getSampleStyleSheet()
-
-    titulo_style = ParagraphStyle(
-        "Titulo",
-        parent=styles["Title"],
-        fontSize=16,
-        textColor=colors.HexColor("#002b55"),
-        alignment=1,
-        spaceAfter=12
-    )
-
-    normal = styles["Normal"]
-    normal.fontSize = 9
-
-    elementos = []
-
-    elementos.append(
-        Paragraph("NOTA FISCAL DE ENTRADA", titulo_style)
-    )
-
-    tipo_estoque = "Cliente" if nota.tipo_estoque == "cliente" else "Empresa"
-
-    dados_cabecalho = [
-        ["Número NF", nota.numero_nf or nota.id],
-        ["Fornecedor", nota.fornecedor or ""],
-        ["Tipo de Estoque", tipo_estoque],
-        ["Cliente", nota.cliente.razao_social if nota.cliente else ""],
-        [
-            "Tipo de Serviço",
-            nota.tipo_servico_ref.nome
-            if getattr(nota, "tipo_servico_ref", None)
-            else nota.tipo_servico or ""
-        ],
-        ["Registrado por", nota.usuario.nome if nota.usuario else ""],
-        [
-            "Data Registro",
-            nota.data_hora.strftime("%d/%m/%Y %H:%M")
-            if nota.data_hora
-            else ""
-        ],
-        ["Observação", nota.observacao or ""]
-    ]
-
-    tabela_cabecalho = Table(
-        dados_cabecalho,
-        colWidths=[4 * cm, 22 * cm]
-    )
-
-    tabela_cabecalho.setStyle(TableStyle([
-        ("BACKGROUND", (0, 0), (0, -1), colors.HexColor("#e9eef5")),
-        ("TEXTCOLOR", (0, 0), (0, -1), colors.HexColor("#002b55")),
-        ("FONTNAME", (0, 0), (0, -1), "Helvetica-Bold"),
-        ("FONTSIZE", (0, 0), (-1, -1), 9),
-        ("GRID", (0, 0), (-1, -1), 0.4, colors.lightgrey),
-        ("VALIGN", (0, 0), (-1, -1), "MIDDLE"),
-        ("PADDING", (0, 0), (-1, -1), 6),
-    ]))
-
-    elementos.append(tabela_cabecalho)
-    elementos.append(Spacer(1, 12))
-
-    dados_itens = [[
-        "Código",
-        "Descrição",
-        "Unidade",
-        "Qtd",
-        "Valor Unit.",
-        "Subtotal"
-    ]]
-
+    itens = []
     total = 0.0
 
     for ni in itens_nf:
         produto = Item.query.get(ni.item_id)
 
-        codigo = produto.codigo if produto else ""
-        descricao = produto.descricao if produto else ""
-        unidade = getattr(produto, "unidade", "") if produto else ""
+        codigo = produto.codigo if produto else ''
+        descricao = produto.descricao if produto else ''
+        unidade = getattr(produto, 'unidade', '') if produto else ''
 
-        quantidade = float(ni.quantidade or 0)
-        valor_unitario = float(ni.valor_unitario or 0)
-        subtotal = quantidade * valor_unitario
+        valor = float(ni.valor_unitario or 0)
+        qtd = float(ni.quantidade or 0)
+        subtotal = round(valor * qtd, 2)
+
         total += subtotal
 
-        dados_itens.append([
-            codigo,
-            Paragraph(descricao, normal),
-            unidade,
-            f"{quantidade:.0f}",
-            f"R$ {valor_unitario:,.2f}".replace(",", "X").replace(".", ",").replace("X", "."),
-            f"R$ {subtotal:,.2f}".replace(",", "X").replace(".", ",").replace("X", ".")
-        ])
+        itens.append({
+            'codigo': codigo,
+            'descricao': descricao,
+            'unidade': unidade,
+            'quantidade': qtd,
+            'valor': valor,
+            'valor_unit': valor,
+            'subtotal': subtotal
+        })
 
-    dados_itens.append([
-        "",
-        "",
-        "",
-        "",
-        "TOTAL",
-        f"R$ {total:,.2f}".replace(",", "X").replace(".", ",").replace("X", ".")
-    ])
-
-    tabela_itens = Table(
-        dados_itens,
-        colWidths=[
-            3 * cm,
-            12 * cm,
-            3 * cm,
-            2 * cm,
-            4 * cm,
-            4 * cm
-        ],
-        repeatRows=1
+    ctx = dict(
+        nota=nota,
+        numero=nota.numero_nf or nota.id,
+        data_hora=nota.data_hora.strftime('%d/%m/%Y %H:%M') if nota.data_hora else '',
+        fornecedor=nota.fornecedor or '',
+        tipo_estoque=nota.tipo_estoque or '',
+        cliente=nota.cliente.razao_social if nota.cliente else '',
+        tipo_servico=getattr(getattr(nota, 'tipo_servico_ref', None), 'nome', '') or (nota.tipo_servico or ''),
+        usuario=nota.usuario.nome if nota.usuario else '',
+        observacao=nota.observacao or '',
+        itens=itens,
+        total=round(total, 2),
     )
 
-    tabela_itens.setStyle(TableStyle([
-        ("BACKGROUND", (0, 0), (-1, 0), colors.HexColor("#002b55")),
-        ("TEXTCOLOR", (0, 0), (-1, 0), colors.white),
-        ("FONTNAME", (0, 0), (-1, 0), "Helvetica-Bold"),
-        ("ALIGN", (0, 0), (-1, 0), "CENTER"),
+    html = render_template('nota_fiscal/nota_pdf.html', **ctx)
 
-        ("GRID", (0, 0), (-1, -1), 0.4, colors.lightgrey),
-        ("FONTSIZE", (0, 0), (-1, -1), 8),
-        ("VALIGN", (0, 0), (-1, -1), "MIDDLE"),
+    options = {
+        'page-size': 'A4',
+        'encoding': 'UTF-8',
+        'margin-top': '10mm',
+        'margin-right': '10mm',
+        'margin-bottom': '12mm',
+        'margin-left': '10mm',
+        'enable-local-file-access': '',
+    }
 
-        ("ALIGN", (3, 1), (-1, -1), "CENTER"),
-
-        ("BACKGROUND", (4, -1), (-1, -1), colors.HexColor("#e9eef5")),
-        ("FONTNAME", (4, -1), (-1, -1), "Helvetica-Bold"),
-        ("TEXTCOLOR", (4, -1), (-1, -1), colors.HexColor("#002b55")),
-    ]))
-
-    elementos.append(tabela_itens)
-
-    doc.build(elementos)
-
-    pdf_bytes = buffer.getvalue()
-    buffer.close()
+    pdf_bytes = pdfkit.from_string(
+        html,
+        False,
+        configuration=_pdfcfg,
+        options=options
+    )
 
     resp = make_response(pdf_bytes)
-    resp.headers["Content-Type"] = "application/pdf"
-    resp.headers["Content-Disposition"] = (
-        f'inline; filename=nota_{nota.numero_nf or nota.id}.pdf'
-    )
+    resp.headers['Content-Type'] = 'application/pdf'
+    resp.headers['Content-Disposition'] = f'inline; filename=nota_{ctx["numero"]}.pdf'
 
     return resp
 # ------------------------
@@ -746,6 +657,469 @@ def exportar_excel(id):
             "spreadsheetml.sheet"
         )
     )
+    
+# ------------------------
+# Histórico de Valores
+# ------------------------
+@bp.route('/historico-valores')
+def historico_valores():
+    codigo = request.args.get('codigo', '').strip()
+    descricao = request.args.get('descricao', '').strip()
+    fornecedor = request.args.get('fornecedor', '').strip()
+    data_inicio = request.args.get('data_inicio', '').strip()
+    data_fim = request.args.get('data_fim', '').strip()
+
+    query = (
+        db.session.query(
+            NotaFiscalEntrada.data_hora,
+            NotaFiscalEntrada.numero_nf,
+            NotaFiscalEntrada.fornecedor,
+            Item.codigo,
+            Item.descricao,
+            Item.valor.label("valor_atual"),
+            NotaFiscalItem.quantidade,
+            NotaFiscalItem.valor_unitario
+        )
+        .join(NotaFiscalItem, NotaFiscalItem.nota_fiscal_id == NotaFiscalEntrada.id)
+        .join(Item, Item.id == NotaFiscalItem.item_id)
+    )
+
+    if codigo:
+        query = query.filter(Item.codigo.ilike(f"%{codigo}%"))
+
+    if descricao:
+        query = query.filter(Item.descricao.ilike(f"%{descricao}%"))
+
+    if fornecedor:
+        query = query.filter(NotaFiscalEntrada.fornecedor.ilike(f"%{fornecedor}%"))
+
+    if data_inicio:
+        try:
+            dt_inicio = datetime.strptime(data_inicio, "%Y-%m-%d")
+            query = query.filter(NotaFiscalEntrada.data_hora >= dt_inicio)
+        except Exception:
+            pass
+
+    if data_fim:
+        try:
+            dt_fim = datetime.strptime(data_fim, "%Y-%m-%d")
+            dt_fim = dt_fim.replace(hour=23, minute=59, second=59)
+            query = query.filter(NotaFiscalEntrada.data_hora <= dt_fim)
+        except Exception:
+            pass
+
+    resultados = query.order_by(
+        Item.descricao.asc(),
+        NotaFiscalEntrada.data_hora.desc()
+    ).all()
+
+    valores = [float(r.valor_unitario or 0) for r in resultados]
+
+    resumo = {
+        "ultimo": valores[0] if valores else 0,
+        "menor": min(valores) if valores else 0,
+        "maior": max(valores) if valores else 0,
+        "media": (sum(valores) / len(valores)) if valores else 0,
+        "total_registros": len(valores),
+        "variacao": 0
+    }
+
+    if resumo["menor"] > 0:
+        resumo["variacao"] = (
+            (resumo["maior"] - resumo["menor"]) / resumo["menor"]
+        ) * 100
+
+    return render_template(
+        'nota_fiscal/historico_valores.html',
+        resultados=resultados,
+        resumo=resumo,
+        codigo=codigo,
+        descricao=descricao,
+        fornecedor=fornecedor,
+        data_inicio=data_inicio,
+        data_fim=data_fim
+    )
+
+
+# ------------------------
+# Exportar Histórico de Valores em Excel
+# ------------------------
+@bp.route('/historico-valores/excel')
+def exportar_historico_valores_excel():
+    import io
+    import pandas as pd
+    from flask import send_file
+
+    codigo = request.args.get('codigo', '').strip()
+    descricao = request.args.get('descricao', '').strip()
+    fornecedor = request.args.get('fornecedor', '').strip()
+    data_inicio = request.args.get('data_inicio', '').strip()
+    data_fim = request.args.get('data_fim', '').strip()
+
+    query = (
+        db.session.query(
+            NotaFiscalEntrada.data_hora,
+            NotaFiscalEntrada.numero_nf,
+            NotaFiscalEntrada.fornecedor,
+            Item.codigo,
+            Item.descricao,
+            Item.valor.label("valor_atual"),
+            NotaFiscalItem.quantidade,
+            NotaFiscalItem.valor_unitario
+        )
+        .join(NotaFiscalItem, NotaFiscalItem.nota_fiscal_id == NotaFiscalEntrada.id)
+        .join(Item, Item.id == NotaFiscalItem.item_id)
+    )
+
+    if codigo:
+        query = query.filter(Item.codigo.ilike(f"%{codigo}%"))
+
+    if descricao:
+        query = query.filter(Item.descricao.ilike(f"%{descricao}%"))
+
+    if fornecedor:
+        query = query.filter(NotaFiscalEntrada.fornecedor.ilike(f"%{fornecedor}%"))
+
+    if data_inicio:
+        try:
+            dt_inicio = datetime.strptime(data_inicio, "%Y-%m-%d")
+            query = query.filter(NotaFiscalEntrada.data_hora >= dt_inicio)
+        except Exception:
+            pass
+
+    if data_fim:
+        try:
+            dt_fim = datetime.strptime(data_fim, "%Y-%m-%d")
+            dt_fim = dt_fim.replace(hour=23, minute=59, second=59)
+            query = query.filter(NotaFiscalEntrada.data_hora <= dt_fim)
+        except Exception:
+            pass
+
+    resultados = query.order_by(
+        Item.codigo.asc(),
+        NotaFiscalEntrada.data_hora.asc()
+    ).all()
+
+    colunas_detalhe = [
+        "Data Entrada",
+        "NF",
+        "Fornecedor",
+        "Código",
+        "Descrição",
+        "Quantidade",
+        "Valor Entrada",
+        "Subtotal",
+        "Valor Atual Cadastro",
+        "Variação Atual x Entrada %"
+    ]
+
+    colunas_resumo = [
+        "Código",
+        "Descrição",
+        "Menor Preço",
+        "Maior Preço",
+        "Preço Médio",
+        "Último Preço Entrada",
+        "Valor Atual Cadastro",
+        "Variação Atual x Menor %",
+        "Qtd. Entradas",
+        "Fornecedor Última Compra",
+        "Data Última Compra"
+    ]
+
+    dados = []
+
+    for r in resultados:
+        quantidade = r.quantidade or 0
+        valor_unitario = float(r.valor_unitario or 0)
+        valor_atual = float(r.valor_atual or 0)
+        subtotal = quantidade * valor_unitario
+
+        variacao = 0
+        if valor_unitario > 0:
+            variacao = ((valor_atual - valor_unitario) / valor_unitario) * 100
+
+        dados.append({
+            "Data Entrada": r.data_hora.strftime("%d/%m/%Y %H:%M") if r.data_hora else "",
+            "NF": r.numero_nf or "",
+            "Fornecedor": r.fornecedor or "",
+            "Código": r.codigo or "",
+            "Descrição": r.descricao or "",
+            "Quantidade": quantidade,
+            "Valor Entrada": valor_unitario,
+            "Subtotal": subtotal,
+            "Valor Atual Cadastro": valor_atual,
+            "Variação Atual x Entrada %": variacao
+        })
+
+    df_detalhe = pd.DataFrame(dados, columns=colunas_detalhe)
+
+    resumo_dict = {}
+
+    for r in resultados:
+        cod = r.codigo or ""
+        desc = r.descricao or ""
+        chave = (cod, desc)
+
+        valor = float(r.valor_unitario or 0)
+        valor_atual = float(r.valor_atual or 0)
+
+        if chave not in resumo_dict:
+            resumo_dict[chave] = {
+                "Código": cod,
+                "Descrição": desc,
+                "Menor Preço": valor,
+                "Maior Preço": valor,
+                "Soma Preços": valor,
+                "Último Preço Entrada": valor,
+                "Valor Atual Cadastro": valor_atual,
+                "Qtd. Entradas": 1,
+                "Fornecedor Última Compra": r.fornecedor or "",
+                "Data Última Compra": r.data_hora
+            }
+        else:
+            item = resumo_dict[chave]
+
+            item["Menor Preço"] = min(item["Menor Preço"], valor)
+            item["Maior Preço"] = max(item["Maior Preço"], valor)
+            item["Soma Preços"] += valor
+            item["Qtd. Entradas"] += 1
+
+            if r.data_hora and (
+                not item["Data Última Compra"]
+                or r.data_hora > item["Data Última Compra"]
+            ):
+                item["Último Preço Entrada"] = valor
+                item["Fornecedor Última Compra"] = r.fornecedor or ""
+                item["Data Última Compra"] = r.data_hora
+
+            item["Valor Atual Cadastro"] = valor_atual
+
+    resumo = []
+
+    for item in resumo_dict.values():
+        menor = item["Menor Preço"]
+        atual = item["Valor Atual Cadastro"]
+
+        variacao_atual = 0
+        if menor > 0:
+            variacao_atual = ((atual - menor) / menor) * 100
+
+        qtd_entradas = item["Qtd. Entradas"] or 1
+        preco_medio = item["Soma Preços"] / qtd_entradas
+
+        resumo.append({
+            "Código": item["Código"],
+            "Descrição": item["Descrição"],
+            "Menor Preço": item["Menor Preço"],
+            "Maior Preço": item["Maior Preço"],
+            "Preço Médio": preco_medio,
+            "Último Preço Entrada": item["Último Preço Entrada"],
+            "Valor Atual Cadastro": item["Valor Atual Cadastro"],
+            "Variação Atual x Menor %": variacao_atual,
+            "Qtd. Entradas": item["Qtd. Entradas"],
+            "Fornecedor Última Compra": item["Fornecedor Última Compra"],
+            "Data Última Compra": (
+                item["Data Última Compra"].strftime("%d/%m/%Y %H:%M")
+                if item["Data Última Compra"]
+                else ""
+            )
+        })
+
+    df_resumo = pd.DataFrame(resumo, columns=colunas_resumo)
+
+    output = io.BytesIO()
+
+    with pd.ExcelWriter(output, engine="xlsxwriter") as writer:
+        workbook = writer.book
+
+        titulo_fmt = workbook.add_format({
+            "bold": True,
+            "font_size": 14,
+            "align": "center",
+            "valign": "vcenter",
+            "bg_color": "#002B55",
+            "font_color": "white",
+            "border": 1
+        })
+
+        header_fmt = workbook.add_format({
+            "bold": True,
+            "bg_color": "#002B55",
+            "font_color": "white",
+            "border": 1,
+            "align": "center",
+            "valign": "vcenter"
+        })
+
+        money_fmt = workbook.add_format({
+            "num_format": 'R$ #,##0.00',
+            "border": 1
+        })
+
+        normal_fmt = workbook.add_format({
+            "border": 1
+        })
+
+        int_fmt = workbook.add_format({
+            "num_format": "0",
+            "border": 1,
+            "align": "center"
+        })
+
+        percent_fmt = workbook.add_format({
+            "num_format": '0.00',
+            "border": 1
+        })
+
+        # ABA RESUMO
+        df_resumo.to_excel(
+            writer,
+            index=False,
+            sheet_name="Resumo Gerencial",
+            startrow=2
+        )
+
+        ws_resumo = writer.sheets["Resumo Gerencial"]
+
+        ws_resumo.merge_range(
+            "A1:K1",
+            "RESUMO GERENCIAL - HISTÓRICO DE VALORES",
+            titulo_fmt
+        )
+
+        for col_num, coluna in enumerate(df_resumo.columns):
+            ws_resumo.write(2, col_num, coluna, header_fmt)
+
+        ws_resumo.set_column("A:A", 15, normal_fmt)
+        ws_resumo.set_column("B:B", 45, normal_fmt)
+        ws_resumo.set_column("C:G", 18, money_fmt)
+        ws_resumo.set_column("H:H", 24, percent_fmt)
+        ws_resumo.set_column("I:I", 14, int_fmt)
+        ws_resumo.set_column("J:J", 35, normal_fmt)
+        ws_resumo.set_column("K:K", 20, normal_fmt)
+
+        ws_resumo.freeze_panes(3, 0)
+
+        if len(df_resumo) > 0:
+            ws_resumo.autofilter(
+                2,
+                0,
+                2 + len(df_resumo),
+                len(df_resumo.columns) - 1
+            )
+
+            ws_resumo.conditional_format(
+                3, 7,
+                2 + len(df_resumo), 7,
+                {
+                    "type": "cell",
+                    "criteria": ">",
+                    "value": 0,
+                    "format": workbook.add_format({
+                        "bg_color": "#F8D7DA",
+                        "font_color": "#842029",
+                        "border": 1,
+                        "num_format": '0.00'
+                    })
+                }
+            )
+
+            ws_resumo.conditional_format(
+                3, 7,
+                2 + len(df_resumo), 7,
+                {
+                    "type": "cell",
+                    "criteria": "<",
+                    "value": 0,
+                    "format": workbook.add_format({
+                        "bg_color": "#D1E7DD",
+                        "font_color": "#0F5132",
+                        "border": 1,
+                        "num_format": '0.00'
+                    })
+                }
+            )
+
+        # ABA DETALHADA
+        df_detalhe.to_excel(
+            writer,
+            index=False,
+            sheet_name="Histórico Detalhado",
+            startrow=2
+        )
+
+        ws_det = writer.sheets["Histórico Detalhado"]
+
+        ws_det.merge_range(
+            "A1:J1",
+            "HISTÓRICO DETALHADO DE VALORES DE ENTRADA",
+            titulo_fmt
+        )
+
+        for col_num, coluna in enumerate(df_detalhe.columns):
+            ws_det.write(2, col_num, coluna, header_fmt)
+
+        ws_det.set_column("A:A", 20, normal_fmt)
+        ws_det.set_column("B:B", 15, normal_fmt)
+        ws_det.set_column("C:C", 35, normal_fmt)
+        ws_det.set_column("D:D", 15, normal_fmt)
+        ws_det.set_column("E:E", 45, normal_fmt)
+        ws_det.set_column("F:F", 12, int_fmt)
+        ws_det.set_column("G:I", 20, money_fmt)
+        ws_det.set_column("J:J", 24, percent_fmt)
+
+        ws_det.freeze_panes(3, 0)
+
+        if len(df_detalhe) > 0:
+            ws_det.autofilter(
+                2,
+                0,
+                2 + len(df_detalhe),
+                len(df_detalhe.columns) - 1
+            )
+
+            ws_det.conditional_format(
+                3, 9,
+                2 + len(df_detalhe), 9,
+                {
+                    "type": "cell",
+                    "criteria": ">",
+                    "value": 0,
+                    "format": workbook.add_format({
+                        "bg_color": "#F8D7DA",
+                        "font_color": "#842029",
+                        "border": 1,
+                        "num_format": '0.00'
+                    })
+                }
+            )
+
+            ws_det.conditional_format(
+                3, 9,
+                2 + len(df_detalhe), 9,
+                {
+                    "type": "cell",
+                    "criteria": "<",
+                    "value": 0,
+                    "format": workbook.add_format({
+                        "bg_color": "#D1E7DD",
+                        "font_color": "#0F5132",
+                        "border": 1,
+                        "num_format": '0.00'
+                    })
+                }
+            )
+
+    output.seek(0)
+
+    return send_file(
+        output,
+        as_attachment=True,
+        download_name="historico_valores_entrada.xlsx",
+        mimetype="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
+    )
+    
 # ------------------------
 # Pesquisar Nota Fiscal
 # ------------------------

@@ -1,12 +1,11 @@
-from flask import Blueprint, render_template, request, redirect, url_for, flash, jsonify
+from flask import Blueprint, render_template, request, redirect, url_for, flash, jsonify, send_file
 from flask_login import login_required, current_user
 from datetime import datetime
+from io import BytesIO
+from sqlalchemy import func, or_
 
 from app.extensions import db
-from flask import Blueprint, render_template, request, redirect, url_for, flash, jsonify, send_file
-from io import BytesIO
 from app.utils.mailer import send_movimentacao_email, _build_movimentacao_pdf
-
 
 from app.models import (
     MovimentacaoEstoque,
@@ -24,6 +23,181 @@ bp_movimentacao = Blueprint(
     __name__,
     url_prefix='/movimentacao_estoque'
 )
+
+
+# ==================================================
+# CONDIÇÃO DO MATERIAL
+# ==================================================
+CONDICOES_MATERIAL = {
+    'USADO_BOM',
+    'NOVO_DEF',
+    'USADO_DEF'
+}
+
+
+def _normalizar_condicao_material(valor):
+    valor = (valor or '').strip().upper()
+
+    if valor in CONDICOES_MATERIAL:
+        return valor
+
+    return None
+
+
+def _estoque_tem_condicao():
+    return hasattr(Estoque, 'condicao_material')
+
+
+def _filtro_condicao_estoque(query, condicao):
+    """
+    Aplica filtro de condição somente se a coluna já existir no model.
+    condicao None significa estoque comum/disponível.
+    """
+    if not _estoque_tem_condicao():
+        return query
+
+    if condicao:
+        return query.filter(Estoque.condicao_material == condicao)
+
+    return query.filter(
+        or_(
+            Estoque.condicao_material.is_(None),
+            Estoque.condicao_material == ''
+        )
+    )
+
+
+def _atribuir_condicao_estoque(estoque, condicao):
+    if _estoque_tem_condicao():
+        estoque.condicao_material = condicao
+
+
+def _buscar_ou_criar_estoque_empresa(item_id, tipo_servico_id, condicao):
+    query = Estoque.query.filter_by(
+        item_id=item_id,
+        tipo_servico_id=tipo_servico_id,
+        tipo_estoque='empresa'
+    )
+
+    query = _filtro_condicao_estoque(query, condicao)
+
+    estoque = query.first()
+
+    if estoque:
+        return estoque
+
+    estoque = Estoque(
+        item_id=item_id,
+        tipo_servico_id=tipo_servico_id,
+        tipo_estoque='empresa',
+        quantidade=0,
+        quantidade_minima=0
+    )
+
+    _atribuir_condicao_estoque(estoque, condicao)
+
+    db.session.add(estoque)
+    db.session.flush()
+
+    return estoque
+
+
+def _consumir_estoque_empresa(item_id, tipo_servico_id, quantidade):
+    """
+    Saída Empresa -> Técnico.
+    Consome primeiro estoque comum e depois Usado Bom, se existir.
+    Não consome materiais classificados como defeito.
+    """
+    query = Estoque.query.filter(
+        Estoque.item_id == item_id,
+        Estoque.tipo_servico_id == tipo_servico_id,
+        Estoque.tipo_estoque == 'empresa',
+        Estoque.quantidade > 0
+    )
+
+    if _estoque_tem_condicao():
+        query = query.filter(
+            or_(
+                Estoque.condicao_material.is_(None),
+                Estoque.condicao_material == '',
+                Estoque.condicao_material == 'USADO_BOM'
+            )
+        )
+
+    registros = query.order_by(Estoque.id.asc()).all()
+
+    saldo_total = sum(int(e.quantidade or 0) for e in registros)
+
+    if saldo_total < quantidade:
+        return False
+
+    restante = int(quantidade)
+
+    for estoque in registros:
+        if restante <= 0:
+            break
+
+        saldo = int(estoque.quantidade or 0)
+        baixa = min(saldo, restante)
+        estoque.quantidade = saldo - baixa
+        restante -= baixa
+
+    return True
+
+
+def _consumir_saldo_tecnico(
+    tecnico_id,
+    item_id,
+    tipo_servico_id,
+    quantidade,
+    saldo_tecnico_tipo='empresa',
+    cliente_id=None,
+    ordem_servico_id=None
+):
+    """
+    Devolução Técnico -> Empresa.
+    Consome saldo do técnico por tipo empresa ou cliente.
+    Para cliente, cliente/O.S são filtros opcionais.
+    """
+    query = SaldoTecnico.query.filter(
+        SaldoTecnico.tecnico_id == tecnico_id,
+        SaldoTecnico.item_id == item_id,
+        SaldoTecnico.tipo_servico_id == tipo_servico_id,
+        SaldoTecnico.tipo_estoque == saldo_tecnico_tipo,
+        SaldoTecnico.quantidade > 0
+    )
+
+    if saldo_tecnico_tipo == 'empresa':
+        query = query.filter(
+            SaldoTecnico.cliente_id.is_(None),
+            SaldoTecnico.ordem_servico_id.is_(None)
+        )
+    else:
+        if cliente_id:
+            query = query.filter(SaldoTecnico.cliente_id == cliente_id)
+
+        if ordem_servico_id:
+            query = query.filter(SaldoTecnico.ordem_servico_id == ordem_servico_id)
+
+    registros = query.order_by(SaldoTecnico.id.asc()).all()
+
+    saldo_total = sum(int(s.quantidade or 0) for s in registros)
+
+    if saldo_total < quantidade:
+        return False
+
+    restante = int(quantidade)
+
+    for saldo in registros:
+        if restante <= 0:
+            break
+
+        saldo_atual = int(saldo.quantidade or 0)
+        baixa = min(saldo_atual, restante)
+        saldo.quantidade = saldo_atual - baixa
+        restante -= baixa
+
+    return True
 
 
 @bp_movimentacao.route('/nova', methods=['GET', 'POST'])
@@ -68,6 +242,17 @@ def nova_movimentacao():
         motivo_retorno = request.form.get('motivo_retorno')
         assinatura = request.form.get('assinatura')
 
+        saldo_tecnico_tipo = (
+            request.form.get('saldo_tecnico_tipo') or 'empresa'
+        ).strip().lower()
+
+        if saldo_tecnico_tipo not in ['empresa', 'cliente']:
+            saldo_tecnico_tipo = 'empresa'
+
+        condicao_material = _normalizar_condicao_material(
+            request.form.get('condicao_material')
+        )
+
         tecnico_id = (
             request.form.get('tecnico_id')
             or request.form.get('tecnico_destino_id')
@@ -75,10 +260,10 @@ def nova_movimentacao():
         )
 
         cliente_os_id = (
-                request.form.get('cliente_movimentacao_id')
-                or request.form.get('cliente_os_id')
-                or request.form.get('cliente_id')
-            )
+            request.form.get('cliente_movimentacao_id')
+            or request.form.get('cliente_os_id')
+            or request.form.get('cliente_id')
+        )
 
         cliente_os_id = cliente_os_id or None
 
@@ -170,12 +355,15 @@ def nova_movimentacao():
             if origem_tipo == 'cliente' and destino_tipo == 'tecnico' and not cliente_os_id:
                 flash('Selecione o Cliente O.S.', 'danger')
                 return redirect(url_for('movimentacao_estoque.nova_movimentacao'))
+
         # ==================================================
         # REGRAS FERRAMENTAS / EPIs
         # ==================================================
         else:
             tipo_servico_id = None
             cliente_os_id = None
+            saldo_tecnico_tipo = 'empresa'
+            condicao_material = None
 
             if origem_tipo not in ['empresa', 'tecnico']:
                 flash('Para Ferramentas/EPIs, a origem deve ser Empresa ou Técnico.', 'danger')
@@ -247,10 +435,6 @@ def nova_movimentacao():
         # CRIAR MOVIMENTAÇÃO
         # ==================================================
 
-        # ==================================================
-# CRIAR MOVIMENTAÇÃO
-# ==================================================
-
         nova_mov = MovimentacaoEstoque(
             origem_tipo=origem_tipo,
             origem_id=origem_id,
@@ -260,7 +444,6 @@ def nova_movimentacao():
 
             tipo_servico_id=tipo_servico_id,
 
-            # vínculo da O.S
             ordem_servico_id=ordem_servico_id if ordem_servico_id else None,
 
             observacao=observacao,
@@ -289,18 +472,19 @@ def nova_movimentacao():
         db.session.flush()
 
         sucesso = False
+
         # ==================================================
         # PROCESSAR ITENS
         # ==================================================
 
         codigos_processados = set()
-        
+
         for i in range(len(codigos)):
 
             codigo = codigos[i].strip() if codigos[i] else ''
-            
+
             if codigo in codigos_processados:
-                    continue
+                continue
 
             codigos_processados.add(codigo)
 
@@ -348,24 +532,16 @@ def nova_movimentacao():
 
             if origem_tipo == 'empresa':
 
-                estoque_origem = Estoque.query.filter_by(
+                if not _consumir_estoque_empresa(
                     item_id=item.id,
                     tipo_servico_id=tipo_servico_saldo,
-                    tipo_estoque='empresa'
-                ).first()
-
-                if not estoque_origem:
-                    flash(f'Item {item.codigo} sem saldo no estoque da empresa.', 'danger')
-                    continue
-
-                if estoque_origem.quantidade < quantidade:
+                    quantidade=quantidade
+                ):
                     flash(f'Saldo insuficiente na empresa para o item {item.codigo}.', 'danger')
                     continue
 
-                estoque_origem.quantidade -= quantidade
-
             elif origem_tipo == 'cliente':
-    
+
                 estoque_origem = Estoque.query.filter_by(
                     item_id=item.id,
                     tipo_servico_id=tipo_servico_id,
@@ -382,29 +558,20 @@ def nova_movimentacao():
                     continue
 
                 estoque_origem.quantidade = int(estoque_origem.quantidade or 0) - int(quantidade or 0)
+
             elif origem_tipo == 'tecnico':
-    
-                saldo_origem = SaldoTecnico.query.filter_by(
+
+                if not _consumir_saldo_tecnico(
                     tecnico_id=int(tecnico_id),
                     item_id=item.id,
                     tipo_servico_id=tipo_servico_saldo,
-                    tipo_estoque='empresa',
-                    cliente_id=None,
-                    ordem_servico_id=None
-                ).first()
-
-                if not saldo_origem:
-                    flash(f'Técnico sem saldo do item {item.codigo}.', 'danger')
-                    continue
-
-                saldo_atual = int(saldo_origem.quantidade or 0)
-                quantidade_movimentada = int(quantidade or 0)
-
-                if saldo_atual < quantidade_movimentada:
+                    quantidade=quantidade,
+                    saldo_tecnico_tipo=saldo_tecnico_tipo,
+                    cliente_id=int(cliente_os_id) if cliente_os_id else None,
+                    ordem_servico_id=ordem_servico_id
+                ):
                     flash(f'Saldo insuficiente do técnico para o item {item.codigo}.', 'danger')
                     continue
-
-                saldo_origem.quantidade = saldo_atual - quantidade_movimentada
 
             # ==================================================
             # 2 - REGISTRAR ITEM DA MOVIMENTAÇÃO
@@ -414,7 +581,13 @@ def nova_movimentacao():
                 movimentacao_id=nova_mov.id,
                 item_id=item.id,
                 quantidade=quantidade,
-                valor_unitario=valor_unitario
+                valor_unitario=valor_unitario,
+                condicao_material=(
+                    condicao_material
+                    if origem_tipo == 'tecnico'
+                    and destino_tipo == 'empresa'
+                    else None
+                )
             )
 
             db.session.add(item_mov)
@@ -424,7 +597,7 @@ def nova_movimentacao():
             # ==================================================
 
             if destino_tipo == 'tecnico':
-        
+
                 if origem_tipo == 'empresa':
 
                     tipo_estoque_destino = 'empresa'
@@ -501,25 +674,13 @@ def nova_movimentacao():
 
                 if volta_para_estoque:
 
-                    estoque_destino = Estoque.query.filter_by(
+                    estoque_destino = _buscar_ou_criar_estoque_empresa(
                         item_id=item.id,
                         tipo_servico_id=tipo_servico_saldo,
-                        tipo_estoque='empresa'
-                    ).first()
+                        condicao=condicao_material
+                    )
 
-                    if estoque_destino:
-                        estoque_destino.quantidade += quantidade
-
-                    else:
-                        novo_estoque = Estoque(
-                            item_id=item.id,
-                            tipo_servico_id=tipo_servico_saldo,
-                            tipo_estoque='empresa',
-                            quantidade=quantidade,
-                            quantidade_minima=0
-                        )
-
-                        db.session.add(novo_estoque)
+                    estoque_destino.quantidade = int(estoque_destino.quantidade or 0) + int(quantidade or 0)
 
             sucesso = True
 
@@ -531,6 +692,7 @@ def nova_movimentacao():
             db.session.rollback()
             flash('Nenhum item movimentado.', 'danger')
             return redirect(url_for('movimentacao_estoque.nova_movimentacao'))
+
         # ==================================================
         # ATUALIZA STATUS DA O.S SOMENTE MATERIAL
         # ==================================================
@@ -577,6 +739,7 @@ def nova_movimentacao():
 @bp_movimentacao.route('/historico')
 @login_required
 def historico():
+
     movimentacoes = MovimentacaoEstoque.query.order_by(
         MovimentacaoEstoque.data_hora.desc()
     ).all()
@@ -584,12 +747,32 @@ def historico():
     tecnicos = Tecnico.query.all()
     empresas = Empresa.query.all()
 
-    tecnicos_dict = {t.id: t.nome for t in tecnicos}
+    tecnicos_dict = {
+        t.id: t.nome
+        for t in tecnicos
+    }
 
     empresas_dict = {
         e.id: e.razao_social
         for e in empresas
     }
+
+    for m in movimentacoes:
+
+        condicoes = [
+            item.condicao_material
+            for item in m.itens
+            if item.condicao_material
+        ]
+
+        if not condicoes:
+            m.condicao_material_resumo = None
+
+        elif len(set(condicoes)) == 1:
+            m.condicao_material_resumo = condicoes[0]
+
+        else:
+            m.condicao_material_resumo = "MISTO"
 
     return render_template(
         'movimentacao_estoque/historico.html',
@@ -597,6 +780,7 @@ def historico():
         tecnicos_dict=tecnicos_dict,
         empresas_dict=empresas_dict
     )
+
 
 @bp_movimentacao.route('/detalhes/<int:id>')
 @login_required
@@ -620,7 +804,6 @@ def detalhes(id):
         for t in tecnicos
     }
 
-    # cliente somente nome
     empresas_dict = {
         e.id: e.razao_social
         for e in empresas
@@ -633,6 +816,7 @@ def detalhes(id):
         tecnicos_dict=tecnicos_dict,
         empresas_dict=empresas_dict
     )
+
 
 @bp_movimentacao.route('/api/itens')
 @login_required
@@ -651,6 +835,13 @@ def api_itens_movimentacao():
     ).strip().upper()
 
     tecnico_id = request.args.get('tecnico_id', type=int)
+
+    saldo_tecnico_tipo = (
+        request.args.get('saldo_tecnico_tipo') or 'empresa'
+    ).strip().lower()
+
+    if saldo_tecnico_tipo not in ['empresa', 'cliente']:
+        saldo_tecnico_tipo = 'empresa'
 
     cliente_id = (
         request.args.get('cliente_id', type=int)
@@ -681,7 +872,14 @@ def api_itens_movimentacao():
     if origem_tipo == 'empresa':
 
         query = (
-            db.session.query(Estoque, Item)
+            db.session.query(
+                Item.codigo,
+                Item.descricao,
+                Item.categoria,
+                Item.unidade,
+                Item.valor,
+                func.sum(Estoque.quantidade).label('saldo')
+            )
             .join(Item, Estoque.item_id == Item.id)
             .filter(
                 Estoque.tipo_estoque == 'empresa',
@@ -699,33 +897,62 @@ def api_itens_movimentacao():
                 Estoque.tipo_servico_id == tipo_servico_consulta
             )
 
-        registros = query.order_by(Item.descricao).all()
+            if _estoque_tem_condicao():
+                # Disponível para transferência: estoque comum + usado bom.
+                # Defeitos ficam fora da saída operacional.
+                query = query.filter(
+                    or_(
+                        Estoque.condicao_material.is_(None),
+                        Estoque.condicao_material == '',
+                        Estoque.condicao_material == 'USADO_BOM'
+                    )
+                )
 
-        for estoque, item in registros:
+        registros = (
+            query
+            .group_by(
+                Item.codigo,
+                Item.descricao,
+                Item.categoria,
+                Item.unidade,
+                Item.valor
+            )
+            .order_by(Item.descricao)
+            .all()
+        )
+
+        for row in registros:
             resultados.append({
-                'codigo': item.codigo,
-                'descricao': item.descricao,
-                'categoria': item.categoria or 'MATERIAL',
-                'unidade': item.unidade,
-                'saldo': estoque.quantidade,
-                'valor': float(item.valor or 0)
+                'codigo': row.codigo,
+                'descricao': row.descricao,
+                'categoria': row.categoria or 'MATERIAL',
+                'unidade': row.unidade,
+                'saldo': int(row.saldo or 0),
+                'valor': float(row.valor or 0)
             })
 
         return jsonify(resultados)
 
     # ==================================================
-    # SALDO CLIENTE / O.S DO TÉCNICO
+    # ESTOQUE CLIENTE
     # ==================================================
     elif origem_tipo == 'cliente':
-    
+
         if categoria_movimentacao == 'PATRIMONIO':
             return jsonify([])
 
         if not cliente_id:
             return jsonify([])
 
-        registros = (
-            db.session.query(Estoque, Item)
+        query = (
+            db.session.query(
+                Item.codigo,
+                Item.descricao,
+                Item.categoria,
+                Item.unidade,
+                Item.valor,
+                func.sum(Estoque.quantidade).label('saldo')
+            )
             .join(Item, Estoque.item_id == Item.id)
             .filter(
                 Estoque.tipo_estoque == 'cliente',
@@ -734,23 +961,35 @@ def api_itens_movimentacao():
                 Estoque.quantidade > 0,
                 Item.categoria == 'MATERIAL'
             )
+        )
+
+        registros = (
+            query
+            .group_by(
+                Item.codigo,
+                Item.descricao,
+                Item.categoria,
+                Item.unidade,
+                Item.valor
+            )
             .order_by(Item.descricao)
             .all()
         )
 
-        for estoque, item in registros:
+        for row in registros:
             resultados.append({
-                'codigo': item.codigo,
-                'descricao': item.descricao,
-                'categoria': item.categoria or 'MATERIAL',
-                'unidade': item.unidade,
-                'saldo': estoque.quantidade,
-                'valor': float(item.valor or 0)
+                'codigo': row.codigo,
+                'descricao': row.descricao,
+                'categoria': row.categoria or 'MATERIAL',
+                'unidade': row.unidade,
+                'saldo': int(row.saldo or 0),
+                'valor': float(row.valor or 0)
             })
 
         return jsonify(resultados)
+
     # ==================================================
-    # SALDO TÉCNICO EMPRESA
+    # SALDO TÉCNICO
     # ==================================================
     elif origem_tipo == 'tecnico':
 
@@ -758,7 +997,14 @@ def api_itens_movimentacao():
             return jsonify([])
 
         query = (
-            db.session.query(SaldoTecnico, Item)
+            db.session.query(
+                Item.codigo,
+                Item.descricao,
+                Item.categoria,
+                Item.unidade,
+                Item.valor,
+                func.sum(SaldoTecnico.quantidade).label('saldo')
+            )
             .join(Item, SaldoTecnico.item_id == Item.id)
             .filter(
                 SaldoTecnico.tecnico_id == tecnico_id,
@@ -774,26 +1020,48 @@ def api_itens_movimentacao():
             query = query.filter(
                 Item.categoria == 'MATERIAL',
                 SaldoTecnico.tipo_servico_id == tipo_servico_consulta,
-                SaldoTecnico.tipo_estoque == 'empresa',
-                SaldoTecnico.cliente_id.is_(None),
-                SaldoTecnico.ordem_servico_id.is_(None)
+                SaldoTecnico.tipo_estoque == saldo_tecnico_tipo
             )
 
-        registros = query.order_by(Item.descricao).all()
+            if saldo_tecnico_tipo == 'empresa':
+                query = query.filter(
+                    SaldoTecnico.cliente_id.is_(None),
+                    SaldoTecnico.ordem_servico_id.is_(None)
+                )
+            else:
+                if cliente_id:
+                    query = query.filter(SaldoTecnico.cliente_id == cliente_id)
 
-        for saldo, item in registros:
+                if ordem_servico_id:
+                    query = query.filter(SaldoTecnico.ordem_servico_id == ordem_servico_id)
+
+        registros = (
+            query
+            .group_by(
+                Item.codigo,
+                Item.descricao,
+                Item.categoria,
+                Item.unidade,
+                Item.valor
+            )
+            .order_by(Item.descricao)
+            .all()
+        )
+
+        for row in registros:
             resultados.append({
-                'codigo': item.codigo,
-                'descricao': item.descricao,
-                'categoria': item.categoria or 'MATERIAL',
-                'unidade': item.unidade,
-                'saldo': saldo.quantidade,
-                'valor': float(item.valor or 0)
+                'codigo': row.codigo,
+                'descricao': row.descricao,
+                'categoria': row.categoria or 'MATERIAL',
+                'unidade': row.unidade,
+                'saldo': int(row.saldo or 0),
+                'valor': float(row.valor or 0)
             })
 
         return jsonify(resultados)
 
     return jsonify([])
+
 
 @bp_movimentacao.route('/detalhes/<int:id>/pdf')
 @login_required

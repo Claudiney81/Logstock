@@ -272,30 +272,64 @@
         <th>Descrição</th>
         <th style="width: 7%;">Un.</th>
         <th style="width: 7%;">Qtd.</th>
+        <th style="width: 15%;">Condição</th>
         <th style="width: 15%;">Valor Unit.</th>
         <th style="width: 15%;">Valor Total</th>
       </tr>
     </thead>
 
     <tbody>
-      {% for i in itens %}
-        {% set subtotal = (i.quantidade or 0) * (i.valor_unitario or 0) %}
-        {% set total_geral.valor = total_geral.valor + subtotal %}
+  {% for i in itens %}
+    {% set subtotal = (i.quantidade or 0) * (i.valor_unitario or 0) %}
+    {% set total_geral.valor = total_geral.valor + subtotal %}
 
-        <tr>
-          <td class="center">{{ i.item.codigo if i.item else '-' }}</td>
-          <td>{{ i.item.descricao if i.item else '-' }}</td>
-          <td class="center">{{ i.item.unidade if i.item else '-' }}</td>
-          <td class="center">{{ i.quantidade }}</td>
-          <td class="right">R$ {{ "%.2f"|format(i.valor_unitario or 0) }}</td>
-          <td class="right">R$ {{ "%.2f"|format(subtotal) }}</td>
-        </tr>
-      {% else %}
-        <tr>
-          <td colspan="6" class="center">Nenhum item encontrado.</td>
-        </tr>
-      {% endfor %}
-    </tbody>
+    <tr>
+      <td class="center">{{ i.item.codigo if i.item else '-' }}</td>
+
+      <td>{{ i.item.descricao if i.item else '-' }}</td>
+
+      <td class="center">
+        {{ i.item.unidade if i.item else '-' }}
+      </td>
+
+      <td class="center">
+        {{ i.quantidade }}
+      </td>
+
+      <td class="center">
+        {% if i.condicao_material == 'NOVO_DEF' %}
+          Novo Defeito
+
+        {% elif i.condicao_material == 'USADO_DEF' %}
+          Usado Defeito
+
+        {% elif i.condicao_material == 'USADO_BOM' %}
+          Usado Bom
+
+        {% else %}
+          Disponível
+        {% endif %}
+      </td>
+
+      <td class="right">
+        R$ {{ "%.2f"|format(i.valor_unitario or 0) }}
+      </td>
+
+      <td class="right">
+        R$ {{ "%.2f"|format(subtotal) }}
+      </td>
+    </tr>
+
+  {% else %}
+
+    <tr>
+      <td colspan="7" class="center">
+        Nenhum item encontrado.
+      </td>
+    </tr>
+
+  {% endfor %}
+</tbody>
   </table>
 
   <table class="total-box">

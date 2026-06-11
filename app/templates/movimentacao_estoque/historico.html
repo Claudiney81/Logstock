@@ -100,6 +100,7 @@
               <th style="width:160px;">Técnico</th>
               <th style="width:190px;">Cliente O.S</th>
               <th style="width:150px;">Tipo Serviço</th>
+              <th style="width:130px;">Condição</th>
               <th style="width:130px;">Data/Hora</th>
               <th style="width:130px;">Assinatura</th>
               <th style="width:120px;">E-mail</th>
@@ -179,12 +180,63 @@
 
                 {% endif %}
 
-              </td>
+             <td class="text-center">
 
-              <td class="text-center">
-                {{ m.tipo_servico.nome if m.tipo_servico else '—' }}
-              </td>
+                {% if m.origem_tipo == 'tecnico' and m.destino_tipo == 'empresa' %}
 
+                  {% if m.condicao_material_resumo == 'NOVO_DEF' %}
+
+                    <span class="badge-soft badge-soft-yellow">
+                      Novo Def.
+                    </span>
+
+                  {% elif m.condicao_material_resumo == 'USADO_DEF' %}
+
+                    <span class="badge-soft badge-soft-yellow">
+                      Usado Def.
+                    </span>
+
+                  {% elif m.condicao_material_resumo == 'USADO_BOM' %}
+
+                    <span class="badge-soft badge-soft-green">
+                      Usado Bom
+                    </span>
+
+                  {% elif m.condicao_material_resumo == 'MISTO' %}
+
+                    <span class="badge-soft badge-soft-gray">
+                      Misto
+                    </span>
+
+                  {% else %}
+
+                    <span class="badge-soft badge-soft-blue">
+                      Disponível
+                    </span>
+
+                  {% endif %}
+
+                {% elif m.origem_tipo == 'empresa' and m.destino_tipo == 'tecnico' %}
+
+                  <span class="badge-soft badge-soft-blue">
+                    Disponível
+                  </span>
+
+                {% elif m.origem_tipo == 'cliente' and m.destino_tipo == 'tecnico' %}
+
+                  <span class="badge-soft badge-soft-yellow">
+                    Cliente
+                  </span>
+
+                {% else %}
+
+                  <span class="badge-soft badge-soft-gray">
+                    -
+                  </span>
+
+                {% endif %}
+
+              </td>
               <td class="text-center">
                 {{ m.data_hora.strftime('%d/%m/%Y %H:%M') if m.data_hora else '-' }}
               </td>
@@ -223,7 +275,7 @@
             {% else %}
 
             <tr>
-              <td colspan="11" class="text-center text-muted py-4">
+              <td colspan="12" class="text-center text-muted py-4">
                 <i class="bi bi-info-circle me-1"></i>
                 Nenhuma movimentação encontrada.
               </td>

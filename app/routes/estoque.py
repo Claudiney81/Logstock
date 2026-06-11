@@ -306,7 +306,6 @@ def buscar_alertas_estoque(tipo_servico_id=None):
 
         if (
             estoque.quantidade_minima is not None
-            and estoque.quantidade_minima > 0
             and estoque.quantidade <= estoque.quantidade_minima
         ):
             alertas.append(
@@ -322,7 +321,7 @@ def buscar_alertas_estoque(tipo_servico_id=None):
 @login_required
 def saldo_estoque():
 
-    from sqlalchemy import func
+    from sqlalchemy import func, case
     from app.models import Empresa, TipoServico
 
     codigo = request.args.get('codigo', '').strip()
@@ -377,6 +376,52 @@ def saldo_estoque():
             categoria=categoria
         )
 
+    disponivel = func.sum(
+        case(
+            (
+                db.or_(
+                    Estoque.condicao_material == None,
+                    Estoque.condicao_material == "",
+                    Estoque.condicao_material == "DISPONIVEL"
+                ),
+                Estoque.quantidade
+            ),
+            else_=0
+        )
+    ).label("disponivel")
+
+    usado_bom = func.sum(
+        case(
+            (
+                Estoque.condicao_material == "USADO_BOM",
+                Estoque.quantidade
+            ),
+            else_=0
+        )
+    ).label("usado_bom")
+
+    novo_defeito = func.sum(
+        case(
+            (
+                Estoque.condicao_material == "NOVO_DEF",
+                Estoque.quantidade
+            ),
+            else_=0
+        )
+    ).label("novo_defeito")
+
+    usado_defeito = func.sum(
+        case(
+            (
+                Estoque.condicao_material == "USADO_DEF",
+                Estoque.quantidade
+            ),
+            else_=0
+        )
+    ).label("usado_defeito")
+
+    total = func.sum(Estoque.quantidade).label("total")
+
     query = (
         db.session.query(
             Item.codigo,
@@ -384,7 +429,11 @@ def saldo_estoque():
             Item.unidade,
             Item.categoria,
             Item.valor,
-            func.sum(Estoque.quantidade).label('quantidade'),
+            disponivel,
+            usado_bom,
+            novo_defeito,
+            usado_defeito,
+            total,
             func.max(Estoque.quantidade_minima).label('quantidade_minima'),
             func.max(Estoque.endereco).label('endereco'),
             Estoque.item_id,
@@ -405,7 +454,6 @@ def saldo_estoque():
     if categoria:
         query = query.filter(Item.categoria == categoria)
 
-    # Tipo de estoque
     if tipo_estoque == "cliente":
         query = query.filter(
             Estoque.tipo_estoque == "cliente",
@@ -420,11 +468,8 @@ def saldo_estoque():
             )
         )
 
-    # Tipo de serviço
     tipo_servico_consulta_id = tipo_servico_id
 
-    # REGRA LOGISTOCK:
-    # Manutenção/Reparo consultam saldo físico da Instalação.
     if tipo_servico_id in [2, 3, 5]:
         tipo_servico_consulta_id = 1
 
@@ -466,7 +511,6 @@ def saldo_estoque():
         tipo_servico_id=tipo_servico_id,
         categoria=categoria
     )
-
 # ------------------------
 # Atualização de Estoque Mínimo (SOMENTE mínimos)
 # ------------------------
@@ -692,11 +736,6 @@ def exportar_criticos():
         type=int
     )
 
-    categoria = request.args.get(
-        "categoria",
-        ""
-    ).strip().upper()
-
     alertas = buscar_alertas_estoque(
         tipo_servico_id
     )
@@ -705,9 +744,6 @@ def exportar_criticos():
 
     for estoque, item, tipo_servico in alertas:
 
-        if categoria and (item.categoria or "").upper() != categoria:
-            continue
-
         dados.append({
             "Código": item.codigo,
             "Descrição": item.descricao,
@@ -715,21 +751,11 @@ def exportar_criticos():
             "Categoria": item.categoria or "MATERIAL",
             "Tipo Serviço": tipo_servico.nome if tipo_servico else "-",
             "Quantidade Atual": estoque.quantidade or 0,
-            "Estoque Mínimo": estoque.quantidade_minima or 0
+            "Estoque Mínimo": estoque.quantidade_minima or 0,
+            "Endereço": estoque.endereco or ""
         })
 
-    df = pd.DataFrame(
-        dados,
-        columns=[
-            "Código",
-            "Descrição",
-            "Unidade",
-            "Categoria",
-            "Tipo Serviço",
-            "Quantidade Atual",
-            "Estoque Mínimo"
-        ]
-    )
+    df = pd.DataFrame(dados)
 
     output = io.BytesIO()
 
@@ -796,13 +822,13 @@ def exportar_criticos():
         })
 
         worksheet.merge_range(
-            'A1:G1',
+            'A1:H1',
             'RELATÓRIO DE ALERTA DE PEDIDO - ITENS CRÍTICOS',
             titulo_format
         )
 
         worksheet.merge_range(
-            'A2:G2',
+            'A2:H2',
             f'Gerado em {datetime.now().strftime("%d/%m/%Y %H:%M")}',
             subtitulo_format
         )
@@ -826,6 +852,7 @@ def exportar_criticos():
             worksheet.write(row_num, 4, item_linha["Tipo Serviço"], normal_format)
             worksheet.write(row_num, 5, item_linha["Quantidade Atual"], qtd_alerta_format)
             worksheet.write(row_num, 6, item_linha["Estoque Mínimo"], minimo_alerta_format)
+            worksheet.write(row_num, 7, item_linha["Endereço"], normal_format)
 
         worksheet.set_column('A:A', 14)
         worksheet.set_column('B:B', 48)
@@ -834,6 +861,7 @@ def exportar_criticos():
         worksheet.set_column('E:E', 24)
         worksheet.set_column('F:F', 18)
         worksheet.set_column('G:G', 18)
+        worksheet.set_column('H:H', 42)
 
         worksheet.set_row(0, 26)
         worksheet.set_row(1, 20)
@@ -845,7 +873,7 @@ def exportar_criticos():
             linha_header,
             0,
             linha_header + len(dados),
-            6
+            len(df.columns) - 1
         )
 
     output.seek(0)
@@ -867,7 +895,6 @@ def exportar_criticos():
 @login_required
 def exportar_alertas_excel():
     from flask import send_file
-    import pandas as pd
     import io
     from datetime import datetime
 
@@ -877,137 +904,54 @@ def exportar_alertas_excel():
     dados = []
 
     for estoque, item, tipo_servico in alertas:
+        quantidade_atual = estoque.quantidade or 0
+        valor_unitario = float(item.valor or 0)
+
         dados.append({
             "Código": item.codigo,
             "Descrição": item.descricao,
             "Unidade": item.unidade,
             "Categoria": item.categoria or "MATERIAL",
-            "Tipo Serviço": tipo_servico.nome if tipo_servico else "-",
-            "Quantidade Atual": estoque.quantidade or 0,
-            "Estoque Mínimo": estoque.quantidade_minima or 0
+            "Tipo de Serviço": tipo_servico.nome if tipo_servico else "-",
+            "Quantidade Atual": quantidade_atual,
+            "Quantidade Mínima": estoque.quantidade_minima or 0,
+            "Endereço": estoque.endereco or "-",
+            "Valor Unitário (R$)": valor_unitario,
+            "Valor Total Atual (R$)": quantidade_atual * valor_unitario
         })
 
-    df = pd.DataFrame(
-        dados,
-        columns=[
-            "Código",
-            "Descrição",
-            "Unidade",
-            "Categoria",
-            "Tipo Serviço",
-            "Quantidade Atual",
-            "Estoque Mínimo"
-        ]
-    )
+    df = pd.DataFrame(dados)
 
     output = io.BytesIO()
 
     with pd.ExcelWriter(output, engine='xlsxwriter') as writer:
+        df.to_excel(writer, index=False, sheet_name='Estoque Baixo')
+
         workbook = writer.book
-        worksheet = workbook.add_worksheet('Estoque Baixo')
-        writer.sheets['Estoque Baixo'] = worksheet
-
-        titulo_format = workbook.add_format({
-            'bold': True,
-            'font_size': 14,
-            'font_color': 'white',
-            'bg_color': '#002B55',
-            'align': 'center',
-            'valign': 'vcenter',
-            'border': 1
-        })
-
-        subtitulo_format = workbook.add_format({
-            'italic': True,
-            'font_color': '#4B5563',
-            'align': 'center',
-            'valign': 'vcenter'
-        })
+        worksheet = writer.sheets['Estoque Baixo']
 
         header_format = workbook.add_format({
             'bold': True,
-            'font_color': 'white',
             'bg_color': '#002B55',
-            'border': 1,
-            'align': 'center',
-            'valign': 'vcenter'
-        })
-
-        normal_format = workbook.add_format({
-            'border': 1,
-            'valign': 'vcenter'
-        })
-
-        center_format = workbook.add_format({
-            'border': 1,
-            'align': 'center',
-            'valign': 'vcenter'
-        })
-
-        qtd_alerta_format = workbook.add_format({
-            'bold': True,
-            'bg_color': '#F8D7DA',
-            'font_color': '#842029',
-            'border': 1,
-            'align': 'center',
-            'valign': 'vcenter'
-        })
-
-        minimo_alerta_format = workbook.add_format({
-            'bold': True,
-            'bg_color': '#DC3545',
             'font_color': 'white',
-            'border': 1,
-            'align': 'center',
-            'valign': 'vcenter'
+            'border': 1
         })
 
-        worksheet.merge_range(
-            'A1:G1',
-            'RELATÓRIO DE ESTOQUE BAIXO - ITENS CRÍTICOS',
-            titulo_format
-        )
-
-        worksheet.merge_range(
-            'A2:G2',
-            f'Gerado em {datetime.now().strftime("%d/%m/%Y %H:%M")}',
-            subtitulo_format
-        )
-
-        linha_header = 3
+        money_format = workbook.add_format({
+            'num_format': 'R$ #,##0.00'
+        })
 
         for col_num, value in enumerate(df.columns.values):
-            worksheet.write(linha_header, col_num, value, header_format)
+            worksheet.write(0, col_num, value, header_format)
 
-        for row_num, item_linha in enumerate(dados, start=linha_header + 1):
-            worksheet.write(row_num, 0, item_linha["Código"], center_format)
-            worksheet.write(row_num, 1, item_linha["Descrição"], normal_format)
-            worksheet.write(row_num, 2, item_linha["Unidade"], center_format)
-            worksheet.write(row_num, 3, item_linha["Categoria"], center_format)
-            worksheet.write(row_num, 4, item_linha["Tipo Serviço"], normal_format)
-            worksheet.write(row_num, 5, item_linha["Quantidade Atual"], qtd_alerta_format)
-            worksheet.write(row_num, 6, item_linha["Estoque Mínimo"], minimo_alerta_format)
-
-        worksheet.set_column('A:A', 14)
-        worksheet.set_column('B:B', 48)
-        worksheet.set_column('C:C', 12)
-        worksheet.set_column('D:D', 16)
-        worksheet.set_column('E:E', 24)
-        worksheet.set_column('F:F', 18)
-        worksheet.set_column('G:G', 18)
-
-        worksheet.set_row(0, 26)
-        worksheet.set_row(1, 20)
-        worksheet.set_row(linha_header, 22)
-
-        worksheet.freeze_panes(4, 0)
-
-        worksheet.autofilter(
-            linha_header,
-            0,
-            linha_header + len(dados),
-            6
-        )
+        worksheet.set_column('A:A', 15)
+        worksheet.set_column('B:B', 45)
+        worksheet.set_column('C:C', 15)
+        worksheet.set_column('D:D', 18)
+        worksheet.set_column('E:E', 25)
+        worksheet.set_column('F:G', 18)
+        worksheet.set_column('H:H', 35)
+        worksheet.set_column('I:J', 22, money_format)
 
     output.seek(0)
 
@@ -1142,7 +1086,7 @@ def exportar_saldo_excel():
     import pandas as pd
     import io
     from datetime import datetime
-    from sqlalchemy import func
+    from sqlalchemy import func, case
     from app.models import Empresa, TipoServico
 
     tipo_estoque = request.args.get("tipo_estoque")
@@ -1161,22 +1105,67 @@ def exportar_saldo_excel():
         tipo_servico = TipoServico.query.get(tipo_servico_id)
         tipo_servico_nome = tipo_servico.nome if tipo_servico else "Todos"
 
+    disponivel = func.sum(
+        case(
+            (
+                db.or_(
+                    Estoque.condicao_material == None,
+                    Estoque.condicao_material == "",
+                    Estoque.condicao_material == "DISPONIVEL"
+                ),
+                Estoque.quantidade
+            ),
+            else_=0
+        )
+    ).label("disponivel")
+
+    usado_bom = func.sum(
+        case(
+            (
+                Estoque.condicao_material == "USADO_BOM",
+                Estoque.quantidade
+            ),
+            else_=0
+        )
+    ).label("usado_bom")
+
+    novo_defeito = func.sum(
+        case(
+            (
+                Estoque.condicao_material == "NOVO_DEF",
+                Estoque.quantidade
+            ),
+            else_=0
+        )
+    ).label("novo_defeito")
+
+    usado_defeito = func.sum(
+        case(
+            (
+                Estoque.condicao_material == "USADO_DEF",
+                Estoque.quantidade
+            ),
+            else_=0
+        )
+    ).label("usado_defeito")
+
+    total = func.sum(Estoque.quantidade).label("total")
+
     query = db.session.query(
-        Estoque.tipo_estoque,
-        Empresa.razao_social.label("cliente_nome"),
         Item.codigo,
         Item.descricao,
         Item.unidade,
         Item.valor,
-        func.sum(Estoque.quantidade).label("quantidade"),
+        disponivel,
+        usado_bom,
+        novo_defeito,
+        usado_defeito,
+        total,
         func.max(Estoque.quantidade_minima).label("quantidade_minima"),
         func.max(Estoque.endereco).label("endereco")
     ).join(
         Item,
         Estoque.item_id == Item.id
-    ).outerjoin(
-        Empresa,
-        Estoque.cliente_id == Empresa.id
     )
 
     if categoria:
@@ -1196,13 +1185,17 @@ def exportar_saldo_excel():
         if cliente_id:
             query = query.filter(Estoque.cliente_id == cliente_id)
 
-    if tipo_servico_id:
-        query = query.filter(Estoque.tipo_servico_id == tipo_servico_id)
+    tipo_servico_consulta_id = tipo_servico_id
+
+    if tipo_servico_id in [2, 3, 5]:
+        tipo_servico_consulta_id = 1
+
+    if tipo_servico_consulta_id:
+        query = query.filter(
+            Estoque.tipo_servico_id == tipo_servico_consulta_id
+        )
 
     resultados = query.group_by(
-        Estoque.tipo_estoque,
-        Estoque.cliente_id,
-        Empresa.razao_social,
         Estoque.item_id,
         Item.codigo,
         Item.descricao,
@@ -1211,8 +1204,6 @@ def exportar_saldo_excel():
     ).having(
         func.sum(Estoque.quantidade) > 0
     ).order_by(
-        Estoque.tipo_estoque,
-        Empresa.razao_social,
         Item.descricao
     ).all()
 
@@ -1220,13 +1211,15 @@ def exportar_saldo_excel():
 
     for r in resultados:
         dados.append({
-            "Tipo Estoque": "EMPRESA" if (r.tipo_estoque or "empresa") == "empresa" else "CLIENTE",
-            "Cliente": r.cliente_nome or "-",
             "Código": r.codigo,
             "Descrição": r.descricao,
             "Unidade": r.unidade,
             "Valor (R$)": float(r.valor or 0),
-            "Quantidade": r.quantidade or 0,
+            "Disponível": r.disponivel or 0,
+            "Usado Bom": r.usado_bom or 0,
+            "Novo Defeito": r.novo_defeito or 0,
+            "Usado Defeito": r.usado_defeito or 0,
+            "Total": r.total or 0,
             "Estoque Mínimo": r.quantidade_minima or "",
             "Endereço": r.endereco or ""
         })
@@ -1293,21 +1286,14 @@ def exportar_saldo_excel():
             "valign": "vcenter"
         })
 
-        worksheet.merge_range("A1:I1", "RELATÓRIO DE SALDO DE ESTOQUE", titulo_format)
+        worksheet.merge_range("A1:K1", "RELATÓRIO DE SALDO DE ESTOQUE", titulo_format)
 
         worksheet.write("A3", "Tipo de Estoque:", info_format)
-        worksheet.write(
-            "B3",
-            "EMPRESA" if tipo_estoque == "empresa" else "CLIENTE" if tipo_estoque == "cliente" else "TODOS",
-            normal_format
-        )
+        worksheet.write("B3", "Empresa" if tipo_estoque == "empresa" else "Cliente", normal_format)
 
-        worksheet.write("D3", "Cliente:", info_format)
-        worksheet.write(
-            "E3",
-            cliente_nome if cliente_id else "TODOS",
-            normal_format
-        )
+        if tipo_estoque == "cliente":
+            worksheet.write("D3", "Cliente/O.S:", info_format)
+            worksheet.write("E3", cliente_nome, normal_format)
 
         worksheet.write("A4", "Tipo de Serviço:", info_format)
         worksheet.write("B4", tipo_servico_nome, normal_format)
@@ -1324,33 +1310,37 @@ def exportar_saldo_excel():
             worksheet.write(linha_header, col_num, coluna, header_format)
 
         for row_num, item in enumerate(dados, start=linha_header + 1):
-            worksheet.write(row_num, 0, item["Tipo Estoque"], center_format)
-            worksheet.write(row_num, 1, item["Cliente"], normal_format)
-            worksheet.write(row_num, 2, item["Código"], center_format)
-            worksheet.write(row_num, 3, item["Descrição"], normal_format)
-            worksheet.write(row_num, 4, item["Unidade"], center_format)
-            worksheet.write(row_num, 5, item["Valor (R$)"], money_format)
+            worksheet.write(row_num, 0, item["Código"], center_format)
+            worksheet.write(row_num, 1, item["Descrição"], normal_format)
+            worksheet.write(row_num, 2, item["Unidade"], center_format)
+            worksheet.write(row_num, 3, item["Valor (R$)"], money_format)
 
             minimo = item["Estoque Mínimo"] or 0
-            quantidade = item["Quantidade"] or 0
+            disponivel_qtd = item["Disponível"] or 0
 
-            if minimo and quantidade <= minimo:
-                worksheet.write(row_num, 6, quantidade, qtd_alerta_format)
+            if minimo and disponivel_qtd <= minimo:
+                worksheet.write(row_num, 4, disponivel_qtd, qtd_alerta_format)
             else:
-                worksheet.write(row_num, 6, quantidade, center_format)
+                worksheet.write(row_num, 4, disponivel_qtd, center_format)
 
-            worksheet.write(row_num, 7, item["Estoque Mínimo"], center_format)
-            worksheet.write(row_num, 8, item["Endereço"], normal_format)
+            worksheet.write(row_num, 5, item["Usado Bom"], center_format)
+            worksheet.write(row_num, 6, item["Novo Defeito"], center_format)
+            worksheet.write(row_num, 7, item["Usado Defeito"], center_format)
+            worksheet.write(row_num, 8, item["Total"], center_format)
+            worksheet.write(row_num, 9, item["Estoque Mínimo"], center_format)
+            worksheet.write(row_num, 10, item["Endereço"], normal_format)
 
-        worksheet.set_column("A:A", 16)
-        worksheet.set_column("B:B", 28)
-        worksheet.set_column("C:C", 14)
-        worksheet.set_column("D:D", 45)
-        worksheet.set_column("E:E", 12)
-        worksheet.set_column("F:F", 16)
-        worksheet.set_column("G:G", 14)
-        worksheet.set_column("H:H", 18)
-        worksheet.set_column("I:I", 42)
+        worksheet.set_column("A:A", 14)
+        worksheet.set_column("B:B", 45)
+        worksheet.set_column("C:C", 12)
+        worksheet.set_column("D:D", 16)
+        worksheet.set_column("E:E", 14)
+        worksheet.set_column("F:F", 14)
+        worksheet.set_column("G:G", 16)
+        worksheet.set_column("H:H", 16)
+        worksheet.set_column("I:I", 14)
+        worksheet.set_column("J:J", 18)
+        worksheet.set_column("K:K", 42)
 
         worksheet.set_row(0, 26)
         worksheet.set_row(linha_header, 22)

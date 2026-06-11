@@ -241,8 +241,17 @@
                     ><i class="bi bi-search me-2"></i> Pesquisar</a
                   >
                 </li>
-              </ul>
-            </li>
+                <li>
+                  <a
+                      class="dropdown-item"
+                      href="{{ url_for('nota_fiscal.historico_valores') }}"
+                    >
+                      <i class="bi bi-graph-up-arrow me-2"></i>
+                      Histórico de Valores
+                  </a>
+               </li>
+            </ul>
+          </li>
 
             <!-- Movimentação de Estoque -->
             <li class="nav-item dropdown">
@@ -653,15 +662,6 @@
                     href="{{ url_for('baixa_desktop.baixas_realizadas') }}"
                     ><i class="bi bi-check-all me-2"></i> Baixas Realizadas</a
                   >
-                </li>
-                <li>
-                  <a
-                    class="dropdown-item"
-                    href="{{ url_for('baixa_tecnico.portal_mobile') }}"
-                  >
-                    <i class="bi bi-phone me-2"></i>
-                    Portal Mobile
-                  </a>
                 </li>
               </ul>
             </li>

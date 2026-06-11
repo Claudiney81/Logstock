@@ -196,10 +196,10 @@
         <div class="col-md-2">
           <label>Quantidade</label>
           <input
-              type="text"
-              id="quantidade"
-              class="form-control"
-              placeholder="Quantidade"
+            type="number"
+            id="quantidade"
+            class="form-control"
+            min="1"
           >
         </div>
 
@@ -233,6 +233,89 @@
           >
         </div>
 
+      </div>
+
+      <hr class="my-3">
+
+      <div class="nf-lote-box">
+        <div class="nf-lote-toolbar p-3">
+          <h6 class="fw-bold mb-3">
+            <i class="bi bi-list-check me-1"></i>
+            Seleção em Lote
+          </h6>
+
+          <div class="row g-2 align-items-end">
+            <div class="col-md-5">
+              <label class="form-label fw-semibold mb-1">Pesquisar na lista</label>
+              <input
+                type="text"
+                id="busca_lote_nf"
+                class="form-control form-control-sm"
+                placeholder="Digite código ou descrição"
+              >
+            </div>
+
+            <div class="col-md-2">
+              <button
+                type="button"
+                class="btn btn-outline-primary btn-sm w-100"
+                onclick="marcarItensNotaLote(true)"
+              >
+                Marcar todos
+              </button>
+            </div>
+
+            <div class="col-md-2">
+              <button
+                type="button"
+                class="btn btn-outline-secondary btn-sm w-100"
+                onclick="marcarItensNotaLote(false)"
+              >
+                Desmarcar
+              </button>
+            </div>
+
+            <div class="col-md-3">
+              <button
+                type="button"
+                id="btnInserirSelecionadosNota"
+                class="btn btn-primary btn-sm w-100"
+                onclick="inserirSelecionadosNotaLote()"
+              >
+                <i class="bi bi-plus-circle me-1"></i>
+                Inserir Selecionados
+              </button>
+            </div>
+          </div>
+        </div>
+
+        <div class="table-responsive" style="max-height:350px; overflow:auto;">
+          <table class="table table-bordered table-sm table-hover table-nf-lote mb-0" id="tabela-lote-nf">
+            <thead class="table-light" style="position:sticky; top:0; z-index:1;">
+              <tr>
+                <th style="width:5%" class="text-center">
+                  <input
+                    type="checkbox"
+                    class="form-check-input"
+                    id="nf_lote_check_todos"
+                    title="Selecionar todos"
+                  >
+                </th>
+                <th style="width:12%">Código</th>
+                <th>Descrição</th>
+                <th style="width:12%">Qtd</th>
+                <th style="width:14%">Valor Unit.</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr>
+                <td colspan="5" class="text-center text-muted py-3">
+                  Selecione a categoria para carregar os itens cadastrados.
+                </td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
       </div>
     </div>
 
@@ -289,9 +372,273 @@
   .select2-container {
     z-index: 2001 !important;
   }
+
+
+  /* Seleção em lote - Nota Fiscal */
+  .nf-lote-box {
+    border: 1px solid #dbe3ee;
+    border-radius: 10px;
+    background: #fbfdff;
+  }
+
+  .nf-lote-toolbar {
+    background: #f5f8fc;
+    border-bottom: 1px solid #dbe3ee;
+    border-radius: 10px 10px 0 0;
+  }
+
+  .table-nf-lote th,
+  .table-nf-lote td {
+    vertical-align: middle;
+    font-size: .86rem;
+    white-space: nowrap;
+  }
+
+  .nf-lote-qtd,
+  .nf-lote-valor {
+    min-width: 90px;
+    text-align: center;
+    font-weight: 600;
+  }
+
+  .nf-lote-qtd:focus,
+  .nf-lote-valor:focus {
+    background: #fff8dc;
+    border: 2px solid #0d6efd;
+    box-shadow: 0 0 6px rgba(13,110,253,.25);
+  }
 </style>
 
 <script>
+
+let itensNotaLote = [];
+
+function normalizarTextoNF(valor) {
+  return String(valor || "")
+    .toLowerCase()
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .trim();
+}
+
+function escaparHtmlNF(valor) {
+  return String(valor || "")
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;")
+    .replace(/"/g, "&quot;")
+    .replace(/'/g, "&#039;");
+}
+
+function textoItemNF(item) {
+  return normalizarTextoNF(`${item.codigo || ""} ${item.descricao || ""}`);
+}
+
+function formatarValorNF(valor) {
+  const numero = parseFloat(String(valor || "0").replace(",", "."));
+
+  if (isNaN(numero)) {
+    return "0.00";
+  }
+
+  return numero.toFixed(2);
+}
+
+function itemJaNaNota(codigo) {
+  const codigoNormalizado = String(codigo || "").trim();
+
+  if (!codigoNormalizado) {
+    return false;
+  }
+
+  let existe = false;
+
+  document
+    .querySelectorAll('#tabela-itens input[name="codigo[]"]')
+    .forEach((input) => {
+      if (String(input.value || "").trim() === codigoNormalizado) {
+        existe = true;
+      }
+    });
+
+  return existe;
+}
+
+function renderizarItensNotaLote() {
+  const tbody = document.querySelector("#tabela-lote-nf tbody");
+
+  if (!tbody) {
+    return;
+  }
+
+  const busca = normalizarTextoNF(
+    document.getElementById("busca_lote_nf")?.value || ""
+  );
+
+  const checkTodos = document.getElementById("nf_lote_check_todos");
+
+  if (checkTodos) {
+    checkTodos.checked = false;
+  }
+
+  if (!itensNotaLote.length) {
+    tbody.innerHTML = `
+      <tr>
+        <td colspan="5" class="text-center text-muted py-3">
+          Nenhum item cadastrado para a categoria selecionada.
+        </td>
+      </tr>
+    `;
+    return;
+  }
+
+  const itensFiltrados = itensNotaLote.filter((item) => {
+    if (!busca) {
+      return true;
+    }
+
+    return textoItemNF(item).includes(busca);
+  });
+
+  if (!itensFiltrados.length) {
+    tbody.innerHTML = `
+      <tr>
+        <td colspan="5" class="text-center text-muted py-3">
+          Nenhum item encontrado para a busca informada.
+        </td>
+      </tr>
+    `;
+    return;
+  }
+
+  tbody.innerHTML = "";
+
+  itensFiltrados.forEach((item) => {
+    const codigo = escaparHtmlNF(item.codigo);
+    const descricao = escaparHtmlNF(item.descricao);
+    const valor = formatarValorNF(item.valor);
+
+    const tr = document.createElement("tr");
+    tr.dataset.codigo = item.codigo || "";
+    tr.dataset.descricao = item.descricao || "";
+    tr.dataset.valor = valor;
+    tr.dataset.texto = textoItemNF(item);
+
+    tr.innerHTML = `
+      <td class="text-center">
+        <input type="checkbox" class="form-check-input nf-lote-check">
+      </td>
+      <td class="fw-semibold">${codigo}</td>
+      <td>${descricao}</td>
+      <td>
+        <input
+          type="number"
+          class="form-control form-control-sm nf-lote-qtd"
+          min="1"
+          value="1"
+        >
+      </td>
+      <td>
+        <input
+          type="text"
+          class="form-control form-control-sm nf-lote-valor"
+          value="${valor}"
+        >
+      </td>
+    `;
+
+    tbody.appendChild(tr);
+  });
+}
+
+function marcarItensNotaLote(marcar) {
+  document
+    .querySelectorAll("#tabela-lote-nf tbody tr")
+    .forEach((tr) => {
+      if (tr.querySelector("td[colspan]")) {
+        return;
+      }
+
+      const check = tr.querySelector(".nf-lote-check");
+
+      if (check) {
+        check.checked = marcar;
+      }
+    });
+
+  const checkTodos = document.getElementById("nf_lote_check_todos");
+
+  if (checkTodos) {
+    checkTodos.checked = marcar;
+  }
+}
+
+function inserirSelecionadosNotaLote() {
+  const linhasSelecionadas = [];
+
+  document
+    .querySelectorAll("#tabela-lote-nf tbody tr")
+    .forEach((tr) => {
+      const check = tr.querySelector(".nf-lote-check");
+
+      if (!check || !check.checked) {
+        return;
+      }
+
+      const quantidadeInput = tr.querySelector(".nf-lote-qtd");
+      const valorInput = tr.querySelector(".nf-lote-valor");
+
+      const codigo = tr.dataset.codigo || "";
+      const descricao = tr.dataset.descricao || "";
+      const quantidade = parseInt(quantidadeInput?.value || "0");
+      const valor = formatarValorNF(valorInput?.value || "0");
+
+      if (!codigo || !quantidade || quantidade <= 0) {
+        return;
+      }
+
+      linhasSelecionadas.push({
+        codigo,
+        descricao,
+        quantidade: String(quantidade),
+        valor
+      });
+    });
+
+  if (!linhasSelecionadas.length) {
+    alert("Marque pelo menos um item e informe uma quantidade válida.");
+    return;
+  }
+
+  let inseridos = 0;
+  let duplicados = 0;
+
+  linhasSelecionadas.forEach((item) => {
+    if (itemJaNaNota(item.codigo)) {
+      duplicados += 1;
+      return;
+    }
+
+    adicionarItemImportado(
+      item.codigo,
+      item.descricao,
+      item.quantidade,
+      item.valor
+    );
+
+    inseridos += 1;
+  });
+
+  if (inseridos > 0) {
+    alert(`${inseridos} item(ns) inserido(s) na nota fiscal.`);
+  }
+
+  if (duplicados > 0) {
+    alert(`${duplicados} item(ns) já estavam na nota e foram ignorados.`);
+  }
+
+  marcarItensNotaLote(false);
+}
 
 function atualizarCamposDoItem(selectEl) {
   const opt = selectEl.options[selectEl.selectedIndex];
@@ -759,6 +1106,9 @@ document.addEventListener("DOMContentLoaded", function () {
       .then(response => response.json())
       .then(data => {
 
+        itensNotaLote = data || [];
+        renderizarItensNotaLote();
+
         selectDescricao.innerHTML =
           '<option value="">Selecione um item...</option>';
 
@@ -841,6 +1191,67 @@ function buscarItemPorCodigo() {
     });
 }
 
+
+document.getElementById("busca_lote_nf")?.addEventListener("input", function () {
+  renderizarItensNotaLote();
+});
+
+document.getElementById("nf_lote_check_todos")?.addEventListener("change", function () {
+  marcarItensNotaLote(this.checked);
+});
+
+document.querySelector("#tabela-lote-nf tbody")?.addEventListener("click", function (e) {
+  const tr = e.target.closest("tr");
+
+  if (!tr || tr.querySelector("td[colspan]")) {
+    return;
+  }
+
+  if (
+    e.target.classList.contains("nf-lote-qtd") ||
+    e.target.classList.contains("nf-lote-valor") ||
+    e.target.classList.contains("nf-lote-check")
+  ) {
+    return;
+  }
+
+  const check = tr.querySelector(".nf-lote-check");
+
+  if (check) {
+    check.checked = !check.checked;
+  }
+});
+
+document.addEventListener("focusin", function (e) {
+  if (
+    e.target.classList.contains("nf-lote-qtd") ||
+    e.target.classList.contains("nf-lote-valor")
+  ) {
+    e.target.select();
+  }
+});
+
+document.addEventListener("keydown", function (e) {
+  if (!e.target.classList.contains("nf-lote-qtd")) {
+    return;
+  }
+
+  if (e.key === "Enter") {
+    e.preventDefault();
+
+    const inputs = Array.from(
+      document.querySelectorAll("#tabela-lote-nf .nf-lote-qtd")
+    );
+
+    const index = inputs.indexOf(e.target);
+
+    if (index >= 0 && inputs[index + 1]) {
+      inputs[index + 1].focus();
+      inputs[index + 1].select();
+    }
+  }
+});
+
 </script>
 <script>
 document.addEventListener("DOMContentLoaded", function () {
@@ -848,6 +1259,7 @@ document.addEventListener("DOMContentLoaded", function () {
   const tipoServico = document.getElementById("tipo_servico_id");
   const btnAdicionar = document.querySelector("button[onclick='adicionarItem()']");
   const importarExcel = document.getElementById("importarExcel");
+  const btnInserirSelecionadosNota = document.getElementById("btnInserirSelecionadosNota");
 
   if (!tipoEstoque || !tipoServico) return;
 
@@ -877,6 +1289,7 @@ document.addEventListener("DOMContentLoaded", function () {
 
       if (btnAdicionar) btnAdicionar.disabled = true;
       if (importarExcel) importarExcel.disabled = true;
+      if (btnInserirSelecionadosNota) btnInserirSelecionadosNota.disabled = true;
 
       return false;
     }
@@ -886,6 +1299,7 @@ document.addEventListener("DOMContentLoaded", function () {
 
     if (btnAdicionar) btnAdicionar.disabled = false;
     if (importarExcel) importarExcel.disabled = false;
+    if (btnInserirSelecionadosNota) btnInserirSelecionadosNota.disabled = false;
 
     return true;
   }

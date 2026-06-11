@@ -172,8 +172,7 @@
             <a
               href="{{ url_for(
                 'estoque.exportar_criticos',
-                tipo_servico_id=tipo_servico_id,
-                categoria=categoria
+                tipo_servico_id=tipo_servico_id
               ) }}"
               class="btn btn-alerta-pedido w-100"
             >
@@ -200,7 +199,11 @@
                 <th>Descrição</th>
                 <th>Unidade</th>
                 <th>Valor (R$)</th>
-                <th>Quantidade</th>
+                <th>Disponível</th>
+                <th>Usado Bom</th>
+                <th>Novo Defeito</th>
+                <th>Usado Defeito</th>
+                <th>Total</th>
                 <th>Estoque Mínimo</th>
                 <th>Endereço</th>
               </tr>
@@ -218,8 +221,24 @@
                     R$ {{ "{:,.2f}".format(r.valor or 0).replace(",", "X").replace(".", ",").replace("X", ".") }}
                   </td>
 
-                  <td class="{% if r.quantidade <= (r.quantidade_minima or 0) %}table-danger fw-bold{% endif %}">
-                    {{ r.quantidade }}
+                  <td class="{% if (r.disponivel or 0) <= (r.quantidade_minima or 0) %}table-danger fw-bold{% endif %}">
+                    {{ r.disponivel or 0 }}
+                  </td>
+
+                  <td>
+                    {{ r.usado_bom or 0 }}
+                  </td>
+
+                  <td>
+                    {{ r.novo_defeito or 0 }}
+                  </td>
+
+                  <td>
+                    {{ r.usado_defeito or 0 }}
+                  </td>
+
+                  <td class="fw-bold">
+                    {{ r.total or 0 }}
                   </td>
 
                   <td style="min-width: 120px;">
@@ -243,7 +262,7 @@
                 {% endfor %}
               {% else %}
                 <tr>
-                  <td colspan="7" class="text-center py-4 saldo-empty">
+                  <td colspan="11" class="text-center py-4 saldo-empty">
                     {% if not tipo_estoque %}
                       <i class="bi bi-info-circle me-1"></i>
                       Selecione o tipo de estoque para consultar os saldos.

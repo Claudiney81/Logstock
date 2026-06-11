@@ -1,5 +1,6 @@
 {% extends 'base.html' %}
 {% block content %}
+{# Versão com seleção em lote, checkbox geral, saldo técnico empresa/cliente e condição de devolução #}
 
 <style>
   .page-title { color:#002b55; font-weight:700; }
@@ -53,6 +54,34 @@
     color:#174a88;
   }
 
+  .lote-box {
+    border:1px solid #dbe3ee;
+    border-radius:10px;
+    background:#fbfdff;
+  }
+
+  .lote-toolbar {
+    background:#f5f8fc;
+    border-bottom:1px solid #dbe3ee;
+    border-radius:10px 10px 0 0;
+  }
+
+  .table-lote th,
+  .table-lote td {
+    vertical-align:middle;
+    font-size:.86rem;
+    white-space:nowrap;
+  }
+
+  .table-lote tbody tr.d-none {
+    display:none !important;
+  }
+
+  .lista-dica {
+    font-size:.78rem;
+    color:#6c757d;
+  }
+
   #signature-pad {
     border:1px solid #ced4da;
     border-radius:8px;
@@ -62,6 +91,19 @@
     cursor:crosshair;
     touch-action:none;
   }
+
+  .lote-qtd {
+  min-width: 90px;
+  font-weight: 700;
+  text-align: center;
+  cursor: text;
+}
+
+.lote-qtd:focus {
+  background: #fff8dc;
+  border: 2px solid #0d6efd;
+  box-shadow: 0 0 6px rgba(13,110,253,.25);
+}
 </style>
 
 <div class="container-fluid mt-4">
@@ -127,6 +169,24 @@
                 </select>
               </div>
 
+              <div class="col-md-3" id="saldo_tecnico_tipo_div" style="display:none;">
+                <label class="form-label fw-semibold">Saldo do Técnico</label>
+                <select id="saldo_tecnico_tipo" name="saldo_tecnico_tipo" class="form-select">
+                  <option value="empresa" selected>Estoque Empresa</option>
+                  <option value="cliente">Estoque Cliente</option>
+                </select>
+              </div>
+
+              <div class="col-md-3" id="condicao_material_div" style="display:none;">
+                <label class="form-label fw-semibold">Condição do Material</label>
+                <select id="condicao_material" name="condicao_material" class="form-select">
+                  <option value="">Sem classificação</option>
+                  <option value="USADO_BOM">Usado Bom</option>
+                  <option value="NOVO_DEF">Novo Def.</option>
+                  <option value="USADO_DEF">Usado Def.</option>
+                </select>
+              </div>
+
               <div class="col-md-3" id="cliente_div" style="display:none;">
                 <label class="form-label fw-semibold">Cliente</label>
                 <select id="cliente_id" name="cliente_id" class="form-select">
@@ -179,6 +239,72 @@
 
         <div class="card shadow-sm border-0 mb-4">
           <div class="card-header section-header">
+            <i class="bi bi-list-check me-2"></i>
+            Seleção em Lote
+          </div>
+
+          <div class="card-body">
+            <div class="lote-box">
+              <div class="lote-toolbar p-3">
+                <div class="row g-2 align-items-end">
+                  <div class="col-md-5">
+                    <label class="form-label fw-semibold mb-1">Pesquisar na lista</label>
+                    <input type="text" id="busca_lote" class="form-control form-control-sm" placeholder="Digite código ou parte da descrição. Ex.: 12v, painel, cabo">
+                    <div class="lista-dica mt-1">
+                      A lista continua carregando todos os itens. Ao digitar, ela resume pelos trechos encontrados na descrição ou código.
+                    </div>
+                  </div>
+
+                  <div class="col-md-2">
+                    <button type="button" class="btn btn-light-blue btn-sm w-100" onclick="marcarItensLote(true)">
+                      Marcar todos
+                    </button>
+                  </div>
+
+                  <div class="col-md-2">
+                    <button type="button" class="btn btn-light-blue btn-sm w-100" onclick="marcarItensLote(false)">
+                      Desmarcar
+                    </button>
+                  </div>
+
+                  <div class="col-md-3">
+                    <button type="button" class="btn btn-main btn-sm w-100" onclick="inserirSelecionadosLote()">
+                      <i class="bi bi-plus-circle me-1"></i>
+                      Inserir Selecionados
+                    </button>
+                  </div>
+                </div>
+              </div>
+
+              <div class="table-responsive" style="max-height:320px; overflow:auto;">
+                <table class="table table-bordered table-sm table-lote mb-0" id="tabela-lote">
+                  <thead class="table-light" style="position:sticky; top:0; z-index:1;">
+                    <tr>
+                      <th style="width:5%">
+                        <input type="checkbox" class="form-check-input" id="lote_check_todos" title="Selecionar todos">
+                      </th>
+                      <th style="width:12%">Código</th>
+                      <th>Descrição</th>
+                      <th style="width:8%">Un</th>
+                      <th style="width:10%">Saldo</th>
+                      <th style="width:12%">Qtd</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    <tr>
+                      <td colspan="6" class="text-center text-muted py-3">
+                        Selecione origem, destino, técnico e tipo de serviço para carregar os itens.
+                      </td>
+                    </tr>
+                  </tbody>
+                </table>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div class="card shadow-sm border-0 mb-4">
+          <div class="card-header section-header">
             <i class="bi bi-box-seam me-2"></i>
             Itens da Movimentação
           </div>
@@ -202,7 +328,7 @@
                 <tbody>
                   <tr>
                     <td>
-                      <input type="text" name="codigo[]" class="form-control form-control-sm codigo-input" placeholder="Digite ou cole">
+                      <input type="text" name="codigo[]" class="form-control form-control-sm codigo-input" placeholder="Código ou descrição">
                     </td>
 
                     <td>
@@ -288,21 +414,39 @@
 
 <script>
 let itensDisponiveis = [];
+let selectSearchState = {
+  element: null,
+  buffer: "",
+  timer: null
+};
+
+function normalizarTexto(valor) {
+  return String(valor || "")
+    .toLowerCase()
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .trim();
+}
+
+function textoItem(item) {
+  return normalizarTexto(`${item.codigo || ""} ${item.descricao || ""}`);
+}
 
 function limparItens() {
   document.querySelectorAll(".codigo-input").forEach((el) => el.value = "");
 
   document.querySelectorAll(".descricao-select").forEach((el) => {
-    el.innerHTML = '<option value="">Selecione</option>';
+    preencherSelectDescricao(el);
   });
 
   document.querySelectorAll(".unidade-input").forEach((el) => el.value = "");
   document.querySelectorAll(".valor-input").forEach((el) => el.value = "");
-  document.querySelectorAll(".quantidade-input").forEach((el) => el.value = "");
+  document.querySelectorAll(".quantidade-input").forEach((el) => {
+    el.value = "";
+    el.removeAttribute("max");
+  });
   document.querySelectorAll(".minimo-input").forEach((el) => el.value = "0");
   document.querySelectorAll(".saldo-info").forEach((el) => el.innerText = "");
-
-  itensDisponiveis = [];
 }
 
 function itemJaSelecionado(codigo, linhaAtual) {
@@ -334,10 +478,12 @@ function itemJaSelecionado(codigo, linhaAtual) {
 
 function limparLinhaItem(tr) {
   tr.querySelector(".codigo-input").value = "";
+  preencherSelectDescricao(tr.querySelector(".descricao-select"));
   tr.querySelector(".descricao-select").value = "";
   tr.querySelector(".unidade-input").value = "";
   tr.querySelector(".valor-input").value = "";
   tr.querySelector(".quantidade-input").value = "";
+  tr.querySelector(".quantidade-input").removeAttribute("max");
   tr.querySelector(".minimo-input").value = "0";
   tr.querySelector(".saldo-info").innerText = "";
 }
@@ -378,9 +524,12 @@ function atualizarCamposDinamicos() {
   const origemTipo = document.getElementById("origem_tipo").value;
   const destinoTipo = document.getElementById("destino_tipo").value;
   const destinoMaterial = document.getElementById("destino_material")?.value || "geral";
+  const saldoTecnicoTipo = document.getElementById("saldo_tecnico_tipo")?.value || "empresa";
 
   const tecnicoDiv = document.getElementById("tecnico_div");
   const destinoMaterialDiv = document.getElementById("destino_material_div");
+  const saldoTecnicoTipoDiv = document.getElementById("saldo_tecnico_tipo_div");
+  const condicaoMaterialDiv = document.getElementById("condicao_material_div");
   const clienteDiv = document.getElementById("cliente_div");
   const osDiv = document.getElementById("os_div");
   const enderecoDiv = document.getElementById("endereco_div");
@@ -398,18 +547,30 @@ function atualizarCamposDinamicos() {
     origemTipo === "empresa" &&
     destinoTipo === "tecnico";
 
+  const mostrarDevolucaoTecnico =
+    origemTipo === "tecnico" &&
+    destinoTipo === "empresa";
+
   const mostrarClienteOs =
-    destinoTipo === "tecnico" &&
     (
-      origemTipo === "cliente" ||
+      destinoTipo === "tecnico" &&
       (
-        origemTipo === "empresa" &&
-        destinoMaterial === "cliente_os"
+        origemTipo === "cliente" ||
+        (
+          origemTipo === "empresa" &&
+          destinoMaterial === "cliente_os"
+        )
       )
+    ) ||
+    (
+      mostrarDevolucaoTecnico &&
+      saldoTecnicoTipo === "cliente"
     );
 
   tecnicoDiv.style.display = mostrarTecnico ? "block" : "none";
   destinoMaterialDiv.style.display = mostrarDestinoMaterial ? "block" : "none";
+  saldoTecnicoTipoDiv.style.display = mostrarDevolucaoTecnico ? "block" : "none";
+  condicaoMaterialDiv.style.display = mostrarDevolucaoTecnico ? "block" : "none";
   clienteDiv.style.display = mostrarClienteOs ? "block" : "none";
   osDiv.style.display = mostrarClienteOs ? "block" : "none";
   enderecoDiv.style.display = mostrarClienteOs ? "block" : "none";
@@ -424,6 +585,11 @@ function atualizarCamposDinamicos() {
 
   if (!mostrarDestinoMaterial) {
     document.getElementById("destino_material").value = "geral";
+  }
+
+  if (!mostrarDevolucaoTecnico) {
+    document.getElementById("saldo_tecnico_tipo").value = "empresa";
+    document.getElementById("condicao_material").value = "";
   }
 
   if (!mostrarClienteOs) {
@@ -450,22 +616,64 @@ function configurarMinimoTecnico() {
   });
 }
 
+function preencherSelectDescricao(select, filtro = "") {
+  if (!select) return;
+
+  const valorAtual = select.value;
+  const filtroNormalizado = normalizarTexto(filtro);
+
+  select.innerHTML = '<option value="">Selecione</option>';
+
+  itensDisponiveis
+    .filter((item) => {
+      if (!filtroNormalizado) return true;
+      return textoItem(item).includes(filtroNormalizado);
+    })
+    .forEach((item) => {
+      const option = document.createElement("option");
+      option.value = item.codigo;
+      option.textContent = item.descricao;
+      option.dataset.codigo = item.codigo;
+      option.dataset.saldo = item.saldo ?? 0;
+      select.appendChild(option);
+    });
+
+  const existeValorAtual = Array.from(select.options).some((opt) => opt.value === valorAtual);
+  select.value = existeValorAtual ? valorAtual : "";
+}
+
+function preencherTodosSelects(filtro = "") {
+  document.querySelectorAll(".descricao-select").forEach((select) => {
+    preencherSelectDescricao(select, filtro);
+  });
+}
+
 function atualizarListaDeItens() {
   const tipoServicoId = document.getElementById("tipo_servico_id")?.value;
   const origemTipo = document.getElementById("origem_tipo")?.value;
   const destinoTipo = document.getElementById("destino_tipo")?.value;
   const tecnicoId = document.getElementById("tecnico_id")?.value;
   const clienteId = document.getElementById("cliente_id")?.value;
+  const saldoTecnicoTipo = document.getElementById("saldo_tecnico_tipo")?.value || "empresa";
 
   if (!tipoServicoId || !origemTipo || !destinoTipo) {
+    itensDisponiveis = [];
+    renderizarTabelaLote();
+    preencherTodosSelects();
     return;
   }
 
   if (origemTipo === "cliente" && !clienteId) {
+    itensDisponiveis = [];
+    renderizarTabelaLote();
+    preencherTodosSelects();
     return;
   }
 
   if (origemTipo === "tecnico" && !tecnicoId) {
+    itensDisponiveis = [];
+    renderizarTabelaLote();
+    preencherTodosSelects();
     return;
   }
 
@@ -475,6 +683,9 @@ function atualizarListaDeItens() {
     const osId = document.getElementById("os_id")?.value;
 
     if (!clienteId || !osId || !tecnicoId) {
+      itensDisponiveis = [];
+      renderizarTabelaLote();
+      preencherTodosSelects();
       return;
     }
 
@@ -482,36 +693,240 @@ function atualizarListaDeItens() {
   }
 
   if (origemTipo === "tecnico") {
-    url += `&tecnico_id=${tecnicoId}`;
+    url += `&tecnico_id=${tecnicoId}&saldo_tecnico_tipo=${saldoTecnicoTipo}`;
+
+    const osId = document.getElementById("os_id")?.value;
+
+    if (saldoTecnicoTipo === "cliente") {
+      if (clienteId) {
+        url += `&cliente_id=${clienteId}`;
+      }
+
+      if (osId) {
+        url += `&ordem_servico_id=${osId}`;
+      }
+    }
   }
 
   fetch(url)
     .then((res) => res.json())
     .then((data) => {
-      itensDisponiveis = data;
-
-      document.querySelectorAll(".descricao-select").forEach((select) => {
-        const valorAtual = select.value;
-        select.innerHTML = '<option value="">Selecione</option>';
-
-        data.forEach((item) => {
-          const option = document.createElement("option");
-          option.value = item.codigo;
-          option.textContent = item.descricao;
-          select.appendChild(option);
-        });
-
-        select.value = valorAtual;
-      });
+      itensDisponiveis = data || [];
+      preencherTodosSelects();
+      renderizarTabelaLote();
     })
     .catch(() => {
       itensDisponiveis = [];
+      preencherTodosSelects();
+      renderizarTabelaLote();
     });
 }
+
+function renderizarTabelaLote() {
+  const tbody = document.querySelector("#tabela-lote tbody");
+  if (!tbody) return;
+
+  const busca = normalizarTexto(document.getElementById("busca_lote")?.value || "");
+
+  const checkTodos = document.getElementById("lote_check_todos");
+  if (checkTodos) checkTodos.checked = false;
+
+  if (!itensDisponiveis.length) {
+    tbody.innerHTML = `
+      <tr>
+        <td colspan="6" class="text-center text-muted py-3">
+          Nenhum item disponível para os filtros selecionados.
+        </td>
+      </tr>
+    `;
+    return;
+  }
+
+  const itensFiltrados = itensDisponiveis.filter((item) => {
+    if (!busca) return true;
+    return textoItem(item).includes(busca);
+  });
+
+  if (!itensFiltrados.length) {
+    tbody.innerHTML = `
+      <tr>
+        <td colspan="6" class="text-center text-muted py-3">
+          Nenhum item encontrado para a busca informada.
+        </td>
+      </tr>
+    `;
+    return;
+  }
+
+  tbody.innerHTML = "";
+
+  itensFiltrados.forEach((item) => {
+    const saldo = parseInt(item.saldo || 0);
+    const tr = document.createElement("tr");
+    tr.dataset.codigo = item.codigo;
+    tr.dataset.texto = textoItem(item);
+
+    tr.innerHTML = `
+      <td class="text-center">
+        <input type="checkbox" class="form-check-input lote-check">
+      </td>
+      <td class="fw-semibold">${item.codigo || ""}</td>
+      <td class="text-start">${item.descricao || ""}</td>
+      <td>${item.unidade || ""}</td>
+      <td class="text-center">${saldo}</td>
+      <td>
+        <input type="number"
+               class="form-control form-control-sm text-center lote-qtd"
+               min="1"
+               max="${saldo}"
+               value="${saldo}">
+      </td>
+    `;
+
+    tbody.appendChild(tr);
+  });
+}
+
+function marcarItensLote(marcar) {
+  document.querySelectorAll("#tabela-lote tbody tr").forEach((tr) => {
+    if (tr.querySelector("td[colspan]")) return;
+
+    const check = tr.querySelector(".lote-check");
+    if (check) check.checked = marcar;
+  });
+
+  const checkTodos = document.getElementById("lote_check_todos");
+  if (checkTodos) checkTodos.checked = marcar;
+}
+
+document.getElementById("lote_check_todos")?.addEventListener("change", function () {
+  marcarItensLote(this.checked);
+});
+
+function aplicarItemNaLinha(tr, item, quantidade = null) {
+  if (!tr || !item) return false;
+
+  if (itemJaSelecionado(item.codigo, tr)) {
+    return false;
+  }
+
+  preencherSelectDescricao(tr.querySelector(".descricao-select"));
+
+  tr.querySelector(".codigo-input").value = item.codigo;
+  tr.querySelector(".descricao-select").value = String(item.codigo);
+  tr.querySelector(".unidade-input").value = item.unidade || "";
+  tr.querySelector(".valor-input").value = parseFloat(item.valor || 0).toFixed(2);
+  tr.querySelector(".saldo-info").innerText = item.saldo ?? 0;
+
+  const qtdInput = tr.querySelector(".quantidade-input");
+  qtdInput.max = item.saldo ?? 0;
+  qtdInput.value = quantidade !== null ? quantidade : "";
+
+  configurarMinimoTecnico();
+
+  return true;
+}
+
+function obterPrimeiraLinhaVaziaOuCriar() {
+  const linhas = Array.from(document.querySelectorAll("#tabela-itens tbody tr"));
+
+  for (const linha of linhas) {
+    const codigo = linha.querySelector(".codigo-input")?.value?.trim();
+    const descricao = linha.querySelector(".descricao-select")?.value?.trim();
+
+    if (!codigo && !descricao) {
+      return linha;
+    }
+  }
+
+  inserirLinha();
+  const novasLinhas = document.querySelectorAll("#tabela-itens tbody tr");
+  return novasLinhas[novasLinhas.length - 1];
+}
+
+function inserirSelecionadosLote() {
+  const selecionados = [];
+
+  document.querySelectorAll("#tabela-lote tbody tr").forEach((tr) => {
+    const check = tr.querySelector(".lote-check");
+    if (!check || !check.checked) return;
+
+    const codigo = tr.dataset.codigo;
+    const item = itensDisponiveis.find((i) => String(i.codigo) === String(codigo));
+    const qtdInput = tr.querySelector(".lote-qtd");
+
+    const saldo = parseInt(item?.saldo || 0);
+    let quantidade = parseInt(qtdInput?.value || "0");
+
+    if (!item) return;
+
+    if (!quantidade || quantidade <= 0) {
+      quantidade = saldo;
+    }
+
+    if (quantidade > saldo) {
+      quantidade = saldo;
+      if (qtdInput) qtdInput.value = saldo;
+    }
+
+    selecionados.push({ item, quantidade });
+  });
+
+  if (!selecionados.length) {
+    alert("Marque pelo menos um item na lista em lote.");
+    return;
+  }
+
+  let inseridos = 0;
+  let duplicados = 0;
+
+  selecionados.forEach(({ item, quantidade }) => {
+    const linha = obterPrimeiraLinhaVaziaOuCriar();
+
+    if (aplicarItemNaLinha(linha, item, quantidade)) {
+      inseridos += 1;
+    } else {
+      duplicados += 1;
+      const linhas = Array.from(document.querySelectorAll("#tabela-itens tbody tr"));
+      const linhaCriadaVazia = linhas[linhas.length - 1];
+
+      if (
+        linhaCriadaVazia &&
+        !linhaCriadaVazia.querySelector(".codigo-input")?.value &&
+        linhas.length > 1
+      ) {
+        linhaCriadaVazia.remove();
+      }
+    }
+  });
+
+  if (inseridos > 0) {
+    alert(`${inseridos} item(ns) inserido(s) na movimentação para conferência.`);
+  }
+
+  if (duplicados > 0) {
+    alert(`${duplicados} item(ns) já estavam na movimentação e foram ignorados.`);
+  }
+}
+
+document.getElementById("busca_lote")?.addEventListener("input", renderizarTabelaLote);
+
+document.querySelector("#tabela-lote tbody")?.addEventListener("input", function (e) {
+  if (e.target.classList.contains("lote-qtd")) {
+    const max = parseInt(e.target.max || "0");
+    const qtd = parseInt(e.target.value || "0");
+
+    if (qtd > max) {
+      alert("Quantidade maior que o saldo disponível.");
+      e.target.value = max;
+    }
+  }
+});
 
 document.getElementById("origem_tipo")?.addEventListener("change", atualizarCamposDinamicos);
 document.getElementById("destino_tipo")?.addEventListener("change", atualizarCamposDinamicos);
 document.getElementById("destino_material")?.addEventListener("change", atualizarCamposDinamicos);
+document.getElementById("saldo_tecnico_tipo")?.addEventListener("change", atualizarCamposDinamicos);
 
 document.getElementById("tecnico_id")?.addEventListener("change", () => {
   limparItens();
@@ -583,13 +998,7 @@ document.querySelector("#tabela-itens tbody")?.addEventListener("change", functi
         return;
       }
 
-      tr.querySelector(".codigo-input").value = item.codigo;
-      tr.querySelector(".unidade-input").value = item.unidade || "";
-      tr.querySelector(".valor-input").value = parseFloat(item.valor || 0).toFixed(2);
-      tr.querySelector(".saldo-info").innerText = item.saldo ?? 0;
-
-      const qtdInput = tr.querySelector(".quantidade-input");
-      qtdInput.max = item.saldo ?? 0;
+      aplicarItemNaLinha(tr, item, null);
     }
   }
 });
@@ -605,7 +1014,34 @@ document.querySelector("#tabela-itens tbody")?.addEventListener("input", functio
       e.target.value = saldo;
     }
   }
+
+  if (e.target.classList.contains("codigo-input")) {
+    filtrarSelectDaLinhaPorDigitacao(e.target);
+  }
 });
+
+function filtrarSelectDaLinhaPorDigitacao(inputCodigo) {
+  const termo = inputCodigo.value.trim();
+  const tr = inputCodigo.closest("tr");
+  const select = tr.querySelector(".descricao-select");
+
+  if (!termo) {
+    preencherSelectDescricao(select);
+    return;
+  }
+
+  const codigoExato = itensDisponiveis.find((i) =>
+    normalizarTexto(i.codigo) === normalizarTexto(termo)
+  );
+
+  if (codigoExato) {
+    preencherSelectDescricao(select);
+    select.value = String(codigoExato.codigo);
+    return;
+  }
+
+  preencherSelectDescricao(select, termo);
+}
 
 function inserirLinha() {
   const tbody = document.querySelector("#tabela-itens tbody");
@@ -616,7 +1052,7 @@ function inserirLinha() {
       <input type="text"
        name="codigo[]"
        class="form-control form-control-sm codigo-input"
-       placeholder="Digite ou cole">
+       placeholder="Código ou descrição">
     </td>
 
     <td>
@@ -660,7 +1096,7 @@ function inserirLinha() {
 
   tbody.appendChild(tr);
   configurarMinimoTecnico();
-  atualizarListaDeItens();
+  preencherSelectDescricao(tr.querySelector(".descricao-select"));
 }
 
 function removerLinha(btn, isFirstLine) {
@@ -773,34 +1209,86 @@ document.querySelector("form")?.addEventListener("submit", function (e) {
 document.querySelector("#tabela-itens tbody")?.addEventListener("keydown", function (e) {
   if (e.target.classList.contains("codigo-input") && e.key === "Enter") {
     e.preventDefault();
-    preencherItemPorCodigo(e.target);
+    preencherItemPorCodigoOuDescricao(e.target);
+  }
+
+  if (e.target.classList.contains("descricao-select")) {
+    buscaRapidaNoSelect(e);
   }
 });
 
 document.querySelector("#tabela-itens tbody")?.addEventListener("blur", function (e) {
   if (e.target.classList.contains("codigo-input")) {
-    preencherItemPorCodigo(e.target);
+    preencherItemPorCodigoOuDescricao(e.target);
   }
 }, true);
 
 document.querySelector("#tabela-itens tbody")?.addEventListener("paste", function (e) {
   if (e.target.classList.contains("codigo-input")) {
     setTimeout(() => {
-      preencherItemPorCodigo(e.target);
+      preencherItemPorCodigoOuDescricao(e.target);
     }, 100);
   }
 });
 
-function preencherItemPorCodigo(inputCodigo) {
-  const codigo = inputCodigo.value.trim();
+function buscaRapidaNoSelect(e) {
+  const select = e.target;
 
-  if (!codigo) return;
+  if (!e.key || e.key.length !== 1) {
+    return;
+  }
 
+  const agora = Date.now();
+
+  if (selectSearchState.element !== select || agora - (selectSearchState.lastTime || 0) > 900) {
+    selectSearchState.buffer = "";
+  }
+
+  selectSearchState.element = select;
+  selectSearchState.lastTime = agora;
+  selectSearchState.buffer += e.key;
+
+  const termo = selectSearchState.buffer;
+  preencherSelectDescricao(select, termo);
+
+  const primeiraOpcaoValida = Array.from(select.options).find((opt) => opt.value);
+
+  if (primeiraOpcaoValida) {
+    select.value = primeiraOpcaoValida.value;
+  }
+
+  clearTimeout(selectSearchState.timer);
+  selectSearchState.timer = setTimeout(() => {
+    selectSearchState.buffer = "";
+    selectSearchState.element = null;
+  }, 1200);
+}
+
+function preencherItemPorCodigoOuDescricao(inputCodigo) {
+  const termoOriginal = inputCodigo.value.trim();
+
+  if (!termoOriginal) return;
+
+  const termo = normalizarTexto(termoOriginal);
   const tr = inputCodigo.closest("tr");
 
-  const item = itensDisponiveis.find((i) =>
-    String(i.codigo) === String(codigo)
+  let item = itensDisponiveis.find((i) =>
+    normalizarTexto(i.codigo) === termo
   );
+
+  if (!item) {
+    const encontrados = itensDisponiveis.filter((i) =>
+      textoItem(i).includes(termo)
+    );
+
+    if (encontrados.length === 1) {
+      item = encontrados[0];
+    } else if (encontrados.length > 1) {
+      preencherSelectDescricao(tr.querySelector(".descricao-select"), termoOriginal);
+      alert(`Foram encontrados ${encontrados.length} itens. Escolha o item correto na lista resumida.`);
+      return;
+    }
+  }
 
   if (!item) return;
 
@@ -810,18 +1298,44 @@ function preencherItemPorCodigo(inputCodigo) {
     return;
   }
 
-  const select = tr.querySelector(".descricao-select");
-
-  select.value = String(item.codigo);
-  select.dispatchEvent(new Event("change"));
-
-  tr.querySelector(".unidade-input").value = item.unidade || "";
-  tr.querySelector(".valor-input").value = parseFloat(item.valor || 0).toFixed(2);
-  tr.querySelector(".saldo-info").innerText = item.saldo ?? 0;
-
-  const qtdInput = tr.querySelector(".quantidade-input");
-  qtdInput.max = item.saldo ?? 0;
+  aplicarItemNaLinha(tr, item, null);
 }
+
+document.addEventListener("focusin", function (e) {
+  if (e.target.classList.contains("lote-qtd")) {
+    e.target.select();
+  }
+});
+
+document.querySelector("#tabela-lote tbody")?.addEventListener("click", function (e) {
+  const tr = e.target.closest("tr");
+  if (!tr || tr.querySelector("td[colspan]")) return;
+
+  const inputQtd = tr.querySelector(".lote-qtd");
+  if (inputQtd) {
+    inputQtd.focus();
+    inputQtd.select();
+  }
+});
+
+document.addEventListener("keydown", function (e) {
+  if (!e.target.classList.contains("lote-qtd")) return;
+
+  if (e.key === "Enter") {
+    e.preventDefault();
+
+    const inputs = Array.from(
+      document.querySelectorAll("#tabela-lote .lote-qtd")
+    );
+
+    const index = inputs.indexOf(e.target);
+
+    if (index >= 0 && inputs[index + 1]) {
+      inputs[index + 1].focus();
+      inputs[index + 1].select();
+    }
+  }
+});
 
 atualizarCamposDinamicos();
 
