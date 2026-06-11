@@ -216,17 +216,17 @@ def finalizar_inventario():
 
         db.session.rollback()
 
-        print("ERRO INVENTÁRIO:", e)
+    import traceback
+    traceback.print_exc()
 
-        flash(
-            'Erro ao salvar inventário!',
-            'danger'
-        )
+    flash(
+        f'Erro ao salvar inventário: {str(e)}',
+        'danger'
+    )
 
-        return redirect(
-            url_for('inventario_estoque.inventario')
-        )
-
+    return redirect(
+        url_for('inventario_estoque.inventario')
+    )
 # ===================== Histórico =====================
 @bp.route('/historico')
 @login_required
