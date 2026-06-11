@@ -155,45 +155,59 @@
 
     <table class="table table-bordered table-hover table-sm align-middle mb-0 table-detalhe">
 
-      <thead>
-        <tr>
-          <th style="width: 140px;">Código</th>
-          <th>Descrição</th>
-          <th style="width: 160px;">Unidade de Medida</th>
-          <th style="width: 150px;">Categoria</th>
-          <th style="width: 180px;">Quantidade Anterior</th>
-          <th style="width: 180px;">Quantidade Contada</th>
-        </tr>
-      </thead>
+  <thead>
+    <tr>
+      <th style="width: 140px;">Código</th>
+      <th>Descrição</th>
+      <th style="width: 160px;">Unidade de Medida</th>
+      <th style="width: 150px;">Categoria</th>
+      <th style="width: 180px;">Quantidade Anterior</th>
+      <th style="width: 180px;">Quantidade Contada</th>
+      <th style="width: 140px;">Diferença</th>
+    </tr>
+  </thead>
 
-      <tbody>
+  <tbody>
 
-        {% for codigo, descricao, unidade, categoria, quantidade_estoque, quantidade_contada in itens %}
+    {% for codigo, descricao, unidade, categoria, quantidade_estoque, quantidade_contada in itens %}
 
-        <tr>
-          <td>{{ codigo }}</td>
-          <td>{{ descricao }}</td>
-          <td>{{ unidade }}</td>
-          <td>{{ categoria or 'MATERIAL' }}</td>
-          <td>{{ quantidade_estoque }}</td>
-          <td class="{% if quantidade_contada != quantidade_estoque %}table-warning fw-bold{% endif %}">
-            {{ quantidade_contada }}
-          </td>
-        </tr>
+    {% set diferenca = quantidade_contada - quantidade_estoque %}
 
+    <tr>
+      <td>{{ codigo }}</td>
+      <td>{{ descricao }}</td>
+      <td>{{ unidade }}</td>
+      <td>{{ categoria or 'MATERIAL' }}</td>
+      <td>{{ quantidade_estoque }}</td>
+
+      <td class="{% if quantidade_contada != quantidade_estoque %}table-warning fw-bold{% endif %}">
+        {{ quantidade_contada }}
+      </td>
+
+      <td class="fw-bold">
+        {% if diferenca > 0 %}
+          <span class="badge bg-success">+{{ diferenca }}</span>
+        {% elif diferenca < 0 %}
+          <span class="badge bg-danger">{{ diferenca }}</span>
         {% else %}
+          <span class="badge bg-secondary">0</span>
+        {% endif %}
+      </td>
+    </tr>
 
-        <tr>
-          <td colspan="6" class="text-center text-muted py-4">
-            Nenhum item contado.
-          </td>
-        </tr>
+    {% else %}
 
-        {% endfor %}
+    <tr>
+      <td colspan="7" class="text-center text-muted py-4">
+        Nenhum item contado.
+      </td>
+    </tr>
 
-      </tbody>
+    {% endfor %}
 
-    </table>
+  </tbody>
+
+</table>
 
   </div>
 
