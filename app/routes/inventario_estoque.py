@@ -219,6 +219,9 @@ def finalizar_inventario():
     import traceback
     traceback.print_exc()
 
+    print("ERRO INVENTARIO:")
+    print(str(e))
+
     flash(
         f'Erro ao salvar inventário: {str(e)}',
         'danger'
