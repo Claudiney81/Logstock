@@ -101,13 +101,12 @@ def _buscar_ou_criar_estoque_empresa(item_id, tipo_servico_id, condicao):
 
     return estoque
 
-
-def _consumir_estoque_empresa(item_id, tipo_servico_id, quantidade):
-    """
-    Saída Empresa -> Técnico.
-    Consome primeiro estoque comum e depois Usado Bom, se existir.
-    Não consome materiais classificados como defeito.
-    """
+def _consumir_estoque_empresa(
+    item_id,
+    tipo_servico_id,
+    quantidade,
+    usar_usado_bom=False
+):
     query = Estoque.query.filter(
         Estoque.item_id == item_id,
         Estoque.tipo_servico_id == tipo_servico_id,
@@ -116,22 +115,26 @@ def _consumir_estoque_empresa(item_id, tipo_servico_id, quantidade):
     )
 
     if _estoque_tem_condicao():
-        query = query.filter(
-            or_(
-                Estoque.condicao_material.is_(None),
-                Estoque.condicao_material == '',
+        if usar_usado_bom:
+            query = query.filter(
                 Estoque.condicao_material == 'USADO_BOM'
             )
-        )
+        else:
+            query = query.filter(
+                or_(
+                    Estoque.condicao_material.is_(None),
+                    Estoque.condicao_material == ''
+                )
+            )
 
     registros = query.order_by(Estoque.id.asc()).all()
 
     saldo_total = sum(int(e.quantidade or 0) for e in registros)
 
-    if saldo_total < quantidade:
+    if saldo_total < int(quantidade or 0):
         return False
 
-    restante = int(quantidade)
+    restante = int(quantidade or 0)
 
     for estoque in registros:
         if restante <= 0:
@@ -251,6 +254,10 @@ def nova_movimentacao():
 
         condicao_material = _normalizar_condicao_material(
             request.form.get('condicao_material')
+        )
+        
+        usar_usado_bom = bool(
+            request.form.get('usar_usado_bom')
         )
 
         tecnico_id = (
@@ -535,7 +542,8 @@ def nova_movimentacao():
                 if not _consumir_estoque_empresa(
                     item_id=item.id,
                     tipo_servico_id=tipo_servico_saldo,
-                    quantidade=quantidade
+                    quantidade=quantidade,
+                    usar_usado_bom=usar_usado_bom
                 ):
                     flash(f'Saldo insuficiente na empresa para o item {item.codigo}.', 'danger')
                     continue

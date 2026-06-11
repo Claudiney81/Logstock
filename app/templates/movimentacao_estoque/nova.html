@@ -228,6 +228,23 @@
                 </select>
               </div>
 
+              <div class="col-md-4" id="usado_bom_div" style="display:none;">
+                <label class="form-label fw-semibold">&nbsp;</label>
+
+                <div class="form-check mt-2">
+                  <input
+                    class="form-check-input"
+                    type="checkbox"
+                    id="usar_usado_bom"
+                    name="usar_usado_bom"
+                    value="1">
+
+                  <label class="form-check-label fw-semibold" for="usar_usado_bom">
+                    Retirar do estoque Usado Bom
+                  </label>
+                </div>
+              </div>
+
               <div class="col-md-8">
                 <label class="form-label fw-semibold">Observação</label>
                 <input type="text" id="observacao" name="observacao" class="form-control" placeholder="Observação da movimentação, se necessário">
@@ -530,6 +547,7 @@ function atualizarCamposDinamicos() {
   const destinoMaterialDiv = document.getElementById("destino_material_div");
   const saldoTecnicoTipoDiv = document.getElementById("saldo_tecnico_tipo_div");
   const condicaoMaterialDiv = document.getElementById("condicao_material_div");
+  const usadoBomDiv = document.getElementById("usado_bom_div");
   const clienteDiv = document.getElementById("cliente_div");
   const osDiv = document.getElementById("os_div");
   const enderecoDiv = document.getElementById("endereco_div");
@@ -551,6 +569,10 @@ function atualizarCamposDinamicos() {
     origemTipo === "tecnico" &&
     destinoTipo === "empresa";
 
+    const mostrarUsadoBom =
+      origemTipo === "empresa" &&
+      destinoTipo === "tecnico";
+
   const mostrarClienteOs =
     (
       destinoTipo === "tecnico" &&
@@ -571,6 +593,8 @@ function atualizarCamposDinamicos() {
   destinoMaterialDiv.style.display = mostrarDestinoMaterial ? "block" : "none";
   saldoTecnicoTipoDiv.style.display = mostrarDevolucaoTecnico ? "block" : "none";
   condicaoMaterialDiv.style.display = mostrarDevolucaoTecnico ? "block" : "none";
+  usadoBomDiv.style.display =
+  mostrarUsadoBom ? "block" : "none";
   clienteDiv.style.display = mostrarClienteOs ? "block" : "none";
   osDiv.style.display = mostrarClienteOs ? "block" : "none";
   enderecoDiv.style.display = mostrarClienteOs ? "block" : "none";
