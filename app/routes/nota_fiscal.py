@@ -29,7 +29,12 @@ else:
     # Caminho no Linux/Servidor - assume instalação global
     WKHTMLTOPDF_PATH = '/usr/local/bin/wkhtmltopdf'
 
-_pdfcfg = pdfkit.configuration(wkhtmltopdf=WKHTMLTOPDF_PATH)
+_pdfcfg = None
+try:
+    if os.path.exists(WKHTMLTOPDF_PATH):
+        _pdfcfg = pdfkit.configuration(wkhtmltopdf=WKHTMLTOPDF_PATH)
+except Exception:
+    _pdfcfg = None
 
 # ------------------------
 # Função auxiliar para converter valores BR
