@@ -312,7 +312,7 @@ body {
     {% set ns = namespace(total_geral=0) %}
 
     {% for it in itens %}
-      <td class="num">{{ q|int }}</td>
+      {% set q = (it.quantidade or 0) %}
       {% set vu = (it.valor_unit or it.valor_unitario or 0) %}
       {% set vt = q * vu %}
       {% set ns.total_geral = ns.total_geral + vt %}
@@ -322,7 +322,7 @@ body {
         <td class="descricao-item">{{ it.descricao or '—' }}</td>
         <td class="center">{{ it.categoria or 'MATERIAL' }}</td>
         <td class="center">{{ it.unidade or '—' }}</td>
-        <td class="num">{{ q }}</td>
+        <td class="num">{{ q|int }}</td>
         <td class="num">R$ {{ '%.2f'|format(vu)|replace('.', ',') }}</td>
         <td class="num">R$ {{ '%.2f'|format(vt)|replace('.', ',') }}</td>
       </tr>
