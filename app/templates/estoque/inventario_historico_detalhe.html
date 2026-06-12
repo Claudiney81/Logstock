@@ -1,239 +1,174 @@
 {% extends 'base.html' %}
 {% block content %}
 
-<style>
-  .detalhe-card {
-    border: 0;
-    border-radius: 10px;
-    overflow: hidden;
-  }
+{% set resumo = namespace(divergencias=0, positivos=0, negativos=0) %}
+{% for codigo, descricao, unidade, categoria, quantidade_estoque, quantidade_contada in itens %}
+  {% set diferenca = quantidade_contada - quantidade_estoque %}
+  {% if diferenca != 0 %}
+    {% set resumo.divergencias = resumo.divergencias + 1 %}
+  {% endif %}
+  {% if diferenca > 0 %}
+    {% set resumo.positivos = resumo.positivos + 1 %}
+  {% elif diferenca < 0 %}
+    {% set resumo.negativos = resumo.negativos + 1 %}
+  {% endif %}
+{% endfor %}
 
-  .detalhe-header {
-    background: #002b55;
-    color: #fff;
-  }
+<div class="container-fluid mt-4">
 
-  .subtitulo-secao {
-    color: #0b2e59;
-    font-weight: 700;
-  }
-
-  .table-detalhe thead {
-    background: #1f252b;
-    color: #fff;
-  }
-
-  .btn-excel-suave {
-    background: #edf8f1;
-    border: 1px solid #b9dfc8;
-    color: #198754;
-  }
-
-  .btn-excel-suave:hover {
-    background: #dff3e7;
-    border-color: #95c9aa;
-    color: #146c43;
-  }
-
-  .btn-voltar-suave {
-    background: #f5f7fa;
-    border: 1px solid #cfd6df;
-    color: #495057;
-  }
-
-  .btn-voltar-suave:hover {
-    background: #e9eef5;
-    color: #0b2e59;
-  }
-
-  .form-control:read-only {
-    background: #f8fafc;
-  }
-
-  .form-control:focus {
-    border-color: #0b2e59;
-    box-shadow: 0 0 0 .15rem rgba(11,46,89,.12);
-  }
-</style>
-
-<div class="container mt-4">
-
-  <div class="card shadow-sm detalhe-card mb-4">
-
-    <div class="card-header detalhe-header">
-      <h5 class="fw-semibold mb-0">
-        <i class="bi bi-clipboard-check me-2"></i>
-        Detalhes do Inventário
-      </h5>
+  <div class="app-page-header">
+    <div>
+      <p class="app-page-kicker">Gestão de Estoque</p>
+      <h1>Detalhes do Inventário</h1>
+      <p class="app-page-subtitle">
+        Conferência finalizada em {{ inventario.data_hora.strftime('%d/%m/%Y %H:%M') }}.
+      </p>
     </div>
 
-    <div class="card-body">
+    <div class="app-page-actions">
+      <a
+        href="{{ url_for('inventario_estoque.exportar_inventario_excel', inventario_id=inventario.id) }}"
+        class="btn btn-outline-success"
+      >
+        <i class="bi bi-file-earmark-excel me-1"></i>
+        Excel
+      </a>
+      <a href="{{ url_for('inventario_estoque.historico_inventarios') }}" class="btn btn-outline-secondary">
+        <i class="bi bi-arrow-left me-1"></i>
+        Histórico
+      </a>
+    </div>
+  </div>
 
-      <div class="row g-3">
-
-        <div class="col-md-4">
-          <label class="fw-bold">Responsável</label>
-          <input
-            type="text"
-            class="form-control"
-            value="{{ inventario.responsavel }}"
-            readonly
-          >
-        </div>
-
-        <div class="col-md-4">
-          <label class="fw-bold">Data/Hora</label>
-          <input
-            type="text"
-            class="form-control"
-            value="{{ inventario.data_hora.strftime('%d/%m/%Y %H:%M') }}"
-            readonly
-          >
-        </div>
-
-        <div class="col-md-4">
-          <label class="fw-bold">Tipo de Serviço</label>
-          <input
-            type="text"
-            class="form-control"
-            value="{{ inventario.tipo_servico.nome if inventario.tipo_servico else 'Todos' }}"
-            readonly
-          >
-        </div>
-
-        <div class="col-md-4">
-          <label class="fw-bold">Tipo de Estoque</label>
-          <input
-            type="text"
-            class="form-control"
-            value="{{ 'Cliente' if inventario.tipo_estoque == 'cliente' else 'Empresa' }}"
-            readonly
-          >
-        </div>
-
-        <div class="col-md-4">
-          <label class="fw-bold">Cliente</label>
-          <input
-            type="text"
-            class="form-control"
-            value="{{ inventario.cliente.razao_social if inventario.cliente else 'Não se aplica' }}"
-            readonly
-          >
-        </div>
-
-        <div class="col-md-4">
-          <label class="fw-bold">Total de Itens Contados</label>
-          <input
-            type="text"
-            class="form-control"
-            value="{{ itens|length }}"
-            readonly
-          >
-        </div>
-
-        <div class="col-md-12">
-          <label class="fw-bold">Observação</label>
-          <input
-            type="text"
-            class="form-control"
-            value="{{ inventario.observacao or '-' }}"
-            readonly
-          >
-        </div>
-
+  <div class="row g-3 mb-4">
+    <div class="col-sm-6 col-xl-3">
+      <div class="app-kpi-card">
+        <span class="app-kpi-icon app-kpi-blue"><i class="bi bi-box-seam"></i></span>
+        <span class="app-kpi-label">Itens contados</span>
+        <strong>{{ itens|length }}</strong>
       </div>
-
+    </div>
+    <div class="col-sm-6 col-xl-3">
+      <div class="app-kpi-card">
+        <span class="app-kpi-icon app-kpi-yellow"><i class="bi bi-exclamation-triangle"></i></span>
+        <span class="app-kpi-label">Divergências</span>
+        <strong>{{ resumo.divergencias }}</strong>
+      </div>
+    </div>
+    <div class="col-sm-6 col-xl-3">
+      <div class="app-kpi-card">
+        <span class="app-kpi-icon app-kpi-green"><i class="bi bi-arrow-up-circle"></i></span>
+        <span class="app-kpi-label">Ajustes positivos</span>
+        <strong>{{ resumo.positivos }}</strong>
+      </div>
+    </div>
+    <div class="col-sm-6 col-xl-3">
+      <div class="app-kpi-card">
+        <span class="app-kpi-icon app-kpi-red"><i class="bi bi-arrow-down-circle"></i></span>
+        <span class="app-kpi-label">Ajustes negativos</span>
+        <strong>{{ resumo.negativos }}</strong>
+      </div>
     </div>
   </div>
 
-  <h5 class="mt-3 mb-3 subtitulo-secao">
-    <i class="bi bi-box-seam me-1"></i>
-    Itens Contados
-  </h5>
+  <div class="app-panel mb-4">
+    <div class="app-panel-header">
+      <div>
+        <h2>Informações do inventário</h2>
+        <p>Dados gravados no fechamento da contagem.</p>
+      </div>
+    </div>
 
-  <div class="table-responsive shadow-sm rounded border">
+    <div class="p-3">
+      <div class="row g-3">
+        <div class="col-md-4">
+          <label class="form-label fw-semibold">Responsável</label>
+          <input type="text" class="form-control" value="{{ inventario.responsavel }}" readonly>
+        </div>
 
-    <table class="table table-bordered table-hover table-sm align-middle mb-0 table-detalhe">
+        <div class="col-md-4">
+          <label class="form-label fw-semibold">Data/Hora</label>
+          <input type="text" class="form-control" value="{{ inventario.data_hora.strftime('%d/%m/%Y %H:%M') }}" readonly>
+        </div>
 
-  <thead>
-    <tr>
-      <th style="width: 140px;">Código</th>
-      <th>Descrição</th>
-      <th style="width: 160px;">Unidade de Medida</th>
-      <th style="width: 150px;">Categoria</th>
-      <th style="width: 180px;">Quantidade Anterior</th>
-      <th style="width: 180px;">Quantidade Contada</th>
-      <th style="width: 140px;">Diferença</th>
-    </tr>
-  </thead>
+        <div class="col-md-4">
+          <label class="form-label fw-semibold">Tipo de Serviço</label>
+          <input type="text" class="form-control" value="{{ inventario.tipo_servico.nome if inventario.tipo_servico else 'Todos' }}" readonly>
+        </div>
 
-  <tbody>
+        <div class="col-md-4">
+          <label class="form-label fw-semibold">Tipo de Estoque</label>
+          <input type="text" class="form-control" value="{{ 'Cliente' if inventario.tipo_estoque == 'cliente' else 'Empresa' }}" readonly>
+        </div>
 
-    {% for codigo, descricao, unidade, categoria, quantidade_estoque, quantidade_contada in itens %}
+        <div class="col-md-8">
+          <label class="form-label fw-semibold">Cliente</label>
+          <input type="text" class="form-control" value="{{ inventario.cliente.razao_social if inventario.cliente else 'Não se aplica' }}" readonly>
+        </div>
 
-    {% set diferenca = quantidade_contada - quantidade_estoque %}
-
-    <tr>
-      <td>{{ codigo }}</td>
-      <td>{{ descricao }}</td>
-      <td>{{ unidade }}</td>
-      <td>{{ categoria or 'MATERIAL' }}</td>
-      <td>{{ quantidade_estoque }}</td>
-
-      <td class="{% if quantidade_contada != quantidade_estoque %}table-warning fw-bold{% endif %}">
-        {{ quantidade_contada }}
-      </td>
-
-      <td class="fw-bold">
-        {% if diferenca > 0 %}
-          <span class="badge bg-success">+{{ diferenca }}</span>
-        {% elif diferenca < 0 %}
-          <span class="badge bg-danger">{{ diferenca }}</span>
-        {% else %}
-          <span class="badge bg-secondary">0</span>
-        {% endif %}
-      </td>
-    </tr>
-
-    {% else %}
-
-    <tr>
-      <td colspan="7" class="text-center text-muted py-4">
-        Nenhum item contado.
-      </td>
-    </tr>
-
-    {% endfor %}
-
-  </tbody>
-
-</table>
-
+        <div class="col-12">
+          <label class="form-label fw-semibold">Observação</label>
+          <input type="text" class="form-control" value="{{ inventario.observacao or '-' }}" readonly>
+        </div>
+      </div>
+    </div>
   </div>
 
-  <div class="mt-4 d-flex gap-2">
+  <div class="app-panel">
+    <div class="app-panel-header">
+      <div>
+        <h2>Itens contados</h2>
+        <p>Comparação entre a quantidade anterior e a quantidade informada no inventário.</p>
+      </div>
+    </div>
 
-    <a
-      href="{{ url_for(
-        'inventario_estoque.exportar_inventario_excel',
-        inventario_id=inventario.id
-      ) }}"
-      class="btn btn-excel-suave"
-    >
-      <i class="bi bi-file-earmark-excel me-1"></i>
-      Exportar Excel
-    </a>
+    <div class="table-responsive">
+      <table class="table table-hover align-middle mb-0 app-table">
+        <thead>
+          <tr>
+            <th>Código</th>
+            <th>Descrição</th>
+            <th>Unidade</th>
+            <th>Categoria</th>
+            <th class="text-end">Qtd. Anterior</th>
+            <th class="text-end">Qtd. Contada</th>
+            <th class="text-center">Diferença</th>
+          </tr>
+        </thead>
 
-    <a
-      href="{{ url_for('inventario_estoque.historico_inventarios') }}"
-      class="btn btn-voltar-suave"
-    >
-      <i class="bi bi-arrow-left me-1"></i>
-      Voltar ao Histórico
-    </a>
-
+        <tbody>
+          {% for codigo, descricao, unidade, categoria, quantidade_estoque, quantidade_contada in itens %}
+          {% set diferenca = quantidade_contada - quantidade_estoque %}
+          <tr>
+            <td class="fw-semibold text-nowrap">{{ codigo }}</td>
+            <td>{{ descricao }}</td>
+            <td>{{ unidade }}</td>
+            <td><span class="app-status-pill">{{ categoria or 'MATERIAL' }}</span></td>
+            <td class="text-end">{{ quantidade_estoque }}</td>
+            <td class="text-end {% if quantidade_contada != quantidade_estoque %}fw-bold text-warning{% endif %}">
+              {{ quantidade_contada }}
+            </td>
+            <td class="text-center">
+              {% if diferenca > 0 %}
+                <span class="badge bg-success">+{{ diferenca }}</span>
+              {% elif diferenca < 0 %}
+                <span class="badge bg-danger">{{ diferenca }}</span>
+              {% else %}
+                <span class="badge bg-secondary">0</span>
+              {% endif %}
+            </td>
+          </tr>
+          {% else %}
+          <tr>
+            <td colspan="7" class="text-center text-muted py-5">
+              Nenhum item contado.
+            </td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
   </div>
-
 </div>
 
 {% endblock %}

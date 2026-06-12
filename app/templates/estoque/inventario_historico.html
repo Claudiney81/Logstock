@@ -1,274 +1,191 @@
 {% extends 'base.html' %}
 {% block content %}
 
-<style>
-  .historico-card{
-    border:0;
-    border-radius:10px;
-    overflow:hidden;
-  }
+{% set total_registros = inventarios.total if inventarios else 0 %}
 
-  .historico-header{
-    background:#002b55;
-    color:#fff;
-  }
+<div class="container-fluid mt-4">
 
-  .btn-padrao-azul{
-    background:#0b2e59;
-    border:1px solid #0b2e59;
-    color:#fff;
-  }
-
-  .btn-padrao-azul:hover{
-    background:#14447f;
-    border-color:#14447f;
-    color:#fff;
-  }
-
-  .table-historico thead{
-    background:#1f252b;
-    color:#fff;
-  }
-
-  .form-control:focus,
-  .form-select:focus{
-    border-color:#0b2e59;
-    box-shadow:0 0 0 .15rem rgba(11,46,89,.12);
-  }
-
-  .page-link{
-    color:#0b2e59;
-  }
-
-  .page-link:hover{
-    color:#14447f;
-  }
-
-  .badge-empresa{
-    background:#e8f1ff;
-    color:#0b2e59;
-    border:1px solid #b9d4ff;
-  }
-
-  .badge-cliente{
-    background:#eaf8ef;
-    color:#146c43;
-    border:1px solid #b7e0c2;
-  }
-</style>
-
-<div class="container mt-4">
-
-  <div class="card shadow-sm historico-card">
-
-    <div class="card-header historico-header">
-      <h5 class="fw-semibold mb-0">
-        <i class="bi bi-clock-history me-2"></i>
-        Histórico de Inventários
-      </h5>
+  <div class="app-page-header">
+    <div>
+      <p class="app-page-kicker">Gestão de Estoque</p>
+      <h1>Histórico de Inventários</h1>
+      <p class="app-page-subtitle">
+        Consulte conferências finalizadas e abra os detalhes de cada contagem.
+      </p>
     </div>
 
-    <div class="card-body">
+    <div class="app-page-actions">
+      <a href="{{ url_for('inventario_estoque.inventario') }}" class="btn btn-primary">
+        <i class="bi bi-plus-circle me-1"></i>
+        Novo Inventário
+      </a>
+    </div>
+  </div>
 
-      <form
-        method="get"
-        action="{{ url_for('inventario_estoque.historico_inventarios') }}"
-        class="row g-2 mb-4"
-      >
+  <div class="row g-3 mb-4">
+    <div class="col-sm-6 col-xl-4">
+      <div class="app-kpi-card">
+        <span class="app-kpi-icon app-kpi-blue"><i class="bi bi-clock-history"></i></span>
+        <span class="app-kpi-label">Registros encontrados</span>
+        <strong>{{ total_registros }}</strong>
+      </div>
+    </div>
+    <div class="col-sm-6 col-xl-4">
+      <div class="app-kpi-card">
+        <span class="app-kpi-icon app-kpi-green"><i class="bi bi-calendar-check"></i></span>
+        <span class="app-kpi-label">Página atual</span>
+        <strong>{{ inventarios.page if inventarios.pages else 0 }}/{{ inventarios.pages }}</strong>
+      </div>
+    </div>
+    <div class="col-sm-6 col-xl-4">
+      <div class="app-kpi-card">
+        <span class="app-kpi-icon app-kpi-gray"><i class="bi bi-funnel"></i></span>
+        <span class="app-kpi-label">Filtros ativos</span>
+        <strong>{{ (1 if responsavel else 0) + (1 if data_filtro else 0) }}</strong>
+      </div>
+    </div>
+  </div>
 
-        <div class="col-md-3">
+  <div class="app-panel mb-4">
+    <div class="app-panel-header">
+      <div>
+        <h2>Filtros</h2>
+        <p>Refine a busca por responsável ou data do inventário.</p>
+      </div>
+    </div>
+
+    <form method="get" action="{{ url_for('inventario_estoque.historico_inventarios') }}" class="p-3">
+      <div class="row g-3 align-items-end">
+        <div class="col-md-5">
+          <label for="responsavel" class="form-label fw-semibold">Responsável</label>
           <input
             type="text"
-            class="form-control shadow-sm"
+            class="form-control"
+            id="responsavel"
             name="responsavel"
-            placeholder="Filtrar por Responsável"
+            placeholder="Nome do responsável"
             value="{{ responsavel or '' }}"
           >
         </div>
 
-        <div class="col-md-2">
+        <div class="col-md-3">
+          <label for="data" class="form-label fw-semibold">Data</label>
           <input
             type="date"
-            class="form-control shadow-sm"
+            class="form-control"
+            id="data"
             name="data"
             value="{{ data_filtro or '' }}"
           >
         </div>
 
-        <div class="col-md-2">
-          <select name="tipo_estoque" class="form-select shadow-sm">
-            <option value="">Tipo Estoque</option>
-            <option value="empresa" {% if tipo_estoque == 'empresa' %}selected{% endif %}>
-              Empresa
-            </option>
-            <option value="cliente" {% if tipo_estoque == 'cliente' %}selected{% endif %}>
-              Cliente
-            </option>
-          </select>
-        </div>
-
-        <div class="col-md-3">
-          <select name="cliente_id" class="form-select shadow-sm">
-            <option value="">Todos os Clientes</option>
-            {% for cliente in clientes %}
-              <option
-                value="{{ cliente.id }}"
-                {% if cliente_id|string == cliente.id|string %}selected{% endif %}
-              >
-                {{ cliente.razao_social }}
-              </option>
-            {% endfor %}
-          </select>
-        </div>
-
-        <div class="col-md-1">
-          <button
-            type="submit"
-            class="btn btn-padrao-azul w-100 shadow-sm"
-          >
-            <i class="bi bi-search"></i>
+        <div class="col-md-4 d-flex gap-2">
+          <button type="submit" class="btn btn-primary flex-fill">
+            <i class="bi bi-search me-1"></i>
+            Filtrar
           </button>
-        </div>
-
-        <div class="col-md-1">
-          <a
-            href="{{ url_for('inventario_estoque.historico_inventarios') }}"
-            class="btn btn-secondary w-100 shadow-sm"
-          >
+          <a href="{{ url_for('inventario_estoque.historico_inventarios') }}" class="btn btn-outline-secondary">
             Limpar
           </a>
         </div>
-
-      </form>
-
-      <div class="table-responsive shadow-sm border rounded">
-        <table class="table table-bordered table-hover table-sm align-middle mb-0 table-historico">
-
-          <thead>
-            <tr>
-              <th>Data/Hora</th>
-              <th>Responsável</th>
-              <th>Tipo Estoque</th>
-              <th>Cliente</th>
-              <th>Tipo de Serviço</th>
-              <th>Observação</th>
-              <th class="text-center">Ações</th>
-            </tr>
-          </thead>
-
-          <tbody>
-            {% for inv in inventarios.items %}
-            <tr>
-              <td>{{ inv.data_hora.strftime('%d/%m/%Y %H:%M') }}</td>
-              <td>{{ inv.responsavel }}</td>
-
-              <td>
-                {% if inv.tipo_estoque == 'cliente' %}
-                  <span class="badge badge-cliente">Cliente</span>
-                {% else %}
-                  <span class="badge badge-empresa">Empresa</span>
-                {% endif %}
-              </td>
-
-              <td>
-                {% if inv.tipo_estoque == 'cliente' and inv.cliente %}
-                  {{ inv.cliente.razao_social }}
-                {% else %}
-                  Não se aplica
-                {% endif %}
-              </td>
-
-              <td>{{ inv.tipo_servico.nome if inv.tipo_servico else 'Todos' }}</td>
-              <td>{{ inv.observacao or '-' }}</td>
-
-              <td class="text-center">
-                <a
-                  href="{{ url_for('inventario_estoque.historico_inventario_detalhe', inventario_id=inv.id) }}"
-                  class="btn btn-sm btn-outline-primary"
-                >
-                  <i class="bi bi-eye me-1"></i>
-                  Detalhes
-                </a>
-              </td>
-            </tr>
-
-            {% else %}
-            <tr>
-              <td colspan="7" class="text-center text-muted py-4">
-                Nenhum inventário encontrado.
-              </td>
-            </tr>
-            {% endfor %}
-          </tbody>
-
-        </table>
       </div>
+    </form>
+  </div>
 
-      <nav class="mt-4">
-        <ul class="pagination justify-content-center">
+  <div class="app-panel">
+    <div class="app-panel-header">
+      <div>
+        <h2>Inventários finalizados</h2>
+        <p>Lista com os últimos inventários registrados no sistema.</p>
+      </div>
+    </div>
 
-          {% if inventarios.has_prev %}
-          <li class="page-item">
+    <div class="table-responsive">
+      <table class="table table-hover align-middle mb-0 app-table">
+        <thead>
+          <tr>
+            <th>Data/Hora</th>
+            <th>Responsável</th>
+            <th>Tipo Estoque</th>
+            <th>Cliente</th>
+            <th>Tipo de Serviço</th>
+            <th>Observação</th>
+            <th class="text-center">Ações</th>
+          </tr>
+        </thead>
+
+        <tbody>
+          {% for inv in inventarios.items %}
+          <tr>
+            <td class="text-nowrap">{{ inv.data_hora.strftime('%d/%m/%Y %H:%M') }}</td>
+            <td class="fw-semibold">{{ inv.responsavel }}</td>
+            <td>
+              {% if inv.tipo_estoque == 'cliente' %}
+                <span class="app-status-pill">Cliente</span>
+              {% else %}
+                <span class="app-status-pill">Empresa</span>
+              {% endif %}
+            </td>
+            <td>
+              {% if inv.tipo_estoque == 'cliente' and inv.cliente %}
+                {{ inv.cliente.razao_social }}
+              {% else %}
+                <span class="text-muted">Não se aplica</span>
+              {% endif %}
+            </td>
+            <td>{{ inv.tipo_servico.nome if inv.tipo_servico else 'Todos' }}</td>
+            <td>{{ inv.observacao or '-' }}</td>
+            <td class="text-center">
+              <a
+                href="{{ url_for('inventario_estoque.historico_inventario_detalhe', inventario_id=inv.id) }}"
+                class="btn btn-sm btn-outline-primary"
+              >
+                <i class="bi bi-eye me-1"></i>
+                Detalhes
+              </a>
+            </td>
+          </tr>
+          {% else %}
+          <tr>
+            <td colspan="7" class="text-center text-muted py-5">
+              Nenhum inventário encontrado.
+            </td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+
+    <div class="d-flex justify-content-between align-items-center flex-wrap gap-2 p-3 border-top">
+      <span class="text-muted small">
+        Exibindo {{ inventarios.items|length }} de {{ total_registros }} registro(s).
+      </span>
+
+      <nav aria-label="Paginação de inventários">
+        <ul class="pagination pagination-sm mb-0">
+          <li class="page-item {% if not inventarios.has_prev %}disabled{% endif %}">
             <a
               class="page-link"
-              href="{{ url_for(
-                'inventario_estoque.historico_inventarios',
-                page=inventarios.prev_num,
-                responsavel=responsavel,
-                data=data_filtro,
-                tipo_estoque=tipo_estoque,
-                cliente_id=cliente_id
-              ) }}"
+              href="{{ url_for('inventario_estoque.historico_inventarios', page=inventarios.prev_num, responsavel=responsavel, data=data_filtro) if inventarios.has_prev else '#' }}"
             >
               Anterior
             </a>
           </li>
-          {% else %}
-          <li class="page-item disabled">
-            <span class="page-link">Anterior</span>
-          </li>
-          {% endif %}
 
           <li class="page-item disabled">
-            <span class="page-link">
-              Página {{ inventarios.page }} de {{ inventarios.pages }}
-            </span>
+            <span class="page-link">Página {{ inventarios.page }} de {{ inventarios.pages }}</span>
           </li>
 
-          {% if inventarios.has_next %}
-          <li class="page-item">
+          <li class="page-item {% if not inventarios.has_next %}disabled{% endif %}">
             <a
               class="page-link"
-              href="{{ url_for(
-                'inventario_estoque.historico_inventarios',
-                page=inventarios.next_num,
-                responsavel=responsavel,
-                data=data_filtro,
-                tipo_estoque=tipo_estoque,
-                cliente_id=cliente_id
-              ) }}"
+              href="{{ url_for('inventario_estoque.historico_inventarios', page=inventarios.next_num, responsavel=responsavel, data=data_filtro) if inventarios.has_next else '#' }}"
             >
               Próxima
             </a>
           </li>
-          {% else %}
-          <li class="page-item disabled">
-            <span class="page-link">Próxima</span>
-          </li>
-          {% endif %}
-
         </ul>
       </nav>
-
-      <div class="mt-3">
-        <a
-          href="{{ url_for('inventario_estoque.inventario') }}"
-          class="btn btn-secondary shadow-sm"
-        >
-          Novo Inventário
-        </a>
-      </div>
-
     </div>
   </div>
 </div>

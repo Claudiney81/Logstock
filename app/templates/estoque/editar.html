@@ -1,143 +1,145 @@
 {% extends 'base.html' %}
-
 {% block content %}
 
-<div class="container py-4">
+<div class="container-fluid mt-4">
 
   {% with messages = get_flashed_messages(with_categories=true) %}
     {% if messages %}
       {% for category, message in messages %}
-        <div
-          class="alert alert-{{ category }} alert-dismissible fade show"
-          role="alert"
-        >
+        <div class="alert alert-{{ category }} alert-dismissible fade show" role="alert">
           {{ message }}
-          <button
-            type="button"
-            class="btn-close"
-            data-bs-dismiss="alert"
-            aria-label="Close"
-          ></button>
+          <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
         </div>
       {% endfor %}
     {% endif %}
   {% endwith %}
 
-  <div class="card shadow-sm border-0">
-
-    <div class="card-header text-white" style="background:#002b55;">
-      <h6 class="mb-0">
-        <i class="bi bi-pencil-square me-2"></i>
-        Editar Item
-      </h6>
+  <div class="app-page-header">
+    <div>
+      <p class="app-page-kicker">Gestão de Estoque</p>
+      <h1>Editar Item</h1>
+      <p class="app-page-subtitle">
+        Atualize os dados cadastrais do item sem alterar as movimentações já registradas.
+      </p>
     </div>
 
-    <div class="card-body">
-
-      <form method="POST" action="{{ url_for('itens.editar', id=item.id) }}">
-
-        <div class="row g-3">
-
-          <div class="col-md-3">
-            <label for="codigo" class="form-label fw-semibold">Código</label>
-            <input
-              type="text"
-              class="form-control form-control-sm"
-              id="codigo"
-              name="codigo"
-              value="{{ item.codigo }}"
-              readonly
-            >
-          </div>
-
-          <div class="col-md-5">
-            <label for="descricao" class="form-label fw-semibold">Descrição</label>
-            <input
-              type="text"
-              class="form-control form-control-sm"
-              id="descricao"
-              name="descricao"
-              value="{{ item.descricao }}"
-              required
-            >
-          </div>
-
-          <div class="col-md-2">
-            <label for="unidade" class="form-label fw-semibold">Unidade</label>
-            <input
-              type="text"
-              class="form-control form-control-sm"
-              id="unidade"
-              name="unidade"
-              value="{{ item.unidade }}"
-              required
-            >
-          </div>
-
-          <div class="col-md-2">
-            <label for="valor" class="form-label fw-semibold">Valor (R$)</label>
-            <input
-              type="text"
-              class="form-control form-control-sm"
-              id="valor"
-              name="valor"
-              value="{{ '{:,.2f}'.format(item.valor or 0).replace(',', 'X').replace('.', ',').replace('X', '.') }}"
-              required
-            >
-          </div>
-
-          <div class="col-md-4">
-            <label for="categoria" class="form-label fw-semibold">Categoria</label>
-            <select
-              class="form-select form-select-sm"
-              id="categoria"
-              name="categoria"
-              required
-            >
-              <option value="MATERIAL" {% if item.categoria == 'MATERIAL' %}selected{% endif %}>
-                MATERIAL
-              </option>
-
-              <option value="FERRAMENTA" {% if item.categoria == 'FERRAMENTA' %}selected{% endif %}>
-                FERRAMENTA
-              </option>
-
-              <option value="EPI" {% if item.categoria == 'EPI' %}selected{% endif %}>
-                EPI
-              </option>
-            </select>
-          </div>
-
-        </div>
-
-        <div class="alert alert-info mt-3 mb-0 py-2">
-          <i class="bi bi-info-circle me-1"></i>
-          A categoria define onde o item será usado:
-          Material, Ferramentas ou EPIs.
-        </div>
-
-        <div class="d-flex justify-content-end mt-4">
-
-          <a
-            href="{{ url_for('estoque.listar_itens') }}"
-            class="btn btn-secondary btn-sm me-2"
-          >
-            Cancelar
-          </a>
-
-          <button type="submit" class="btn btn-success btn-sm px-4">
-            <i class="bi bi-save me-1"></i>
-            Salvar Alterações
-          </button>
-
-        </div>
-
-      </form>
-
+    <div class="app-page-actions">
+      <a href="{{ url_for('estoque.listar_itens') }}" class="btn btn-outline-secondary">
+        <i class="bi bi-arrow-left me-1"></i>
+        Voltar
+      </a>
     </div>
-
   </div>
 
+  <div class="row g-3 mb-4">
+    <div class="col-sm-6 col-xl-4">
+      <div class="app-kpi-card">
+        <span class="app-kpi-icon app-kpi-blue"><i class="bi bi-upc-scan"></i></span>
+        <span class="app-kpi-label">Código</span>
+        <strong style="font-size:1.05rem;">{{ item.codigo }}</strong>
+      </div>
+    </div>
+    <div class="col-sm-6 col-xl-4">
+      <div class="app-kpi-card">
+        <span class="app-kpi-icon app-kpi-green"><i class="bi bi-tag"></i></span>
+        <span class="app-kpi-label">Categoria atual</span>
+        <strong style="font-size:1.05rem;">{{ item.categoria or 'MATERIAL' }}</strong>
+      </div>
+    </div>
+    <div class="col-sm-6 col-xl-4">
+      <div class="app-kpi-card">
+        <span class="app-kpi-icon app-kpi-gray"><i class="bi bi-currency-dollar"></i></span>
+        <span class="app-kpi-label">Valor atual</span>
+        <strong style="font-size:1.05rem;">R$ {{ '{:,.2f}'.format(item.valor or 0).replace(',', 'X').replace('.', ',').replace('X', '.') }}</strong>
+      </div>
+    </div>
+  </div>
+
+  <div class="app-panel">
+    <div class="app-panel-header">
+      <div>
+        <h2>Dados do item</h2>
+        <p>O código fica bloqueado para preservar o histórico do estoque.</p>
+      </div>
+    </div>
+
+    <form method="POST" action="{{ url_for('itens.editar', id=item.id) }}" class="p-3">
+      <div class="row g-3">
+        <div class="col-md-3">
+          <label for="codigo" class="form-label fw-semibold">Código</label>
+          <input
+            type="text"
+            class="form-control"
+            id="codigo"
+            name="codigo"
+            value="{{ item.codigo }}"
+            readonly
+          >
+        </div>
+
+        <div class="col-md-5">
+          <label for="descricao" class="form-label fw-semibold">Descrição</label>
+          <input
+            type="text"
+            class="form-control"
+            id="descricao"
+            name="descricao"
+            value="{{ item.descricao }}"
+            required
+          >
+        </div>
+
+        <div class="col-md-2">
+          <label for="unidade" class="form-label fw-semibold">Unidade</label>
+          <input
+            type="text"
+            class="form-control"
+            id="unidade"
+            name="unidade"
+            value="{{ item.unidade }}"
+            required
+          >
+        </div>
+
+        <div class="col-md-2">
+          <label for="valor" class="form-label fw-semibold">Valor (R$)</label>
+          <input
+            type="text"
+            class="form-control"
+            id="valor"
+            name="valor"
+            value="{{ '{:,.2f}'.format(item.valor or 0).replace(',', 'X').replace('.', ',').replace('X', '.') }}"
+            required
+          >
+        </div>
+
+        <div class="col-md-4">
+          <label for="categoria" class="form-label fw-semibold">Categoria</label>
+          <select class="form-select" id="categoria" name="categoria" required>
+            <option value="MATERIAL" {% if item.categoria == 'MATERIAL' %}selected{% endif %}>MATERIAL</option>
+            <option value="FERRAMENTA" {% if item.categoria == 'FERRAMENTA' %}selected{% endif %}>FERRAMENTA</option>
+            <option value="EPI" {% if item.categoria == 'EPI' %}selected{% endif %}>EPI</option>
+          </select>
+        </div>
+      </div>
+
+      <div class="alert alert-info mt-3 mb-0">
+        <i class="bi bi-info-circle me-1"></i>
+        A categoria define se o item será tratado como material, ferramenta ou EPI nas telas do sistema.
+      </div>
+
+      <div class="d-flex justify-content-end gap-2 mt-4">
+        <a href="{{ url_for('estoque.listar_itens') }}" class="btn btn-outline-secondary">
+          Cancelar
+        </a>
+
+        <button type="submit" class="btn btn-primary px-4">
+          <i class="bi bi-save me-1"></i>
+          Salvar Alterações
+        </button>
+      </div>
+    </form>
+  </div>
 </div>
 
 {% endblock %}

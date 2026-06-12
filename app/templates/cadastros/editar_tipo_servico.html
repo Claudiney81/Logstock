@@ -1,68 +1,62 @@
-{% extends 'base.html' %} 
+{% extends 'base.html' %}
 {% block content %}
 
-<div class="container mt-4">
-  <h2 class="mb-4 text-primary">
-    <i class="bi bi-pencil-square me-2"></i>
-    Editar Tipo de Serviço
-  </h2>
+<div class="container-fluid mt-4">
 
-  <div class="card shadow-sm rounded p-4">
-    <form method="POST">
-      
-      <div class="mb-3">
-        <label for="nome" class="form-label fw-semibold">
-          Nome do Tipo de Serviço
-        </label>
-        <input
-          type="text"
-          name="nome"
-          id="nome"
-          class="form-control"
-          required
-          value="{{ tipo.nome }}"
-        />
+  <div class="app-page-header">
+    <div>
+      <p class="app-page-kicker">Gestão de Estoque</p>
+      <h1>Editar Tipo de Serviço</h1>
+      <p class="app-page-subtitle">
+        Atualização do cadastro usado na classificação dos saldos.
+      </p>
+    </div>
+  </div>
+
+  <div class="app-panel" style="max-width: 760px;">
+    <div class="app-panel-header">
+      <div>
+        <h2>{{ tipo.nome }}</h2>
+        <p>Revise o nome e a origem de estoque vinculada.</p>
       </div>
+    </div>
 
-      <div class="mb-3">
-        <label for="tipo_estoque" class="form-label fw-semibold">
-          Tipo de Estoque
-        </label>
+    <div class="p-3">
+      <form method="POST">
+        <div class="mb-3">
+          <label for="nome" class="form-label fw-semibold">Nome do Tipo de Serviço</label>
+          <input
+            type="text"
+            name="nome"
+            id="nome"
+            class="form-control"
+            required
+            value="{{ tipo.nome }}"
+          >
+        </div>
 
-        <select
-          name="tipo_estoque"
-          id="tipo_estoque"
-          class="form-select"
-          required
-        >
-          <option value="">Selecione o Tipo de Estoque</option>
+        <div class="mb-3">
+          <label for="tipo_estoque" class="form-label fw-semibold">Tipo de Estoque</label>
+          <select name="tipo_estoque" id="tipo_estoque" class="form-select" required>
+            <option value="">Selecione</option>
+            <option value="empresa" {% if tipo.tipo_estoque == 'empresa' %}selected{% endif %}>Empresa</option>
+            <option value="cliente" {% if tipo.tipo_estoque == 'cliente' %}selected{% endif %}>Cliente</option>
+          </select>
+        </div>
 
-          <option value="empresa" {% if tipo.tipo_estoque == 'empresa' %}selected{% endif %}>
-            Empresa
-          </option>
+        <div class="d-flex justify-content-between flex-wrap gap-2 mt-4">
+          <a href="{{ url_for('tipo_servico.cadastrar_tipo_servico') }}" class="btn btn-outline-secondary">
+            <i class="bi bi-arrow-left me-1"></i>
+            Voltar
+          </a>
 
-          <option value="cliente" {% if tipo.tipo_estoque == 'cliente' %}selected{% endif %}>
-            Cliente
-          </option>
-        </select>
-      </div>
-
-      <div class="d-flex justify-content-between">
-        <a 
-          href="{{ url_for('tipo_servico.cadastrar_tipo_servico') }}" 
-          class="btn btn-secondary"
-        >
-          <i class="bi bi-arrow-left me-1"></i>
-          Voltar
-        </a>
-
-        <button type="submit" class="btn btn-primary">
-          <i class="bi bi-save me-1"></i>
-          Salvar Alterações
-        </button>
-      </div>
-
-    </form>
+          <button type="submit" class="btn btn-primary">
+            <i class="bi bi-save me-1"></i>
+            Salvar Alterações
+          </button>
+        </div>
+      </form>
+    </div>
   </div>
 </div>
 

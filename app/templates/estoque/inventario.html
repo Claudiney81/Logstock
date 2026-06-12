@@ -1,259 +1,201 @@
 {% extends 'base.html' %}
 {% block content %}
 
-<div class="container-fluid mt-3">
-  <div class="card shadow-sm border-0">
+{% set resumo = namespace(total=0, qtd=0) %}
+{% for estoque, item, tipo in resultados %}
+  {% set resumo.total = resumo.total + 1 %}
+  {% set resumo.qtd = resumo.qtd + (estoque.quantidade or 0) %}
+{% endfor %}
 
-    <div class="card-header" style="background-color:#002b55; color:white;">
-      <h5 class="fw-semibold mb-0">
-        <i class="bi bi-clipboard-data me-2"></i>
-        Inventário de Estoque
-      </h5>
+<div class="container-fluid mt-4">
+
+  <div class="app-page-header">
+    <div>
+      <p class="app-page-kicker">Gestão de Estoque</p>
+      <h1>Inventário de Estoque</h1>
+      <p class="app-page-subtitle">
+        Conferência física do saldo atual por origem, cliente, serviço e categoria.
+      </p>
     </div>
 
-    <div class="card-body">
+    <div class="app-page-actions">
+      <a href="{{ url_for('inventario_estoque.historico_inventarios') }}" class="btn btn-outline-primary">
+        <i class="bi bi-clock-history me-1"></i>
+        Histórico
+      </a>
+    </div>
+  </div>
 
-      <form method="POST" action="{{ url_for('inventario_estoque.finalizar_inventario') }}">
+  <div class="row g-3 mb-4">
+    <div class="col-sm-6 col-xl-4">
+      <div class="app-kpi-card">
+        <span class="app-kpi-icon app-kpi-blue"><i class="bi bi-clipboard-check"></i></span>
+        <span class="app-kpi-label">Itens para conferir</span>
+        <strong>{{ resumo.total }}</strong>
+      </div>
+    </div>
+    <div class="col-sm-6 col-xl-4">
+      <div class="app-kpi-card">
+        <span class="app-kpi-icon app-kpi-green"><i class="bi bi-stack"></i></span>
+        <span class="app-kpi-label">Quantidade em sistema</span>
+        <strong>{{ resumo.qtd }}</strong>
+      </div>
+    </div>
+    <div class="col-sm-6 col-xl-4">
+      <div class="app-kpi-card">
+        <span class="app-kpi-icon app-kpi-gray"><i class="bi bi-person-circle"></i></span>
+        <span class="app-kpi-label">Responsável</span>
+        <strong style="font-size:1.05rem;">{{ current_user.nome }}</strong>
+      </div>
+    </div>
+  </div>
 
-        <!-- CABEÇALHO -->
-        <div class="row g-3 mb-4">
+  <div class="app-panel">
+    <div class="app-panel-header">
+      <div>
+        <h2>Dados do inventário</h2>
+        <p>Filtros e informações que serão gravados ao finalizar a conferência.</p>
+      </div>
+    </div>
 
+    <form method="POST" action="{{ url_for('inventario_estoque.finalizar_inventario') }}">
+
+      <div class="p-3 border-bottom">
+        <div class="row g-3">
           <div class="col-md-4">
-            <label class="form-label fw-bold">Responsável</label>
-            <input
-              type="text"
-              class="form-control shadow-sm"
-              value="{{ current_user.nome if current_user.nome else current_user.username }}"
-              readonly
-            >
+            <label class="form-label fw-semibold">Responsável</label>
+            <input type="text" class="form-control" value="{{ current_user.nome }}" readonly>
           </div>
 
-          <div class="col-md-4">
-            <label for="data" class="form-label fw-bold">Data</label>
-            <input
-              type="date"
-              name="data"
-              id="data"
-              class="form-control shadow-sm"
-              value="{{ data_hoje }}"
-              required
-            >
+          <div class="col-md-3">
+            <label for="data" class="form-label fw-semibold">Data</label>
+            <input type="date" name="data" id="data" class="form-control" value="{{ data_hoje }}" required>
           </div>
 
-          <div class="col-md-4">
-            <label for="observacao" class="form-label fw-bold">Observação</label>
+          <div class="col-md-5">
+            <label for="observacao" class="form-label fw-semibold">Observação</label>
             <input
               type="text"
               name="observacao"
               id="observacao"
-              class="form-control shadow-sm"
-              placeholder="Digite alguma observação"
+              class="form-control"
+              placeholder="Observação do inventário"
             >
           </div>
-
         </div>
+      </div>
 
-        <!-- FILTROS -->
-        <div class="card mb-4 border-0 shadow-sm">
-          <div class="card-body bg-light">
-
-            <div class="row g-3 align-items-end">
-
-              <div class="col-md-3">
-                <label for="tipo_estoque" class="form-label fw-bold">
-                  Tipo de Estoque
-                </label>
-
-                <select
-                  name="tipo_estoque"
-                  id="tipo_estoque"
-                  class="form-select shadow-sm"
-                  onchange="aplicarFiltrosInventario()"
-                >
-                  <option value="empresa" {% if tipo_estoque == 'empresa' or not tipo_estoque %}selected{% endif %}>
-                    Empresa
-                  </option>
-                  <option value="cliente" {% if tipo_estoque == 'cliente' %}selected{% endif %}>
-                    Cliente
-                  </option>
-                </select>
-              </div>
-
-              <div class="col-md-3" id="campo_cliente">
-                <label for="cliente_id" class="form-label fw-bold">
-                  Cliente
-                </label>
-
-                <select
-                  name="cliente_id"
-                  id="cliente_id"
-                  class="form-select shadow-sm"
-                  onchange="aplicarFiltrosInventario()"
-                >
-                  <option value="">Selecione o cliente</option>
-
-                  {% for cliente in clientes %}
-                    <option
-                      value="{{ cliente.id }}"
-                      {% if cliente.id == cliente_id %}selected{% endif %}
-                    >
-                      {{ cliente.razao_social }}
-                    </option>
-                  {% endfor %}
-                </select>
-              </div>
-
-              <div class="col-md-2">
-                <label for="tipo_servico" class="form-label fw-bold">
-                  Tipo Serviço
-                </label>
-
-                <select
-                  name="tipo_servico"
-                  id="tipo_servico"
-                  class="form-select shadow-sm"
-                  onchange="aplicarFiltrosInventario()"
-                >
-                  <option value="">Todos</option>
-
-                  {% for tipo in tipos_servico %}
-                    <option
-                      value="{{ tipo.id }}"
-                      {% if tipo.id == tipo_servico_filtro|int %}selected{% endif %}
-                    >
-                      {{ tipo.nome }}
-                    </option>
-                  {% endfor %}
-                </select>
-              </div>
-
-              <div class="col-md-2">
-                <label for="categoria" class="form-label fw-bold">
-                  Categoria
-                </label>
-
-                <select
-                  name="categoria"
-                  id="categoria"
-                  class="form-select shadow-sm"
-                  onchange="aplicarFiltrosInventario()"
-                >
-                  <option value="">Todas</option>
-                  <option value="MATERIAL" {% if categoria_filtro == 'MATERIAL' %}selected{% endif %}>MATERIAL</option>
-                  <option value="FERRAMENTA" {% if categoria_filtro == 'FERRAMENTA' %}selected{% endif %}>FERRAMENTA</option>
-                  <option value="EPI" {% if categoria_filtro == 'EPI' %}selected{% endif %}>EPI</option>
-                </select>
-              </div>         
-
-            </div>
-
+      <div class="p-3 border-bottom bg-light">
+        <div class="row g-3 align-items-end">
+          <div class="col-md-3">
+            <label for="tipo_estoque" class="form-label fw-semibold">Tipo de Estoque</label>
+            <select name="tipo_estoque" id="tipo_estoque" class="form-select" onchange="aplicarFiltrosInventario()">
+              <option value="empresa" {% if tipo_estoque == 'empresa' or not tipo_estoque %}selected{% endif %}>Empresa</option>
+              <option value="cliente" {% if tipo_estoque == 'cliente' %}selected{% endif %}>Cliente</option>
+            </select>
           </div>
-        </div>
 
-        <!-- CAMPOS OCULTOS PARA FINALIZAÇÃO -->
-        <input type="hidden" name="tipo_servico" value="{{ tipo_servico_filtro }}">
-        <input type="hidden" name="tipo_estoque" value="{{ tipo_estoque }}">
-        <input type="hidden" name="cliente_id" value="{{ cliente_id }}">
-        <input type="hidden" name="categoria_filtro" value="{{ categoria_filtro }}">
-        
-        <!-- TABELA -->
-        <div class="table-responsive" style="max-height:70vh; overflow-y:auto;">
-
-          <table class="table table-bordered table-hover align-middle mb-0">
-
-            <thead style="position:sticky; top:0; z-index:10; background-color:#002b55; color:white;">
-              <tr>
-                <th style="width:130px;">Código</th>
-                <th>Descrição</th>
-                <th style="width:120px;">Unidade</th>
-                <th style="width:140px;">Categoria</th>
-                <th style="width:160px;">Tipo Serviço</th>
-                <th style="width:150px;" class="text-center">Qtd. Atual</th>
-                <th style="width:170px;" class="text-center">Qtd. Contada</th>
-                <th style="width:130px;" class="text-center">Diferença</th>
-              </tr>
-            </thead>
-
-            <tbody>
-
-              {% for estoque, item, tipo in resultados %}
-                <tr>
-                  <td class="fw-semibold">
-                    {{ item.codigo }}
-                  </td>
-
-                  <td>
-                    {{ item.descricao }}
-                  </td>
-
-                  <td>
-                    {{ item.unidade }}
-                  </td>
-
-                  <td>
-                    <span class="badge bg-secondary">
-                      {{ item.categoria or 'MATERIAL' }}
-                    </span>
-                  </td>
-
-                  <td>
-                    {{ tipo.nome if tipo else '-' }}
-                  </td>
-
-                  <td class="text-center quantidade-atual">
-                    {{ estoque.quantidade or 0 }}
-                  </td>
-
-                  <td class="text-center">
-                    <input
-                      type="number"
-                      name="contada_{{ estoque.id }}"
-                      class="form-control shadow-sm quantidade-contada text-center"
-                      min="0"
-                      data-quantidade="{{ estoque.quantidade or 0 }}"
-                      style="width:110px; margin:auto;"
-                    >
-                  </td>
-
-                  <td class="text-center diferenca fw-bold">
-                    -
-                  </td>
-                </tr>
+          <div class="col-md-3" id="campo_cliente">
+            <label for="cliente_id" class="form-label fw-semibold">Cliente</label>
+            <select name="cliente_id" id="cliente_id" class="form-select" onchange="aplicarFiltrosInventario()">
+              <option value="">Selecione o cliente</option>
+              {% for cliente in clientes %}
+              <option value="{{ cliente.id }}" {% if cliente.id == cliente_id %}selected{% endif %}>
+                {{ cliente.razao_social }}
+              </option>
               {% endfor %}
+            </select>
+          </div>
 
-            </tbody>
+          <div class="col-md-3">
+            <label for="tipo_servico" class="form-label fw-semibold">Tipo Serviço</label>
+            <select name="tipo_servico" id="tipo_servico" class="form-select" onchange="aplicarFiltrosInventario()">
+              <option value="">Todos</option>
+              {% for tipo in tipos_servico %}
+              <option value="{{ tipo.id }}" {% if tipo.id == tipo_servico_filtro|int %}selected{% endif %}>
+                {{ tipo.nome }}
+              </option>
+              {% endfor %}
+            </select>
+          </div>
 
-          </table>
+          <div class="col-md-3">
+            <label for="categoria" class="form-label fw-semibold">Categoria</label>
+            <select name="categoria" id="categoria" class="form-select" onchange="aplicarFiltrosInventario()">
+              <option value="">Todas</option>
+              <option value="MATERIAL" {% if categoria_filtro == 'MATERIAL' %}selected{% endif %}>MATERIAL</option>
+              <option value="FERRAMENTA" {% if categoria_filtro == 'FERRAMENTA' %}selected{% endif %}>FERRAMENTA</option>
+              <option value="EPI" {% if categoria_filtro == 'EPI' %}selected{% endif %}>EPI</option>
+            </select>
+          </div>
+        </div>
+      </div>
 
+      <input type="hidden" name="tipo_servico" value="{{ tipo_servico_filtro }}">
+      <input type="hidden" name="tipo_estoque" value="{{ tipo_estoque }}">
+      <input type="hidden" name="cliente_id" value="{{ cliente_id }}">
+      <input type="hidden" name="categoria_filtro" value="{{ categoria_filtro }}">
+
+      <div class="table-responsive" style="max-height:68vh; overflow-y:auto;">
+        <table class="table table-hover align-middle mb-0 app-table">
+          <thead style="position:sticky; top:0; z-index:10;">
+            <tr>
+              <th>Código</th>
+              <th>Descrição</th>
+              <th>Unidade</th>
+              <th>Categoria</th>
+              <th>Tipo Serviço</th>
+              <th class="text-end">Qtd. Atual</th>
+              <th class="text-center">Qtd. Contada</th>
+              <th class="text-center">Diferença</th>
+            </tr>
+          </thead>
+          <tbody>
+            {% for estoque, item, tipo in resultados %}
+            <tr>
+              <td class="fw-semibold text-nowrap">{{ item.codigo }}</td>
+              <td>{{ item.descricao }}</td>
+              <td>{{ item.unidade }}</td>
+              <td><span class="app-status-pill">{{ item.categoria or 'MATERIAL' }}</span></td>
+              <td>{{ tipo.nome if tipo else '-' }}</td>
+              <td class="text-end quantidade-atual">{{ estoque.quantidade or 0 }}</td>
+              <td class="text-center" style="min-width:140px;">
+                <input
+                  type="number"
+                  name="contada_{{ estoque.id }}"
+                  class="form-control form-control-sm quantidade-contada text-center"
+                  min="0"
+                  data-quantidade="{{ estoque.quantidade or 0 }}"
+                >
+              </td>
+              <td class="text-center diferenca fw-bold">-</td>
+            </tr>
+            {% else %}
+            <tr>
+              <td colspan="8" class="text-center text-muted py-5">
+                Nenhum item encontrado para os filtros selecionados.
+              </td>
+            </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+
+      {% if resultados %}
+      <div class="d-flex justify-content-between align-items-center flex-wrap gap-2 p-3 border-top">
+        <div class="text-muted small">
+          <i class="bi bi-info-circle me-1"></i>
+          Itens em branco não serão alterados.
         </div>
 
-        {% if resultados %}
-          <div class="d-flex justify-content-between align-items-center mt-3">
+        <button type="submit" class="btn btn-primary px-4">
+          <i class="bi bi-check-circle me-1"></i>
+          Finalizar Inventário
+        </button>
+      </div>
+      {% endif %}
 
-            <div class="text-muted small">
-              <i class="bi bi-info-circle me-1"></i>
-              Preencha somente os itens contados. Itens em branco não serão alterados.
-            </div>
-
-            <button
-              type="submit"
-              class="btn shadow-sm text-white px-4"
-              style="background:#0b2e59; border-color:#0b2e59;"
-            >
-              <i class="bi bi-check-circle me-1"></i>
-              Finalizar Inventário
-            </button>
-
-          </div>
-        {% else %}
-          <div class="alert alert-warning mt-4 mb-0">
-            Nenhum item encontrado para os filtros selecionados.
-          </div>
-        {% endif %}
-
-      </form>
-
-    </div>
+    </form>
   </div>
 </div>
 
@@ -263,25 +205,12 @@
     const clienteId = document.getElementById('cliente_id').value;
     const tipoServico = document.getElementById('tipo_servico').value;
     const categoria = document.getElementById('categoria').value;
-    
-
     const params = new URLSearchParams();
 
-    if (tipoEstoque) {
-      params.set('tipo_estoque', tipoEstoque);
-    }
-
-    if (tipoEstoque === 'cliente' && clienteId) {
-      params.set('cliente_id', clienteId);
-    }
-
-    if (tipoServico) {
-      params.set('tipo_servico', tipoServico);
-    }
-
-    if (categoria) {
-      params.set('categoria', categoria);
-    }    
+    if (tipoEstoque) params.set('tipo_estoque', tipoEstoque);
+    if (tipoEstoque === 'cliente' && clienteId) params.set('cliente_id', clienteId);
+    if (tipoServico) params.set('tipo_servico', tipoServico);
+    if (categoria) params.set('categoria', categoria);
 
     window.location.href = '?' + params.toString();
   }
@@ -289,30 +218,21 @@
   function controlarCampoCliente() {
     const tipoEstoque = document.getElementById('tipo_estoque').value;
     const campoCliente = document.getElementById('campo_cliente');
-
-    if (tipoEstoque === 'cliente') {
-      campoCliente.style.display = 'block';
-    } else {
-      campoCliente.style.display = 'none';
-    }
+    campoCliente.style.display = tipoEstoque === 'cliente' ? 'block' : 'none';
   }
 
   controlarCampoCliente();
-
-  document
-    .getElementById('tipo_estoque')
-    .addEventListener('change', controlarCampoCliente);
+  document.getElementById('tipo_estoque').addEventListener('change', controlarCampoCliente);
 
   document.querySelectorAll('.quantidade-contada').forEach(input => {
     input.addEventListener('input', function () {
       const qtdAtual = parseInt(this.dataset.quantidade || 0);
       const valor = this.value;
-
       const row = this.closest('tr');
       const diferencaCell = row.querySelector('.diferenca');
 
       if (valor === '') {
-        row.style.backgroundColor = '';
+        row.classList.remove('table-danger', 'table-warning', 'table-success');
         diferencaCell.textContent = '-';
         diferencaCell.className = 'text-center diferenca fw-bold';
         return;
@@ -320,17 +240,17 @@
 
       const qtdContada = parseInt(valor || 0);
       const diferenca = qtdContada - qtdAtual;
-
       diferencaCell.textContent = diferenca;
+      row.classList.remove('table-danger', 'table-warning', 'table-success');
 
       if (diferenca < 0) {
-        row.style.backgroundColor = '#f8d7da';
+        row.classList.add('table-danger');
         diferencaCell.className = 'text-center diferenca fw-bold text-danger';
       } else if (diferenca > 0) {
-        row.style.backgroundColor = '#fff3cd';
+        row.classList.add('table-warning');
         diferencaCell.className = 'text-center diferenca fw-bold text-warning';
       } else {
-        row.style.backgroundColor = '';
+        row.classList.add('table-success');
         diferencaCell.className = 'text-center diferenca fw-bold text-success';
       }
     });

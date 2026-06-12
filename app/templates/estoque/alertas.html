@@ -1,193 +1,166 @@
 {% extends 'base.html' %}
 {% block content %}
 
-<style>
-  .alerta-card {
-    margin-top: 10px;
-    margin-bottom: 16px;
-    border: 0;
-    border-radius: 10px;
-    overflow: hidden;
-  }
+{% set resumo = namespace(total=0, valor=0) %}
+{% for estoque, item, tipo_servico in resultados %}
+  {% set resumo.total = resumo.total + 1 %}
+  {% set resumo.valor = resumo.valor + ((estoque.quantidade or 0) * (item.valor or 0)) %}
+{% endfor %}
 
-  .alerta-header {
-    background: #002b55;
-    color: #fff;
-  }
+<div class="container-fluid mt-4">
 
-  .btn-alerta-primary {
-    background: #0b2e59;
-    border: 1px solid #0b2e59;
-    color: #fff;
-  }
+  <div class="app-page-header">
+    <div>
+      <p class="app-page-kicker">Gestão de Estoque</p>
+      <h1>Alertas de Estoque Baixo</h1>
+      <p class="app-page-subtitle">
+        Itens com saldo atual igual ou inferior ao mínimo configurado.
+      </p>
+    </div>
 
-  .btn-alerta-primary:hover {
-    background: #14447f;
-    border-color: #14447f;
-    color: #fff;
-  }
+    <div class="app-page-actions">
+      <a
+        href="{{ url_for('estoque.exportar_alertas_excel', tipo_servico=tipo_servico_filtro) }}"
+        class="btn btn-outline-success"
+      >
+        <i class="bi bi-file-earmark-excel me-1"></i>
+        Exportar Excel
+      </a>
+      <a
+        href="{{ url_for('estoque.exportar_alertas_pdf', tipo_servico=tipo_servico_filtro) }}"
+        class="btn btn-outline-danger"
+      >
+        <i class="bi bi-file-earmark-pdf me-1"></i>
+        Exportar PDF
+      </a>
+    </div>
+  </div>
 
-  .btn-export-excel {
-    background: #f7fbf9;
-    border: 1px solid #8cc9a7;
-    color: #146c43;
-  }
-
-  .btn-export-excel:hover {
-    background: #e8f6ee;
-    color: #146c43;
-  }
-
-  .btn-export-pdf {
-    background: #fff1f1;
-    border: 1px solid #e6a1a1;
-    color: #9f1c1c;
-  }
-
-  .btn-export-pdf:hover {
-    background: #ffe4e4;
-    color: #8f1616;
-  }
-
-  .alerta-table thead {
-    position: sticky;
-    top: 0;
-    z-index: 10;
-    background: #1f252b;
-    color: #fff;
-  }
-
-  .alerta-empty {
-    background: #f8fafc;
-    color: #6c757d;
-    font-weight: 500;
-  }
-
-  .form-select:focus {
-    border-color: #0b2e59;
-    box-shadow: 0 0 0 .15rem rgba(11, 46, 89, .12);
-  }
-
-  @media (min-width: 1200px) {
-    .col-lg-11 {
-      max-width: 95%;
-    }
-  }
-</style>
-
-<div class="container-fluid mt-3">
-  <div class="row justify-content-center">
-    <div class="col-12 col-lg-11">
-      <div class="card shadow-sm alerta-card">
-
-        <!-- TOPO -->
-        <div class="card-header alerta-header">
-          <h5 class="fw-semibold mb-0">
-            <i class="bi bi-exclamation-triangle-fill text-warning me-2"></i>
-            Alertas de Estoque Baixo
-          </h5>
-        </div>
-
-        <div class="card-body py-3">
-
-          <!-- FILTRO -->
-          <form method="GET" class="row mb-3">
-            <div class="col-md-4">
-              <label class="form-label fw-semibold">Tipo de Serviço</label>
-              <select name="tipo_servico" class="form-select">
-                <option value="">Todos</option>
-                {% for ts in tipos_servico %}
-                  <option value="{{ ts.id }}"
-                    {% if request.args.get('tipo_servico') == ts.id|string %}selected{% endif %}>
-                    {{ ts.nome }}
-                  </option>
-                {% endfor %}
-              </select>
-            </div>
-
-            <div class="col-md-2 d-flex align-items-end">
-              <button class="btn btn-alerta-primary w-100">
-                <i class="bi bi-search me-1"></i>
-                Filtrar
-              </button>
-            </div>
-          </form>
-
-          <!-- BOTÕES DE EXPORTAÇÃO -->
-          <div class="d-flex justify-content-end gap-2 mb-3">
-            <a
-              href="{{ url_for('estoque.exportar_alertas_excel', tipo_servico=tipo_servico_filtro) }}"
-              class="btn btn-export-excel btn-sm shadow-sm"
-            >
-              <i class="bi bi-file-earmark-excel me-1"></i>
-              Exportar Excel
-            </a>
-
-            <a
-              href="{{ url_for('estoque.exportar_alertas_pdf', tipo_servico=tipo_servico_filtro) }}"
-              class="btn btn-export-pdf btn-sm shadow-sm"
-            >
-              <i class="bi bi-file-earmark-pdf me-1"></i>
-              Exportar PDF
-            </a>
-          </div>
-
-          <!-- TABELA -->
-          <div class="table-responsive">
-            <table class="table table-bordered table-hover table-sm align-middle alerta-table">
-              <thead>
-                <tr>
-                  <th>Código</th>
-                  <th>Descrição</th>
-                  <th>Tipo de Serviço</th>
-                  <th>Unidade de Medida</th>
-                  <th>Valor (R$)</th>
-                  <th class="text-warning">Estoque Atual</th>
-                  <th>Mínimo</th>
-                  <th>Endereço</th>
-                </tr>
-              </thead>
-
-              <tbody>
-                {% if resultados %}
-                  {% for estoque, item, tipo_servico in resultados %}
-                  <tr>
-                    <td>{{ item.codigo }}</td>
-                    <td>{{ item.descricao }}</td>
-                    <td>{{ tipo_servico.nome if tipo_servico else '-' }}</td>
-                    <td>{{ item.unidade }}</td>
-                    <td>{{ "%.2f"|format(item.valor or 0) }}</td>
-
-                    <td class="text-danger fw-bold">
-                      {{ estoque.quantidade }}
-                    </td>
-
-                    <td>
-                      {{ estoque.quantidade_minima }}
-                      {% if estoque.quantidade > 0 and estoque.quantidade_minima %}
-                        {% set percentual_calc = (estoque.quantidade_minima / estoque.quantidade * 100) %}
-                        <span class="text-muted small">(≈ {{ percentual_calc|round(0) }}%)</span>
-                      {% endif %}
-                    </td>
-
-                    <td>{{ estoque.endereco or '-' }}</td>
-                  </tr>
-                  {% endfor %}
-                {% else %}
-                  <tr>
-                    <td colspan="8" class="text-center py-4 alerta-empty">
-                      <i class="bi bi-check-circle me-1"></i>
-                      Nenhum item crítico no estoque.
-                    </td>
-                  </tr>
-                {% endif %}
-              </tbody>
-
-            </table>
-          </div>
-
-        </div>
+  <div class="row g-3 mb-4">
+    <div class="col-sm-6 col-xl-4">
+      <div class="app-kpi-card">
+        <span class="app-kpi-icon app-kpi-red">
+          <i class="bi bi-exclamation-triangle"></i>
+        </span>
+        <span class="app-kpi-label">Itens críticos</span>
+        <strong>{{ resumo.total }}</strong>
       </div>
+    </div>
+
+    <div class="col-sm-6 col-xl-4">
+      <div class="app-kpi-card">
+        <span class="app-kpi-icon app-kpi-yellow">
+          <i class="bi bi-tools"></i>
+        </span>
+        <span class="app-kpi-label">Filtro serviço</span>
+        <strong style="font-size:1.05rem;">
+          {% if tipo_servico_filtro %}
+            {% for ts in tipos_servico %}
+              {% if ts.id == tipo_servico_filtro %}{{ ts.nome }}{% endif %}
+            {% endfor %}
+          {% else %}
+            Todos
+          {% endif %}
+        </strong>
+      </div>
+    </div>
+
+    <div class="col-sm-6 col-xl-4">
+      <div class="app-kpi-card">
+        <span class="app-kpi-icon app-kpi-gray">
+          <i class="bi bi-cash-coin"></i>
+        </span>
+        <span class="app-kpi-label">Valor crítico estimado</span>
+        <strong style="font-size:1.25rem;">
+          R$ {{ "{:,.2f}".format(resumo.valor or 0).replace(",", "X").replace(".", ",").replace("X", ".") }}
+        </strong>
+      </div>
+    </div>
+  </div>
+
+  <div class="app-panel">
+    <div class="app-panel-header">
+      <div>
+        <h2>Consulta de alertas</h2>
+        <p>{{ resultados|length }} item(ns) exigem acompanhamento.</p>
+      </div>
+    </div>
+
+    <div class="p-3 border-bottom">
+      <form method="GET" class="row g-3 align-items-end">
+        <div class="col-md-4">
+          <label class="form-label fw-semibold">Tipo de Serviço</label>
+          <select name="tipo_servico" class="form-select">
+            <option value="">Todos</option>
+            {% for ts in tipos_servico %}
+            <option value="{{ ts.id }}" {% if request.args.get('tipo_servico') == ts.id|string %}selected{% endif %}>
+              {{ ts.nome }}
+            </option>
+            {% endfor %}
+          </select>
+        </div>
+
+        <div class="col-md-auto d-grid">
+          <button class="btn btn-primary">
+            <i class="bi bi-search me-1"></i>
+            Filtrar
+          </button>
+        </div>
+
+        <div class="col-md-auto d-grid">
+          <a href="{{ url_for('estoque.alerta_estoque_baixo') }}" class="btn btn-outline-secondary">
+            Limpar
+          </a>
+        </div>
+      </form>
+    </div>
+
+    <div class="table-responsive">
+      <table class="table table-hover align-middle mb-0 app-table">
+        <thead>
+          <tr>
+            <th>Código</th>
+            <th>Descrição</th>
+            <th>Tipo de Serviço</th>
+            <th>Unidade</th>
+            <th>Valor</th>
+            <th class="text-end">Estoque Atual</th>
+            <th class="text-end">Mínimo</th>
+            <th>Endereço</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% if resultados %}
+            {% for estoque, item, tipo_servico in resultados %}
+            <tr>
+              <td class="fw-semibold text-nowrap">{{ item.codigo }}</td>
+              <td>{{ item.descricao }}</td>
+              <td>{{ tipo_servico.nome if tipo_servico else '-' }}</td>
+              <td>{{ item.unidade }}</td>
+              <td class="text-nowrap">
+                R$ {{ "%.2f"|format(item.valor or 0)|replace('.', ',') }}
+              </td>
+              <td class="text-end text-danger fw-bold">{{ estoque.quantidade }}</td>
+              <td class="text-end">
+                {{ estoque.quantidade_minima }}
+                {% if estoque.quantidade > 0 and estoque.quantidade_minima %}
+                  {% set percentual_calc = (estoque.quantidade_minima / estoque.quantidade * 100) %}
+                  <small class="text-muted">({{ percentual_calc|round(0) }}%)</small>
+                {% endif %}
+              </td>
+              <td>{{ estoque.endereco or '-' }}</td>
+            </tr>
+            {% endfor %}
+          {% else %}
+            <tr>
+              <td colspan="8" class="text-center text-muted py-5">
+                <i class="bi bi-check-circle me-1"></i>
+                Nenhum item crítico no estoque.
+              </td>
+            </tr>
+          {% endif %}
+        </tbody>
+      </table>
     </div>
   </div>
 </div>

@@ -1,216 +1,137 @@
 {% extends 'base.html' %}
 {% block content %}
 
-<style>
-  .tipo-card {
-    border: 0;
-    border-radius: 10px;
-    overflow: hidden;
-  }
+{% set resumo = namespace(total=0, empresa=0, cliente=0) %}
+{% for tipo in tipos %}
+  {% set resumo.total = resumo.total + 1 %}
+  {% if tipo.tipo_estoque == 'cliente' %}
+    {% set resumo.cliente = resumo.cliente + 1 %}
+  {% else %}
+    {% set resumo.empresa = resumo.empresa + 1 %}
+  {% endif %}
+{% endfor %}
 
-  .tipo-header {
-    background: #002b55;
-    color: #fff;
-  }
+<div class="container-fluid mt-4">
 
-  .btn-padrao-azul {
-    background: #0b2e59;
-    border: 1px solid #0b2e59;
-    color: #fff;
-  }
-
-  .btn-padrao-azul:hover {
-    background: #14447f;
-    border-color: #14447f;
-    color: #fff;
-  }
-
-  .tabela-container {
-    max-height: 300px;
-    overflow-y: auto;
-    border: 1px solid #dde5ef;
-    border-radius: 8px;
-  }
-
-  .tabela-container table thead th {
-    position: sticky;
-    top: 0;
-    z-index: 2;
-    background: #1f252b;
-    color: #fff;
-  }
-
-  .form-control:focus,
-  .form-select:focus {
-    border-color: #0b2e59;
-    box-shadow: 0 0 0 .15rem rgba(11,46,89,.12);
-  }
-
-  .badge-tipo {
-    display: inline-block;
-    min-width: 90px;
-    padding: 6px 10px;
-    border-radius: 6px;
-    font-size: .78rem;
-    font-weight: 700;
-    text-align: center;
-  }
-
-  .badge-empresa {
-    background: #e6f0fb;
-    color: #084783;
-    border: 1px solid #c7ddf4;
-  }
-
-  .badge-cliente {
-    background: #e6f4ec;
-    color: #146c43;
-    border: 1px solid #c8e6d3;
-  }
-
-  .subtitulo-secao {
-    color: #0b2e59;
-    font-weight: 700;
-  }
-</style>
-
-<div class="container mt-4">
-
-  <div class="card shadow-sm tipo-card mb-4">
-
-    <div class="card-header tipo-header">
-      <h5 class="mb-0 fw-semibold">
-        <i class="bi bi-tools me-2"></i>
-        Cadastrar Tipos de Serviço
-      </h5>
-    </div>
-
-    <div class="card-body">
-
-      <form
-        method="POST"
-        action="{{ url_for('tipo_servico.cadastrar_tipo_servico') }}"
-        class="row g-2"
-      >
-
-        <div class="col-md-5">
-          <input
-            type="text"
-            name="nome"
-            class="form-control"
-            placeholder="Nome do Tipo de Serviço"
-            required
-          />
-        </div>
-
-        <div class="col-md-5">
-          <select
-            name="tipo_estoque"
-            class="form-select"
-            required
-          >
-            <option value="">
-              Selecione o Tipo de Estoque
-            </option>
-
-            <option value="empresa">
-              Empresa
-            </option>
-
-            <option value="cliente">
-              Cliente
-            </option>
-          </select>
-        </div>
-
-        <div class="col-md-2 d-grid">
-          <button
-            type="submit"
-            class="btn btn-padrao-azul"
-          >
-            <i class="bi bi-plus-circle me-1"></i>
-            Cadastrar
-          </button>
-        </div>
-
-      </form>
-
+  <div class="app-page-header">
+    <div>
+      <p class="app-page-kicker">Gestão de Estoque</p>
+      <h1>Tipos de Serviço</h1>
+      <p class="app-page-subtitle">
+        Classificação usada para separar saldos, notas, movimentações e inventários.
+      </p>
     </div>
   </div>
 
-  <h5 class="fw-semibold mt-4 mb-2 subtitulo-secao">
-    <i class="bi bi-card-list me-2"></i>
-    Tipos de Serviço Cadastrados
-  </h5>
+  <div class="row g-3 mb-4">
+    <div class="col-sm-6 col-xl-4">
+      <div class="app-kpi-card">
+        <span class="app-kpi-icon app-kpi-blue"><i class="bi bi-tools"></i></span>
+        <span class="app-kpi-label">Tipos cadastrados</span>
+        <strong>{{ resumo.total }}</strong>
+      </div>
+    </div>
+    <div class="col-sm-6 col-xl-4">
+      <div class="app-kpi-card">
+        <span class="app-kpi-icon app-kpi-green"><i class="bi bi-building"></i></span>
+        <span class="app-kpi-label">Estoque empresa</span>
+        <strong>{{ resumo.empresa }}</strong>
+      </div>
+    </div>
+    <div class="col-sm-6 col-xl-4">
+      <div class="app-kpi-card">
+        <span class="app-kpi-icon app-kpi-yellow"><i class="bi bi-people"></i></span>
+        <span class="app-kpi-label">Estoque cliente</span>
+        <strong>{{ resumo.cliente }}</strong>
+      </div>
+    </div>
+  </div>
 
-  <div class="tabela-container shadow-sm">
+  <div class="row g-4">
+    <div class="col-xl-5">
+      <div class="app-panel h-100">
+        <div class="app-panel-header">
+          <div>
+            <h2>Novo tipo de serviço</h2>
+            <p>Defina se o saldo pertence à empresa ou ao cliente.</p>
+          </div>
+        </div>
 
-    <table class="table table-striped table-hover align-middle mb-0">
+        <div class="p-3">
+          <form method="POST" action="{{ url_for('tipo_servico.cadastrar_tipo_servico') }}">
+            <div class="mb-3">
+              <label class="form-label fw-semibold">Nome</label>
+              <input
+                type="text"
+                name="nome"
+                class="form-control"
+                placeholder="Nome do tipo de serviço"
+                required
+              >
+            </div>
 
-      <thead>
-        <tr>
-          <th>Nome</th>
-          <th>Tipo de Estoque</th>
-        </tr>
-      </thead>
+            <div class="mb-3">
+              <label class="form-label fw-semibold">Tipo de Estoque</label>
+              <select name="tipo_estoque" class="form-select" required>
+                <option value="">Selecione</option>
+                <option value="empresa">Empresa</option>
+                <option value="cliente">Cliente</option>
+              </select>
+            </div>
 
-      <tbody>
+            <button type="submit" class="btn btn-primary w-100">
+              <i class="bi bi-plus-circle me-1"></i>
+              Cadastrar
+            </button>
+          </form>
+        </div>
+      </div>
+    </div>
 
-        {% if tipos %}
+    <div class="col-xl-7">
+      <div class="app-panel">
+        <div class="app-panel-header">
+          <div>
+            <h2>Tipos cadastrados</h2>
+            <p>{{ tipos|length }} registro(s) disponíveis.</p>
+          </div>
+        </div>
 
-          {% for tipo in tipos %}
-
-          <tr>
-
-            <td>
-              {{ tipo.nome }}
-            </td>
-
-            <td>
-
-              {% if tipo.tipo_estoque == 'empresa' %}
-
-                <span class="badge-tipo badge-empresa">
-                  Empresa
-                </span>
-
-              {% elif tipo.tipo_estoque == 'cliente' %}
-
-                <span class="badge-tipo badge-cliente">
-                  Cliente
-                </span>
-
+        <div class="table-responsive" style="max-height: 56vh; overflow-y: auto;">
+          <table class="table table-hover align-middle mb-0 app-table">
+            <thead style="position: sticky; top: 0; z-index: 10;">
+              <tr>
+                <th>Nome</th>
+                <th>Tipo de Estoque</th>
+              </tr>
+            </thead>
+            <tbody>
+              {% if tipos %}
+                {% for tipo in tipos %}
+                <tr>
+                  <td class="fw-semibold">{{ tipo.nome }}</td>
+                  <td>
+                    {% if tipo.tipo_estoque == 'cliente' %}
+                      <span class="app-status-pill">Cliente</span>
+                    {% else %}
+                      <span class="app-status-pill">Empresa</span>
+                    {% endif %}
+                  </td>
+                </tr>
+                {% endfor %}
               {% else %}
-
-                ---
-                
+                <tr>
+                  <td colspan="2" class="text-center text-muted py-5">
+                    Nenhum tipo de serviço cadastrado.
+                  </td>
+                </tr>
               {% endif %}
-
-            </td>
-
-          </tr>
-
-          {% endfor %}
-
-        {% else %}
-
-          <tr>
-            <td
-              colspan="2"
-              class="text-center text-muted py-3"
-            >
-              Nenhum tipo de serviço cadastrado.
-            </td>
-          </tr>
-
-        {% endif %}
-
-      </tbody>
-
-    </table>
-
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
   </div>
-
 </div>
 
 {% endblock %}

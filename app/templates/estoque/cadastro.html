@@ -1,301 +1,182 @@
 {% extends 'base.html' %}
 {% block content %}
 
-<style>
-
-/* botão principal azul LogiStock */
-.btn-padrao-azul {
-    background: #0b2e59;
-    color: #fff;
-    border: 1px solid #0b2e59;
-    font-weight: 600;
-    border-radius: 6px;
-    transition: .2s ease-in-out;
-}
-
-.btn-padrao-azul:hover {
-    background: #174174;
-    border-color: #174174;
-    color: #fff;
-}
-
-/* botão importar */
-.btn-excel-suave {
-    background: #edf8f1;
-    color: #198754;
-    border: 1px solid #b9dfc8;
-    font-weight: 600;
-    border-radius: 6px;
-    transition: .2s ease-in-out;
-}
-
-.btn-excel-suave:hover {
-    background: #dff3e7;
-    color: #146c43;
-    border-color: #95c9aa;
-}
-
-/* botão escolher arquivo */
-input[type="file"]::file-selector-button {
-    background: #edf8f1;
-    color: #198754;
-    border: 1px solid #b9dfc8;
-    padding: 8px 14px;
-    margin-right: 12px;
-    border-radius: 6px;
-    cursor: pointer;
-    transition: .2s ease-in-out;
-}
-
-input[type="file"]::file-selector-button:hover {
-    background: #dff3e7;
-    border-color: #95c9aa;
-    color: #146c43;
-}
-
-/* compatibilidade */
-input[type="file"]::-webkit-file-upload-button {
-    background: #edf8f1;
-    color: #198754;
-    border: 1px solid #b9dfc8;
-    border-radius: 6px;
-    padding: 8px 14px;
-}
-
-</style>
-
 <div class="container-fluid mt-4">
 
-  <!-- Cadastro Manual -->
-  <div class="card shadow-sm border-0 mb-4">
-
-    <div class="card-header text-white"
-         style="background:#002b55;">
-      <h5 class="mb-0 fw-semibold">
-        Cadastro de Itens
-      </h5>
+  <div class="app-page-header">
+    <div>
+      <p class="app-page-kicker">Gestão de Estoque</p>
+      <h1>Cadastro de Itens</h1>
+      <p class="app-page-subtitle">
+        Registro manual e importação de materiais, ferramentas e EPIs.
+      </p>
     </div>
 
-    <div class="card-body">
+    <div class="app-page-actions">
+      <a href="{{ url_for('estoque.listar_itens') }}" class="btn btn-outline-primary">
+        <i class="bi bi-list-ul me-1"></i>
+        Itens Cadastrados
+      </a>
+      <a href="{{ url_for('estoque.saldo_estoque') }}" class="btn btn-outline-secondary">
+        <i class="bi bi-box-seam me-1"></i>
+        Saldo
+      </a>
+    </div>
+  </div>
 
-      <form
-        method="POST"
-        action="{{ url_for('estoque.cadastrar_item') }}"
-        enctype="multipart/form-data"
-      >
+  <div class="row g-4">
 
-        <div class="row g-3">
-
-          <div class="col-md-2">
-            <label class="form-label fw-semibold">Código</label>
-            <input
-              type="text"
-              class="form-control"
-              name="codigo"
-              required
-            >
+    <div class="col-xl-8">
+      <div class="app-panel h-100">
+        <div class="app-panel-header">
+          <div>
+            <h2>Novo item</h2>
+            <p>Dados principais usados em notas, saldo, movimentações e inventários.</p>
           </div>
-
-          <div class="col-md-4">
-            <label class="form-label fw-semibold">Descrição</label>
-            <input
-              type="text"
-              class="form-control"
-              name="descricao"
-              required
-            >
-          </div>
-
-          <div class="col-md-2">
-            <label class="form-label fw-semibold">Unidade</label>
-            <input
-              type="text"
-              class="form-control"
-              name="unidade"
-              required
-            >
-          </div>
-
-          <div class="col-md-2">
-            <label class="form-label fw-semibold">Valor (R$)</label>
-            <input
-              type="text"
-              class="form-control"
-              name="valor"
-              placeholder="Ex: 18,00"
-              required
-            >
-          </div>
-
-          <div class="col-md-2">
-            <label class="form-label fw-semibold">Categoria</label>
-            <select
-              name="categoria"
-              class="form-select"
-              required
-            >
-              <option value="MATERIAL">MATERIAL</option>
-              <option value="FERRAMENTA">FERRAMENTA</option>
-              <option value="EPI">EPI</option>
-            </select>
-          </div>
-
         </div>
 
-        <div class="mt-4 d-flex justify-content-end">
-          <button
-            type="submit"
-            class="btn btn-padrao-azul px-4 shadow-sm"
+        <div class="p-3">
+          <form
+            method="POST"
+            action="{{ url_for('estoque.cadastrar_item') }}"
+            enctype="multipart/form-data"
           >
-            <i class="bi bi-plus-circle me-1"></i>
-            Cadastrar Item
-          </button>
+            <div class="row g-3">
+              <div class="col-md-3">
+                <label class="form-label fw-semibold">Código</label>
+                <input type="text" class="form-control text-uppercase" name="codigo" required>
+              </div>
+
+              <div class="col-md-5">
+                <label class="form-label fw-semibold">Descrição</label>
+                <input type="text" class="form-control" name="descricao" required>
+              </div>
+
+              <div class="col-md-2">
+                <label class="form-label fw-semibold">Unidade</label>
+                <input type="text" class="form-control text-uppercase" name="unidade" required>
+              </div>
+
+              <div class="col-md-2">
+                <label class="form-label fw-semibold">Valor (R$)</label>
+                <input type="text" class="form-control" name="valor" placeholder="18,00" required>
+              </div>
+
+              <div class="col-md-4">
+                <label class="form-label fw-semibold">Categoria</label>
+                <select name="categoria" class="form-select" required>
+                  <option value="MATERIAL">MATERIAL</option>
+                  <option value="FERRAMENTA">FERRAMENTA</option>
+                  <option value="EPI">EPI</option>
+                </select>
+              </div>
+            </div>
+
+            <div class="d-flex justify-content-end mt-4">
+              <button type="submit" class="btn btn-primary px-4">
+                <i class="bi bi-plus-circle me-1"></i>
+                Cadastrar Item
+              </button>
+            </div>
+          </form>
+        </div>
+      </div>
+    </div>
+
+    <div class="col-xl-4">
+      <div class="app-panel h-100">
+        <div class="app-panel-header">
+          <div>
+            <h2>Importação via Excel</h2>
+            <p>Cadastro em lote preservando uma categoria para toda a planilha.</p>
+          </div>
         </div>
 
-      </form>
+        <div class="p-3">
+          <form
+            method="POST"
+            action="{{ url_for('estoque.importar_itens') }}"
+            enctype="multipart/form-data"
+          >
+            <div class="mb-3">
+              <label class="form-label fw-semibold">Arquivo Excel</label>
+              <input
+                type="file"
+                class="form-control"
+                name="arquivo"
+                id="arquivo_excel"
+                accept=".xlsx,.xls"
+                required
+              >
+            </div>
 
-    </div>
+            <div class="mb-3">
+              <label class="form-label fw-semibold">Categoria da importação</label>
+              <select name="categoria_importacao" class="form-select" required>
+                <option value="MATERIAL">MATERIAL</option>
+                <option value="FERRAMENTA">FERRAMENTA</option>
+                <option value="EPI">EPI</option>
+              </select>
+            </div>
 
-  </div>
-
-  <!-- Importação -->
-  <div class="card shadow-sm border-0 mb-4">
-
-    <div class="card-header bg-light">
-      <h6 class="mb-0 fw-semibold">
-        Importação via Excel
-      </h6>
-    </div>
-
-    <div class="card-body">
-
-      <form
-        method="POST"
-        action="{{ url_for('estoque.importar_itens') }}"
-        enctype="multipart/form-data"
-      >
-
-        <div class="row align-items-end g-3">
-
-  <div class="col-md-6">
-
-    <label class="form-label fw-semibold">
-      Arquivo Excel (.xlsx)
-    </label>
-
-    <input
-      type="file"
-      class="form-control"
-      name="arquivo"
-      id="arquivo_excel"
-      accept=".xlsx,.xls"
-      required
-    >
-
-    <div class="form-text mt-2">
-      A categoria escolhida ao lado será aplicada em todos os itens importados.
-    </div>
-
-  </div>
-
-  <div class="col-md-2">
-
-    <label class="form-label fw-semibold">
-      Categoria
-    </label>
-
-    <select
-      name="categoria_importacao"
-      class="form-select"
-      required
-    >
-      <option value="MATERIAL">MATERIAL</option>
-      <option value="FERRAMENTA">FERRAMENTA</option>
-      <option value="EPI">EPI</option>
-    </select>
-
-  </div>
-
-  <div class="col-md-2 d-grid">
-
-    <button
-      type="submit"
-      class="btn btn-excel-suave"
-    >
-      <i class="bi bi-upload me-1"></i>
-      Importar
-    </button>
-
-  </div>
-
-</div>
-
-      </form>
-
-    </div>
-
-  </div>
-
-  <!-- Exemplo -->
-  <div class="card shadow-sm border-0">
-
-    <div class="card-header bg-light">
-      <h6 class="mb-0 fw-semibold">
-        Modelo de Planilha
-      </h6>
-    </div>
-
-    <div class="card-body p-0">
-
-      <div class="table-responsive">
-
-        <table class="table table-bordered table-hover mb-0">
-
-          <thead class="table-light text-center">
-            <tr>
-              <th>Código</th>
-              <th>Descrição</th>
-              <th>Unidade</th>
-              <th>Valor</th>
-              <th>Categoria</th>
-            </tr>
-          </thead>
-
-          <tbody>
-            <tr>
-              <td>MAT0001</td>
-              <td>CABO UTP</td>
-              <td>MT</td>
-              <td>2,50</td>
-              <td>MATERIAL</td>
-            </tr>
-
-            <tr>
-              <td>FERRA0001</td>
-              <td>ALICATE UNIVERSAL</td>
-              <td>UN</td>
-              <td>80,00</td>
-              <td>FERRAMENTA</td>
-            </tr>
-
-            <tr>
-              <td>EPI0001</td>
-              <td>CONE GRANDE</td>
-              <td>UN</td>
-              <td>35,00</td>
-              <td>EPI</td>
-            </tr>
-          </tbody>
-
-        </table>
-
+            <button type="submit" class="btn btn-outline-success w-100">
+              <i class="bi bi-upload me-1"></i>
+              Importar Itens
+            </button>
+          </form>
+        </div>
       </div>
+    </div>
 
+    <div class="col-12">
+      <div class="app-panel">
+        <div class="app-panel-header">
+          <div>
+            <h2>Modelo de planilha</h2>
+            <p>Exemplo de estrutura reconhecida na importação.</p>
+          </div>
+        </div>
+
+        <div class="table-responsive">
+          <table class="table table-hover align-middle mb-0 app-table">
+            <thead>
+              <tr>
+                <th>Código</th>
+                <th>Descrição</th>
+                <th>Unidade</th>
+                <th>Valor</th>
+                <th>Categoria</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr>
+                <td class="fw-semibold">MAT0001</td>
+                <td>CABO UTP</td>
+                <td>MT</td>
+                <td>2,50</td>
+                <td><span class="app-status-pill">MATERIAL</span></td>
+              </tr>
+              <tr>
+                <td class="fw-semibold">FERRA0001</td>
+                <td>ALICATE UNIVERSAL</td>
+                <td>UN</td>
+                <td>80,00</td>
+                <td><span class="app-status-pill">FERRAMENTA</span></td>
+              </tr>
+              <tr>
+                <td class="fw-semibold">EPI0001</td>
+                <td>CONE GRANDE</td>
+                <td>UN</td>
+                <td>35,00</td>
+                <td><span class="app-status-pill">EPI</span></td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
     </div>
 
   </div>
-
 </div>
 
 {% endblock %}
-
