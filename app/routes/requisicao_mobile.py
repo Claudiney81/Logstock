@@ -311,8 +311,17 @@ def buscar_itens_por_estoque(tipo_servico_id, tipo_estoque):
     # Manutenção e Reparo usam o saldo de Instalação.
     tipo_servico_saldo_id = 1
 
-    itens = (
-        db.session.query(Item, Estoque)
+    query = (
+        db.session.query(
+            Item.id.label("id"),
+            Item.codigo.label("codigo"),
+            Item.descricao.label("descricao"),
+            Item.unidade.label("unidade"),
+            Item.valor.label("valor"),
+            Item.categoria.label("categoria"),
+            Item.eh_equipamento.label("eh_equipamento"),
+            db.func.sum(Estoque.quantidade).label("saldo")
+        )
         .join(Estoque, Estoque.item_id == Item.id)
         .filter(
             Estoque.tipo_servico_id == tipo_servico_saldo_id,
@@ -330,13 +339,29 @@ def buscar_itens_por_estoque(tipo_servico_id, tipo_estoque):
                 Item.eh_equipamento == None
             )
         )
+    )
+
+    if tipo_estoque == "empresa" and hasattr(Estoque, "cliente_id"):
+        query = query.filter(Estoque.cliente_id.is_(None))
+
+    itens = (
+        query
+        .group_by(
+            Item.id,
+            Item.codigo,
+            Item.descricao,
+            Item.unidade,
+            Item.valor,
+            Item.categoria,
+            Item.eh_equipamento
+        )
         .order_by(Item.descricao.asc())
         .all()
     )
 
     resultado = []
 
-    for item, estoque in itens:
+    for item in itens:
 
         if not item_eh_material(item):
             continue
@@ -347,7 +372,7 @@ def buscar_itens_por_estoque(tipo_servico_id, tipo_estoque):
             "descricao": item.descricao,
             "unidade": item.unidade,
             "valor": item.valor or 0,
-            "saldo": estoque.quantidade if estoque else 0
+            "saldo": int(item.saldo or 0)
         })
 
     return {"itens": resultado}

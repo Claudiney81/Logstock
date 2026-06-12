@@ -275,13 +275,18 @@ def api_itens():
         if not cliente_id or not ordem_servico_id:
             return jsonify({"itens": []})
 
+    # REGRA LOGISTOCK:
+    # O serviço selecionado classifica a baixa, mas o saldo físico do técnico
+    # fica centralizado em Instalação. Manutenção/Reparo/etc. consomem esse saldo.
+    tipo_servico_saldo_id = 1
+
     query = db.session.query(
         SaldoTecnico.item_id,
         SaldoTecnico.tipo_estoque,
         func.sum(SaldoTecnico.quantidade).label("saldo")
     ).filter(
         SaldoTecnico.tecnico_id == tecnico_id,
-        SaldoTecnico.tipo_servico_id == tipo_servico_id,
+        SaldoTecnico.tipo_servico_id == tipo_servico_saldo_id,
         SaldoTecnico.tipo_estoque == tipo_estoque,
         SaldoTecnico.quantidade > 0
     )
@@ -642,7 +647,7 @@ def aprovar_mobile(baixa_id):
             query_saldo = SaldoTecnico.query.filter(
                 SaldoTecnico.tecnico_id == baixa.tecnico_id,
                 SaldoTecnico.item_id == item_baixa.item_id,
-                SaldoTecnico.tipo_servico_id == baixa.tipo_servico_id,
+                SaldoTecnico.tipo_servico_id == 1,
                 SaldoTecnico.tipo_estoque == tipo_item
             )
 
