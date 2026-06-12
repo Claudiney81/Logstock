@@ -275,10 +275,6 @@ def esqueci_senha():
 
         usuario = Usuario.query.filter_by(email=email).first()
 
-        current_app.logger.warning(
-            f"USUARIO ENCONTRADO = {usuario}"
-        )
-
         if usuario:
 
             token = gerar_token_senha(usuario.id)
@@ -311,11 +307,10 @@ LogiStock
 
             try:
 
-                current_app.logger.warning(
-                    f"LINK DE RESET: {link}"
-                )
-
                 brevo_api_key = os.getenv("BREVO_API_KEY")
+
+                if not brevo_api_key:
+                    raise RuntimeError("BREVO_API_KEY não configurada")
 
                 payload = {
                     "sender": {
@@ -338,10 +333,6 @@ LogiStock
                     "textContent": msg.body
                 }
 
-                current_app.logger.warning(
-                    "ANTES DO BREVO"
-                )
-
                 response = requests.post(
                     "https://api.brevo.com/v3/smtp/email",
                     headers={
@@ -353,27 +344,17 @@ LogiStock
                     timeout=15
                 )
 
-                current_app.logger.warning(
-                    f"STATUS BREVO = {response.status_code}"
-                )
-
-                current_app.logger.warning(
-                    f"RESPOSTA BREVO = {response.text}"
-                )
-
                 response.raise_for_status()
 
-                current_app.logger.warning(
-                    "DEPOIS DO BREVO"
-                )
-
-                current_app.logger.warning(
-                    f"EMAIL BREVO ENVIADO PARA: {usuario.email}"
+                current_app.logger.info(
+                    "E-mail de redefinição enviado para usuário id=%s",
+                    usuario.id
                 )
 
             except Exception:
                 current_app.logger.exception(
-                    f"Erro ao enviar e-mail de redefinição para {usuario.email}"
+                    "Erro ao enviar e-mail de redefinição para usuário id=%s",
+                    usuario.id
                 )
 
         flash(

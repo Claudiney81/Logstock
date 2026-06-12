@@ -532,8 +532,6 @@ class MovimentacaoEstoque(db.Model):
     )
 
     categoria_movimentacao = db.Column(db.String(30), nullable=True)
-
-    categoria_movimentacao = db.Column(db.String(30), nullable=True)
     tipo_movimentacao = db.Column(db.String(30), nullable=True)
     motivo_retorno = db.Column(db.String(255), nullable=True)
 

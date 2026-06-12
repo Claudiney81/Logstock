@@ -1,6 +1,10 @@
 import os
 
 SECRET_KEY = os.getenv("SECRET_KEY", "chave-local-dev")
+SESSION_COOKIE_HTTPONLY = True
+SESSION_COOKIE_SAMESITE = "Lax"
+SESSION_COOKIE_SECURE = bool(os.getenv("RENDER"))
+PREFERRED_URL_SCHEME = "https" if os.getenv("RENDER") else "http"
 
 if os.getenv("RENDER"):
     SQLALCHEMY_DATABASE_URI = os.getenv(

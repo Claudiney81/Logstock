@@ -14,6 +14,7 @@ from flask import (
 )
 from flask_migrate import Migrate
 from flask_login import current_user
+from werkzeug.middleware.proxy_fix import ProxyFix
 from werkzeug.security import check_password_hash, generate_password_hash
 
 from .extensions import db, login_manager, mail
@@ -30,6 +31,31 @@ from app.cli import (
     listar_usuarios,
     deletar_usuario,
 )
+
+
+def _bootstrap_admin_user():
+    admin_email = os.getenv("LOGISTOCK_ADMIN_EMAIL")
+    admin_password = os.getenv("LOGISTOCK_ADMIN_PASSWORD")
+    admin_name = os.getenv("LOGISTOCK_ADMIN_NAME", "Administrador")
+
+    if os.getenv("RENDER") and (not admin_email or not admin_password):
+        return
+
+    if not admin_email or not admin_password:
+        return
+
+    if Usuario.query.filter_by(email=admin_email).first():
+        return
+
+    usuario = Usuario(
+        nome=admin_name,
+        email=admin_email,
+        senha_hash=generate_password_hash(admin_password),
+        perfil="admin",
+    )
+
+    db.session.add(usuario)
+    db.session.commit()
 
 
 def _import_bp(
@@ -51,6 +77,15 @@ def _import_bp(
 def create_app():
     app = Flask(__name__, instance_relative_config=True)
 
+    if os.getenv("RENDER"):
+        app.wsgi_app = ProxyFix(
+            app.wsgi_app,
+            x_for=1,
+            x_proto=1,
+            x_host=1,
+            x_port=1,
+        )
+
     config_path = os.path.join(
         os.path.dirname(os.path.dirname(__file__)),
         "config.py",
@@ -65,19 +100,7 @@ def create_app():
 
     with app.app_context():
         db.create_all()
-
-        if not Usuario.query.filter_by(
-            email="claudineymoura@gmail.com"
-        ).first():
-            usuario = Usuario(
-                nome="Claudiney Moura",
-                email="claudineymoura@gmail.com",
-                senha_hash=generate_password_hash("123456"),
-                perfil="admin",
-            )
-
-            db.session.add(usuario)
-            db.session.commit()
+        _bootstrap_admin_user()
 
     Migrate(app, db)
 
@@ -331,5 +354,12 @@ def create_app():
 
         except (ValueError, TypeError):
             return "R$ 0,00"
+
+    @app.after_request
+    def add_security_headers(response):
+        response.headers.setdefault("X-Content-Type-Options", "nosniff")
+        response.headers.setdefault("X-Frame-Options", "SAMEORIGIN")
+        response.headers.setdefault("Referrer-Policy", "strict-origin-when-cross-origin")
+        return response
 
     return app

@@ -1,7 +1,7 @@
 import os
 
 from flask import Blueprint, jsonify, current_app
-from flask_login import login_required
+from flask_login import login_required, current_user
 
 from app.utils.backup_drive import enviar_backup_google_drive
 
@@ -35,6 +35,12 @@ def localizar_banco_sqlite():
 @bp_backup.route("/executar")
 @login_required
 def executar_backup():
+
+    if getattr(current_user, "perfil", None) not in ["admin", "estoque"]:
+        return jsonify({
+            "status": "erro",
+            "mensagem": "Acesso permitido apenas para admin ou estoque"
+        }), 403
 
     try:
         caminho_banco = localizar_banco_sqlite()

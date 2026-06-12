@@ -156,16 +156,20 @@
               <td class="text-center">
                 {% if m.origem_tipo == 'cliente' %}
 
-                  {{ m.cliente.razao_social if m.cliente else empresas_dict.get(m.origem_id|int, '-') }}
+                  {{ empresas_dict.get(m.origem_id|int, '-') }}
 
                 {% elif m.origem_tipo == 'empresa'
                       and m.destino_tipo == 'tecnico'
-                      and m.cliente_id %}
+                      and m.origem_id %}
 
-                  {{ empresas_dict.get(m.cliente_id|int, '-') }}
+                  {% if m.origem_id|int > 0 %}
+                    {{ empresas_dict.get(m.origem_id|int, '-') }}
 
-                  {% if m.ordem_servico %}
-                    - {{ m.ordem_servico.numero_os }}
+                    {% if m.ordem_servico %}
+                      - {{ m.ordem_servico.numero_os }}
+                    {% endif %}
+                  {% else %}
+                    Empresa
                   {% endif %}
 
                 {% elif m.destino_tipo == 'tecnico'

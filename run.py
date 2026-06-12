@@ -10,22 +10,32 @@ app = create_app()
 # Rota temporária para criar o admin
 @app.get("/_bootstrap_admin")
 def _bootstrap_admin():
+    expected_token = os.getenv("ADMIN_BOOTSTRAP_TOKEN")
     token = request.args.get("token")
-    if token != os.getenv("ADMIN_BOOTSTRAP_TOKEN"):
+
+    if not expected_token or token != expected_token:
         return "Token inválido", 403
 
-    # Verifica se já existe um admin
-    if Usuario.query.filter_by(email="admin@logstock.com").first():
+    admin_email = os.getenv("ADMIN_BOOTSTRAP_EMAIL", "admin@logstock.com")
+    admin_password = os.getenv("ADMIN_BOOTSTRAP_PASSWORD")
+    admin_name = os.getenv("ADMIN_BOOTSTRAP_NAME", "Administrador")
+
+    if not admin_password:
+        return "ADMIN_BOOTSTRAP_PASSWORD não configurada", 400
+
+    if Usuario.query.filter_by(email=admin_email).first():
         return "Usuário admin já existe.", 200
 
     admin = Usuario(
-        nome="Administrador",
-        email="admin@logstock.com",
+        nome=admin_name,
+        email=admin_email,
         perfil="admin",
-        senha_hash=generate_password_hash("811401")  # corrigido para usar o campo certo
+        senha_hash=generate_password_hash(admin_password)
     )
+
     db.session.add(admin)
     db.session.commit()
+
     return "Usuário admin criado com sucesso!", 201
 
 

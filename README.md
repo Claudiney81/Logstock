@@ -67,8 +67,18 @@ Para suporte ou dúvidas, entre em contato com o desenvolvedor.
 gerar banco
 python create_db.py
 
-nome='Admin',
-... email='admin@example.com',
-... senha_hash=generate_password_hash('senha123'),
-
 # LogiStock atualizado
+
+## Variáveis de ambiente no Render
+
+Configure no painel do Render antes de publicar:
+
+- `SECRET_KEY`: chave secreta fixa da aplicação.
+- `DATABASE_URL`: opcional se usar PostgreSQL; sem ela o sistema usa `/var/data/logistock.db`.
+- `MAIL_USERNAME`, `MAIL_PASSWORD` e `MAIL_DEFAULT_SENDER`: envio SMTP.
+- `BREVO_API_KEY`: envio de redefinição de senha pela API Brevo.
+- `GOOGLE_DRIVE_CREDENTIALS_FILE` e `GOOGLE_DRIVE_FOLDER_ID`: backup no Google Drive.
+- `ADMIN_BOOTSTRAP_TOKEN`, `ADMIN_BOOTSTRAP_EMAIL` e `ADMIN_BOOTSTRAP_PASSWORD`: criação manual de admin pela rota temporária `/_bootstrap_admin`.
+- `LOGISTOCK_ADMIN_EMAIL` e `LOGISTOCK_ADMIN_PASSWORD`: criação automática de admin na inicialização, se realmente precisar.
+
+Não versionar arquivos `.db`, `.env`, tokens do Google Drive nem backups.
