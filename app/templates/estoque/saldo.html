@@ -1,98 +1,108 @@
 {% extends 'base.html' %}
 {% block content %}
 
-<style>
-  .saldo-card {
-    border: 0;
-    border-radius: 10px;
-    overflow: hidden;
-  }
+{% set resumo = namespace(total_itens=0, total_qtd=0, criticos=0, valor_total=0) %}
+{% for r in resultados %}
+  {% set resumo.total_itens = resumo.total_itens + 1 %}
+  {% set resumo.total_qtd = resumo.total_qtd + (r.total or 0) %}
+  {% set resumo.valor_total = resumo.valor_total + ((r.total or 0) * (r.valor or 0)) %}
+  {% if (r.quantidade_minima or 0) > 0 and (r.disponivel or 0) <= (r.quantidade_minima or 0) %}
+    {% set resumo.criticos = resumo.criticos + 1 %}
+  {% endif %}
+{% endfor %}
 
-  .saldo-header {
-    background: #002b55;
-    color: #fff;
-  }
+<div class="container-fluid mt-4">
 
-  .btn-saldo-primary {
-    background: #0b2e59;
-    border: 1px solid #0b2e59;
-    color: #fff;
-  }
-
-  .btn-saldo-primary:hover {
-    background: #14447f;
-    border-color: #14447f;
-    color: #fff;
-  }
-
-  .btn-saldo-outline {
-    background: #fff;
-    border: 1px solid #0b2e59;
-    color: #0b2e59;
-  }
-
-  .btn-saldo-outline:hover {
-    background: #eef4fb;
-    color: #0b2e59;
-  }
-
-  .btn-exportar {
-    background: #f7fbf9;
-    border: 1px solid #8cc9a7;
-    color: #146c43;
-  }
-
-  .btn-exportar:hover {
-    background: #e8f6ee;
-    color: #146c43;
-  }
-
-  .btn-alerta-pedido {
-    background: #fff4e6;
-    border: 1px solid #f0b36a;
-    color: #9a4f00;
-  }
-
-  .btn-alerta-pedido:hover {
-    background: #ffe8c7;
-    color: #8a4500;
-  }
-
-  .saldo-table thead {
-    position: sticky;
-    top: 0;
-    z-index: 10;
-    background: #1f252b;
-    color: #fff;
-  }
-
-  .saldo-empty {
-    background: #f8fafc;
-    color: #6c757d;
-    font-weight: 500;
-  }
-
-  .form-control:focus,
-  .form-select:focus {
-    border-color: #0b2e59;
-    box-shadow: 0 0 0 .15rem rgba(11, 46, 89, .12);
-  }
-</style>
-
-<div class="container-fluid mt-3">
-  <div class="card shadow-sm saldo-card">
-
-    <div class="card-header saldo-header">
-      <h5 class="fw-semibold mb-0">
-        <i class="bi bi-box-seam me-2"></i>
-        Saldo de Estoque
-      </h5>
+  <div class="app-page-header">
+    <div>
+      <p class="app-page-kicker">Gestão de Estoque</p>
+      <h1>Saldo de Estoque</h1>
+      <p class="app-page-subtitle">
+        Consulta operacional de saldos por origem, categoria, condição e localização.
+      </p>
     </div>
 
-    <div class="card-body">
+    <div class="app-page-actions">
+      <a
+        href="{{ url_for(
+          'estoque.exportar_saldo_excel',
+          tipo_estoque=tipo_estoque,
+          cliente_id=cliente_id,
+          tipo_servico_id=tipo_servico_id,
+          categoria=categoria
+        ) }}"
+        class="btn btn-outline-success"
+      >
+        <i class="bi bi-file-earmark-excel me-1"></i>
+        Exportar Geral
+      </a>
 
-      <form method="get" action="{{ url_for('estoque.saldo_estoque') }}" class="mb-3">
-        <div class="row g-3">
+      <a
+        href="{{ url_for('estoque.exportar_criticos', tipo_servico_id=tipo_servico_id) }}"
+        class="btn btn-outline-warning"
+      >
+        <i class="bi bi-exclamation-triangle me-1"></i>
+        Alerta Pedido
+      </a>
+    </div>
+  </div>
+
+  <div class="row g-3 mb-4">
+    <div class="col-sm-6 col-xl-3">
+      <div class="app-kpi-card">
+        <span class="app-kpi-icon app-kpi-blue">
+          <i class="bi bi-box-seam"></i>
+        </span>
+        <span class="app-kpi-label">Itens exibidos</span>
+        <strong>{{ resumo.total_itens }}</strong>
+      </div>
+    </div>
+
+    <div class="col-sm-6 col-xl-3">
+      <div class="app-kpi-card">
+        <span class="app-kpi-icon app-kpi-green">
+          <i class="bi bi-stack"></i>
+        </span>
+        <span class="app-kpi-label">Quantidade total</span>
+        <strong>{{ resumo.total_qtd }}</strong>
+      </div>
+    </div>
+
+    <div class="col-sm-6 col-xl-3">
+      <div class="app-kpi-card">
+        <span class="app-kpi-icon app-kpi-yellow">
+          <i class="bi bi-exclamation-triangle"></i>
+        </span>
+        <span class="app-kpi-label">Abaixo do mínimo</span>
+        <strong>{{ resumo.criticos }}</strong>
+      </div>
+    </div>
+
+    <div class="col-sm-6 col-xl-3">
+      <div class="app-kpi-card">
+        <span class="app-kpi-icon app-kpi-gray">
+          <i class="bi bi-cash-coin"></i>
+        </span>
+        <span class="app-kpi-label">Valor estimado</span>
+        <strong style="font-size:1.25rem;">
+          R$ {{ "{:,.2f}".format(resumo.valor_total or 0).replace(",", "X").replace(".", ",").replace("X", ".") }}
+        </strong>
+      </div>
+    </div>
+  </div>
+
+  <div class="app-panel">
+
+    <div class="app-panel-header">
+      <div>
+        <h2>Filtros de consulta</h2>
+        <p>Selecione a origem do estoque antes de analisar ou editar mínimos e endereços.</p>
+      </div>
+    </div>
+
+    <div class="p-3 border-bottom">
+      <form method="get" action="{{ url_for('estoque.saldo_estoque') }}">
+        <div class="row g-3 align-items-end">
 
           <div class="col-md-3">
             <label class="form-label fw-semibold">Tipo de Estoque</label>
@@ -100,6 +110,18 @@
               <option value="">Selecione</option>
               <option value="empresa" {% if tipo_estoque == 'empresa' %}selected{% endif %}>Estoque Empresa</option>
               <option value="cliente" {% if tipo_estoque == 'cliente' %}selected{% endif %}>Estoque Cliente</option>
+            </select>
+          </div>
+
+          <div class="col-md-3" id="cliente_div" style="display:none;">
+            <label class="form-label fw-semibold">Cliente</label>
+            <select name="cliente_id" class="form-select" onchange="this.form.submit()">
+              <option value="">Todos</option>
+              {% for c in clientes %}
+              <option value="{{ c.id }}" {% if cliente_id == c.id %}selected{% endif %}>
+                {{ c.razao_social }}
+              </option>
+              {% endfor %}
             </select>
           </div>
 
@@ -125,174 +147,130 @@
             </select>
           </div>
 
-          <div class="col-md-3" id="cliente_div" style="display:none;">
-            <label class="form-label fw-semibold">Cliente</label>
-            <select name="cliente_id" class="form-select" onchange="this.form.submit()">
-              <option value="">Todos</option>
-              {% for c in clientes %}
-              <option value="{{ c.id }}" {% if cliente_id == c.id %}selected{% endif %}>
-                {{ c.razao_social }}
-              </option>
-              {% endfor %}
-            </select>
+          <div class="col-md-3">
+            <label class="form-label fw-semibold">Pesquisar na tabela</label>
+            <input id="buscaSaldo" class="form-control" placeholder="Código ou descrição">
+          </div>
+
+          <div class="col-md-auto d-grid">
+            <a href="{{ url_for('estoque.saldo_estoque') }}" class="btn btn-outline-secondary">
+              Limpar
+            </a>
           </div>
 
         </div>
       </form>
+    </div>
 
-      <div class="row g-2 mb-3">
-        <div class="col-md-4">
-          <label class="form-label fw-semibold">Pesquisar item</label>
-          <input id="buscaSaldo" class="form-control" placeholder="Código ou descrição">
-        </div>
+    <form method="post">
+      <input type="hidden" name="tipo_estoque" value="{{ tipo_estoque or '' }}">
+      <input type="hidden" name="cliente_id" value="{{ cliente_id or '' }}">
+      <input type="hidden" name="tipo_servico_id" value="{{ tipo_servico_id or '' }}">
+      <input type="hidden" name="categoria" value="{{ categoria or '' }}">
 
-        <div class="col-md-4 d-flex gap-2">
+      <div class="table-responsive" style="max-height: 68vh; overflow-y: auto;">
+        <table id="tabelaSaldo" class="table table-hover align-middle mb-0 app-table">
 
-          <div class="w-50">
-            <label class="form-label invisible">.</label>
+          <thead style="position: sticky; top: 0; z-index: 10;">
+            <tr>
+              <th>Código</th>
+              <th>Descrição</th>
+              <th>Un.</th>
+              <th>Valor</th>
+              <th class="text-end">Disponível</th>
+              <th class="text-end">Usado Bom</th>
+              <th class="text-end">Novo Def.</th>
+              <th class="text-end">Usado Def.</th>
+              <th class="text-end">Total</th>
+              <th>Estoque Mínimo</th>
+              <th>Endereço</th>
+            </tr>
+          </thead>
 
-            <a
-              href="{{ url_for(
-                'estoque.exportar_saldo_excel',
-                tipo_estoque=tipo_estoque,
-                cliente_id=cliente_id,
-                tipo_servico_id=tipo_servico_id,
-                categoria=categoria
-              ) }}"
-              class="btn btn-exportar w-100"
-            >
-              <i class="bi bi-file-earmark-excel me-1"></i>
-              Exportar Geral
-            </a>
-          </div>
+          <tbody>
+            {% if resultados %}
+              {% for r in resultados %}
+              {% set alerta_minimo = (r.quantidade_minima or 0) > 0 and (r.disponivel or 0) <= (r.quantidade_minima or 0) %}
+              <tr>
+                <td class="fw-semibold text-nowrap">{{ r.codigo }}</td>
+                <td>
+                  <div class="fw-semibold">{{ r.descricao }}</div>
+                  {% if r.categoria %}
+                    <small class="text-muted">{{ r.categoria }}</small>
+                  {% endif %}
+                </td>
+                <td class="text-nowrap">{{ r.unidade }}</td>
 
-          <div class="w-50">
-            <label class="form-label invisible">.</label>
+                <td class="text-nowrap">
+                  R$ {{ "{:,.2f}".format(r.valor or 0).replace(",", "X").replace(".", ",").replace("X", ".") }}
+                </td>
 
-            <a
-              href="{{ url_for(
-                'estoque.exportar_criticos',
-                tipo_servico_id=tipo_servico_id
-              ) }}"
-              class="btn btn-alerta-pedido w-100"
-            >
-              <i class="bi bi-exclamation-triangle-fill me-1"></i>
-              Alerta Pedido
-            </a>
-          </div>
+                <td class="text-end {% if alerta_minimo %}text-danger fw-bold{% endif %}">
+                  {{ r.disponivel or 0 }}
+                </td>
 
-        </div>
+                <td class="text-end">{{ r.usado_bom or 0 }}</td>
+                <td class="text-end">{{ r.novo_defeito or 0 }}</td>
+                <td class="text-end">{{ r.usado_defeito or 0 }}</td>
+
+                <td class="text-end fw-bold">
+                  {{ r.total or 0 }}
+                </td>
+
+                <td style="min-width: 130px;">
+                  <input
+                    type="text"
+                    name="minimos[{{ r.item_id }}]"
+                    value="{{ r.quantidade_minima or '' }}"
+                    class="form-control form-control-sm"
+                  >
+                </td>
+
+                <td style="min-width: 220px;">
+                  <input
+                    type="text"
+                    name="enderecos[{{ r.item_id }}]"
+                    value="{{ r.endereco or '' }}"
+                    class="form-control form-control-sm"
+                  >
+                </td>
+              </tr>
+              {% endfor %}
+            {% else %}
+              <tr>
+                <td colspan="11" class="text-center text-muted py-5">
+                  {% if not tipo_estoque %}
+                    <i class="bi bi-info-circle me-1"></i>
+                    Selecione o tipo de estoque para consultar os saldos.
+                  {% elif tipo_estoque == 'cliente' and not cliente_id %}
+                    <i class="bi bi-info-circle me-1"></i>
+                    Selecione um cliente para consultar o estoque do cliente.
+                  {% else %}
+                    <i class="bi bi-search me-1"></i>
+                    Nenhum registro encontrado.
+                  {% endif %}
+                </td>
+              </tr>
+            {% endif %}
+          </tbody>
+
+        </table>
       </div>
 
-      <form method="post">
-        <input type="hidden" name="tipo_estoque" value="{{ tipo_estoque or '' }}">
-        <input type="hidden" name="cliente_id" value="{{ cliente_id or '' }}">
-        <input type="hidden" name="tipo_servico_id" value="{{ tipo_servico_id or '' }}">
-        <input type="hidden" name="categoria" value="{{ categoria or '' }}">
+      <div class="d-flex gap-2 justify-content-end flex-wrap p-3 border-top">
+        <button type="submit" class="btn btn-primary" formaction="{{ url_for('estoque.atualizar_enderecos') }}">
+          <i class="bi bi-geo-alt me-1"></i>
+          Salvar Endereços
+        </button>
 
-        <div class="table-responsive" style="max-height: 70vh; overflow-y: auto;">
-          <table id="tabelaSaldo" class="table table-bordered table-hover table-striped align-middle table-sm saldo-table">
+        <button type="submit" class="btn btn-outline-primary" formaction="{{ url_for('estoque.atualizar_minimos') }}">
+          <i class="bi bi-save me-1"></i>
+          Salvar Mínimos
+        </button>
+      </div>
 
-            <thead>
-              <tr>
-                <th>Código</th>
-                <th>Descrição</th>
-                <th>Unidade</th>
-                <th>Valor (R$)</th>
-                <th>Disponível</th>
-                <th>Usado Bom</th>
-                <th>Novo Defeito</th>
-                <th>Usado Defeito</th>
-                <th>Total</th>
-                <th>Estoque Mínimo</th>
-                <th>Endereço</th>
-              </tr>
-            </thead>
+    </form>
 
-            <tbody>
-              {% if resultados %}
-                {% for r in resultados %}
-                <tr>
-                  <td>{{ r.codigo }}</td>
-                  <td>{{ r.descricao }}</td>
-                  <td>{{ r.unidade }}</td>
-
-                  <td>
-                    R$ {{ "{:,.2f}".format(r.valor or 0).replace(",", "X").replace(".", ",").replace("X", ".") }}
-                  </td>
-
-                  <td class="{% if (r.disponivel or 0) <= (r.quantidade_minima or 0) %}table-danger fw-bold{% endif %}">
-                    {{ r.disponivel or 0 }}
-                  </td>
-
-                  <td>
-                    {{ r.usado_bom or 0 }}
-                  </td>
-
-                  <td>
-                    {{ r.novo_defeito or 0 }}
-                  </td>
-
-                  <td>
-                    {{ r.usado_defeito or 0 }}
-                  </td>
-
-                  <td class="fw-bold">
-                    {{ r.total or 0 }}
-                  </td>
-
-                  <td style="min-width: 120px;">
-                    <input
-                      type="text"
-                      name="minimos[{{ r.item_id }}]"
-                      value="{{ r.quantidade_minima or '' }}"
-                      class="form-control form-control-sm"
-                    >
-                  </td>
-
-                  <td style="min-width: 180px;">
-                    <input
-                      type="text"
-                      name="enderecos[{{ r.item_id }}]"
-                      value="{{ r.endereco or '' }}"
-                      class="form-control form-control-sm"
-                    >
-                  </td>
-                </tr>
-                {% endfor %}
-              {% else %}
-                <tr>
-                  <td colspan="11" class="text-center py-4 saldo-empty">
-                    {% if not tipo_estoque %}
-                      <i class="bi bi-info-circle me-1"></i>
-                      Selecione o tipo de estoque para consultar os saldos.
-                    {% else %}
-                      <i class="bi bi-search me-1"></i>
-                      Nenhum registro encontrado.
-                    {% endif %}
-                  </td>
-                </tr>
-              {% endif %}
-            </tbody>
-
-          </table>
-        </div>
-
-        <div class="d-flex gap-2 justify-content-end mt-3">
-          <button type="submit" class="btn btn-saldo-primary" formaction="{{ url_for('estoque.atualizar_enderecos') }}">
-            <i class="bi bi-geo-alt me-1"></i>
-            Salvar Endereços
-          </button>
-
-          <button type="submit" class="btn btn-saldo-outline" formaction="{{ url_for('estoque.atualizar_minimos') }}">
-            <i class="bi bi-save me-1"></i>
-            Salvar Mínimos
-          </button>
-        </div>
-
-      </form>
-
-    </div>
   </div>
 </div>
 
@@ -304,18 +282,11 @@ document.addEventListener("DOMContentLoaded", function () {
   const tipoServicoDiv = document.getElementById("tipo_servico_div");
   const categoriaDiv = document.getElementById("categoria_div");
   const buscaSaldo = document.getElementById("buscaSaldo");
-
-  const exportarSaldoCSV =
-    document.getElementById("exportarSaldoCSV");
-
-  const exportarSaldo =
-    document.getElementById("exportarSaldo");
-
-  const tabela =
-    document.getElementById("tabelaSaldo");
-
+  const tabela = document.getElementById("tabelaSaldo");
 
   function toggleFiltros() {
+    if (!tipo) return;
+
     if (tipo.value === "cliente") {
       clienteDiv.style.display = "block";
       tipoServicoDiv.style.display = "block";
@@ -334,124 +305,19 @@ document.addEventListener("DOMContentLoaded", function () {
   }
 
   toggleFiltros();
-
-  tipo.addEventListener(
-    "change",
-    toggleFiltros
-  );
-
+  tipo?.addEventListener("change", toggleFiltros);
 
   if (buscaSaldo && tabela) {
+    buscaSaldo.addEventListener("keyup", function () {
+      const termo = this.value.toLowerCase();
+      const linhas = tabela.querySelectorAll("tbody tr");
 
-    buscaSaldo.addEventListener(
-      "keyup",
-      function () {
-
-        const termo =
-          this.value.toLowerCase();
-
-        const linhas =
-          tabela.querySelectorAll("tbody tr");
-
-        linhas.forEach(function (linha) {
-
-          const texto =
-            linha.innerText.toLowerCase();
-
-          linha.style.display =
-            texto.includes(termo)
-              ? ""
-              : "none";
-        });
-      }
-    );
-  }
-
-
-  function exportarTabelaCSV(nomeArquivo) {
-
-    let csv = [];
-
-    const linhas =
-      tabela.querySelectorAll("tr");
-
-    linhas.forEach(function (linha) {
-
-      let cols =
-        linha.querySelectorAll("th, td");
-
-      let dados = [];
-
-      cols.forEach(function (col) {
-
-        let input =
-          col.querySelector("input");
-
-        let texto =
-          input
-            ? input.value
-            : col.innerText;
-
-        texto = texto
-          .replace(/\s+/g, " ")
-          .trim();
-
-        texto = texto.replace(/"/g, '""');
-
-        dados.push(
-          '"' + texto + '"'
-        );
+      linhas.forEach(function (linha) {
+        const texto = linha.innerText.toLowerCase();
+        linha.style.display = texto.includes(termo) ? "" : "none";
       });
-
-      csv.push(
-        dados.join(";")
-      );
     });
-
-    const blob = new Blob(
-      ["\uFEFF" + csv.join("\n")],
-      {
-        type:
-          "text/csv;charset=utf-8;"
-      }
-    );
-
-    const link =
-      document.createElement("a");
-
-    link.href =
-      URL.createObjectURL(blob);
-
-    link.download =
-      nomeArquivo;
-
-    link.click();
   }
-
-
-  if (exportarSaldoCSV && tabela) {
-    exportarSaldoCSV.addEventListener(
-      "click",
-      function () {
-        exportarTabelaCSV(
-          "saldo_estoque.csv"
-        );
-      }
-    );
-  }
-
-
-  if (exportarSaldo && tabela) {
-    exportarSaldo.addEventListener(
-      "click",
-      function () {
-        exportarTabelaCSV(
-          "saldo_estoque_geral.csv"
-        );
-      }
-    );
-  }
-
 });
 </script>
 {% endblock %}
