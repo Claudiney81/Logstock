@@ -1,167 +1,121 @@
 {% extends 'base.html' %}
-
 {% block content %}
 
 <div class="container-fluid mt-4">
 
-  <div class="row justify-content-center">
-    <div class="col-lg-8">
+  <div class="app-page-header">
+    <div>
+      <p class="app-page-kicker">Técnicos</p>
+      <h1>Cadastro de Técnico</h1>
+      <p class="app-page-subtitle">
+        Cadastre o técnico e gere o acesso inicial ao portal mobile.
+      </p>
+    </div>
 
-      <div class="card shadow-sm border-0">
-
-        <!-- Cabeçalho -->
-        <div
-          class="card-header text-white"
-          style="background:#002b55;"
-        >
-          <h5 class="mb-0 fw-semibold">
-            <i class="bi bi-person-plus me-2"></i>
-            Cadastro de Técnico
-          </h5>
-        </div>
-
-        <div class="card-body">
-
-          <form
-            method="POST"
-            action="{{ url_for('tecnicos.cadastrar_tecnico') }}"
-            onsubmit="desativarBotao()"
-          >
-
-            <div class="row g-3">
-
-              <div class="col-md-6">
-                <label for="nome" class="form-label fw-semibold">
-                  Nome
-                </label>
-                <input
-                  type="text"
-                  name="nome"
-                  id="nome"
-                  class="form-control"
-                  placeholder="Ex: João da Silva"
-                  required
-                />
-              </div>
-
-              <div class="col-md-6">
-                <label for="matricula" class="form-label fw-semibold">
-                  Matrícula / Login
-                </label>
-                <input
-                  type="text"
-                  name="matricula"
-                  id="matricula"
-                  class="form-control text-lowercase"
-                  placeholder="Ex: joaosilva"
-                  required
-                />
-              </div>
-
-              <div class="col-md-4">
-                <label for="cpf" class="form-label fw-semibold">
-                  CPF
-                </label>
-                <input
-                  type="text"
-                  name="cpf"
-                  id="cpf"
-                  class="form-control"
-                  placeholder="000.000.000-00"
-                  required
-                />
-              </div>
-
-              <div class="col-md-4">
-                <label for="telefone" class="form-label fw-semibold">
-                  Telefone
-                </label>
-                <input
-                  type="text"
-                  name="telefone"
-                  id="telefone"
-                  class="form-control"
-                  placeholder="(99) 99999-9999"
-                />
-              </div>
-
-              <div class="col-md-4">
-                <label for="email" class="form-label fw-semibold">
-                  E-mail
-                </label>
-                <input
-                  type="email"
-                  name="email"
-                  id="email"
-                  class="form-control"
-                  placeholder="exemplo@email.com"
-                />
-              </div>
-
-              <div class="col-md-6">
-                <label for="funcao" class="form-label fw-semibold">
-                  Função
-                </label>
-
-                <select
-                  name="funcao"
-                  id="funcao"
-                  class="form-select"
-                >
-                  <option value="">Selecione</option>
-                  <option value="Instalador">Instalador</option>
-                  <option value="Reparador">Reparador</option>
-                  <option value="Supervisor">Supervisor</option>
-                  <option value="Lançamento">Lançamento</option>
-                  <option value="Fibra">Fibra</option>
-                  <option value="Técnico Externo">Técnico Externo</option>
-                  <option value="Técnico Interno">Técnico Interno</option>
-                </select>
-              </div>
-
-              <div class="col-md-6">
-                <label for="status" class="form-label fw-semibold">
-                  Status
-                </label>
-
-                <select
-                  name="status"
-                  id="status"
-                  class="form-select"
-                >
-                  <option value="Ativo">Ativo</option>
-                  <option value="Inativo">Inativo</option>
-                </select>
-              </div>
-
-            </div>
-
-            <div class="mt-4 d-flex justify-content-end">
-
-              <button
-                type="submit"
-                class="btn btn-primary px-4"
-                id="botaoCadastrar"
-              >
-                <i class="bi bi-check-circle me-1"></i>
-                Cadastrar Técnico
-              </button>
-
-            </div>
-
-          </form>
-
-        </div>
-
-      </div>
-
+    <div class="app-page-actions">
+      <a href="{{ url_for('tecnicos.listar_tecnicos') }}" class="btn btn-outline-primary">
+        <i class="bi bi-people me-1"></i>
+        Técnicos
+      </a>
     </div>
   </div>
 
+  <div class="row g-3 mb-4">
+    <div class="col-sm-6 col-xl-4">
+      <div class="app-kpi-card">
+        <span class="app-kpi-icon app-kpi-blue"><i class="bi bi-person-plus"></i></span>
+        <span class="app-kpi-label">Novo cadastro</span>
+        <strong style="font-size:1.05rem;">Técnico</strong>
+      </div>
+    </div>
+    <div class="col-sm-6 col-xl-4">
+      <div class="app-kpi-card">
+        <span class="app-kpi-icon app-kpi-green"><i class="bi bi-phone"></i></span>
+        <span class="app-kpi-label">Acesso mobile</span>
+        <strong style="font-size:1.05rem;">QR Code</strong>
+      </div>
+    </div>
+    <div class="col-sm-6 col-xl-4">
+      <div class="app-kpi-card">
+        <span class="app-kpi-icon app-kpi-yellow"><i class="bi bi-key"></i></span>
+        <span class="app-kpi-label">Senha inicial</span>
+        <strong style="font-size:1.05rem;">CPF</strong>
+      </div>
+    </div>
+  </div>
+
+  <div class="app-panel" style="max-width: 980px;">
+    <div class="app-panel-header">
+      <div>
+        <h2>Dados do técnico</h2>
+        <p>Nome, login, contato e situação operacional.</p>
+      </div>
+    </div>
+
+    <form method="POST" action="{{ url_for('tecnicos.cadastrar_tecnico') }}" onsubmit="desativarBotao()" class="p-3">
+      <div class="row g-3">
+        <div class="col-md-6">
+          <label for="nome" class="form-label fw-semibold">Nome</label>
+          <input type="text" name="nome" id="nome" class="form-control" placeholder="Ex: João da Silva" required>
+        </div>
+
+        <div class="col-md-6">
+          <label for="matricula" class="form-label fw-semibold">Matrícula / Login</label>
+          <input type="text" name="matricula" id="matricula" class="form-control text-lowercase" placeholder="Ex: joaosilva" required>
+        </div>
+
+        <div class="col-md-4">
+          <label for="cpf" class="form-label fw-semibold">CPF</label>
+          <input type="text" name="cpf" id="cpf" class="form-control" placeholder="000.000.000-00" required>
+        </div>
+
+        <div class="col-md-4">
+          <label for="telefone" class="form-label fw-semibold">Telefone</label>
+          <input type="text" name="telefone" id="telefone" class="form-control" placeholder="(99) 99999-9999">
+        </div>
+
+        <div class="col-md-4">
+          <label for="email" class="form-label fw-semibold">E-mail</label>
+          <input type="email" name="email" id="email" class="form-control" placeholder="exemplo@email.com">
+        </div>
+
+        <div class="col-md-6">
+          <label for="funcao" class="form-label fw-semibold">Função</label>
+          <select name="funcao" id="funcao" class="form-select">
+            <option value="">Selecione</option>
+            <option value="Instalador">Instalador</option>
+            <option value="Reparador">Reparador</option>
+            <option value="Supervisor">Supervisor</option>
+            <option value="Lançamento">Lançamento</option>
+            <option value="Fibra">Fibra</option>
+            <option value="Técnico Externo">Técnico Externo</option>
+            <option value="Técnico Interno">Técnico Interno</option>
+          </select>
+        </div>
+
+        <div class="col-md-6">
+          <label for="status" class="form-label fw-semibold">Status</label>
+          <select name="status" id="status" class="form-select">
+            <option value="Ativo">Ativo</option>
+            <option value="Inativo">Inativo</option>
+          </select>
+        </div>
+      </div>
+
+      <div class="d-flex justify-content-end gap-2 mt-4">
+        <a href="{{ url_for('tecnicos.listar_tecnicos') }}" class="btn btn-outline-secondary">
+          Cancelar
+        </a>
+        <button type="submit" class="btn btn-primary px-4" id="botaoCadastrar">
+          <i class="bi bi-check-circle me-1"></i>
+          Cadastrar Técnico
+        </button>
+      </div>
+    </form>
+  </div>
 </div>
 
 <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
-
 <script src="https://cdnjs.cloudflare.com/ajax/libs/jquery.mask/1.14.16/jquery.mask.min.js"></script>
 
 <script>
@@ -171,12 +125,9 @@
   });
 
   function desativarBotao() {
-    const botao =
-      document.getElementById("botaoCadastrar");
-
+    const botao = document.getElementById("botaoCadastrar");
     botao.disabled = true;
-    botao.innerHTML =
-      '<i class="bi bi-hourglass-split me-1"></i> Cadastrando...';
+    botao.innerHTML = '<i class="bi bi-hourglass-split me-1"></i> Cadastrando...';
   }
 </script>
 

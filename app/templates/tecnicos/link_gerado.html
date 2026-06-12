@@ -1,72 +1,84 @@
 {% extends 'base.html' %}
 
 {% block content %}
-<div class="container mt-4 text-center">
+<div class="container-fluid mt-4">
 
-  <div class="card shadow-sm border-0">
-    <div class="card-body p-4">
-
-      <h3 class="mb-4 text-success">
-        ✅ Acesso do Técnico Gerado
-      </h3>
-
-      <p>
-        <strong>Técnico:</strong> {{ nome }}
+  <div class="app-page-header">
+    <div>
+      <p class="app-page-kicker">Técnicos</p>
+      <h1>Acesso do Técnico Gerado</h1>
+      <p class="app-page-subtitle">
+        Envie o link de acesso mobile ao técnico cadastrado.
       </p>
+    </div>
 
-      <p>
-        <strong>Senha inicial:</strong> {{ senha_gerada }}
-      </p>
-
-      <img
-        src="{{ url_for('static', filename='qrcodes/' ~ qr_filename) }}"
-        width="220"
-        class="img-fluid border rounded p-2 my-3"
-      >
-
-      <div class="alert alert-info mt-3">
-
-        <strong>Link de acesso:</strong>
-
-        <div class="mt-2">
-          <input
-            type="text"
-            class="form-control text-center"
-            value="{{ link }}"
-            readonly
-          >
-        </div>
-
-      </div>
-
-      <div class="mt-4 d-flex justify-content-center gap-2 flex-wrap">
-
-        <a
-          href="{{ link }}"
-          target="_blank"
-          class="btn btn-primary"
-        >
-          🔗 Abrir Login Técnico
-        </a>
-
-        <a
-          href="https://wa.me/?text={{ mensagem_whatsapp | urlencode }}"
-          target="_blank"
-          class="btn btn-success"
-        >
-          📲 Enviar via WhatsApp
-        </a>
-
-      </div>
-
-      <a
-        href="{{ url_for('tecnicos.listar_tecnicos') }}"
-        class="btn btn-secondary mt-4"
-      >
-        ⬅ Voltar
+    <div class="app-page-actions">
+      <a href="{{ url_for('tecnicos.listar_tecnicos') }}" class="btn btn-outline-secondary">
+        <i class="bi bi-arrow-left me-1"></i>
+        Técnicos
       </a>
-
     </div>
   </div>
+
+  <div class="row g-4">
+    <div class="col-lg-4">
+      <div class="app-panel h-100">
+        <div class="app-panel-header">
+          <div>
+            <h2>QR Code</h2>
+            <p>{{ nome }}</p>
+          </div>
+        </div>
+
+        <div class="p-4 text-center">
+          <img
+            src="{{ url_for('static', filename='qrcodes/' ~ qr_filename) }}"
+            width="230"
+            class="img-fluid border rounded p-2 bg-white"
+            alt="QR Code de acesso"
+          >
+        </div>
+      </div>
+    </div>
+
+    <div class="col-lg-8">
+      <div class="app-panel">
+        <div class="app-panel-header">
+          <div>
+            <h2>Dados de acesso</h2>
+            <p>Senha inicial e link para abertura do portal técnico.</p>
+          </div>
+        </div>
+
+        <div class="p-3">
+          <div class="row g-3 mb-3">
+            <div class="col-md-6">
+              <label class="form-label fw-semibold">Técnico</label>
+              <input type="text" class="form-control" value="{{ nome }}" readonly>
+            </div>
+            <div class="col-md-6">
+              <label class="form-label fw-semibold">Senha inicial</label>
+              <input type="text" class="form-control" value="{{ senha_gerada }}" readonly>
+            </div>
+          </div>
+
+          <label class="form-label fw-semibold">Link de acesso</label>
+          <input type="text" class="form-control" value="{{ link }}" readonly>
+
+          <div class="d-flex flex-wrap gap-2 mt-4">
+            <a href="{{ link }}" target="_blank" class="btn btn-primary">
+              <i class="bi bi-box-arrow-up-right me-1"></i>
+              Abrir Login Técnico
+            </a>
+            <a href="https://wa.me/?text={{ mensagem_whatsapp | urlencode }}" target="_blank" class="btn btn-success">
+              <i class="bi bi-whatsapp me-1"></i>
+              Enviar via WhatsApp
+            </a>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
 </div>
 {% endblock %}

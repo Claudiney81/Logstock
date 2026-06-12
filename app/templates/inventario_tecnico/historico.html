@@ -2,50 +2,27 @@
 
 {% block content %}
 
+{% set ns = namespace(material=0, ferramenta=0, epi=0) %}
+{% for inv in inventarios %}
+  {% set categoria_inv = inv.itens[0].item.categoria if inv.itens and inv.itens[0].item and inv.itens[0].item.categoria else 'MATERIAL' %}
+  {% if categoria_inv == 'FERRAMENTA' %}
+    {% set ns.ferramenta = ns.ferramenta + 1 %}
+  {% elif categoria_inv == 'EPI' %}
+    {% set ns.epi = ns.epi + 1 %}
+  {% else %}
+    {% set ns.material = ns.material + 1 %}
+  {% endif %}
+{% endfor %}
+
 <style>
-  .table-inv th {
-    font-size: 0.88rem;
-    white-space: nowrap;
-    color: #111827;
-  }
-
+  .table-inv th,
   .table-inv td {
-    font-size: 0.88rem;
     vertical-align: middle;
+    font-size: .88rem;
   }
 
-  .badge-soft {
-    display: inline-block;
-    min-width: 135px;
-    padding: 6px 12px;
-    border-radius: 6px;
-    font-size: 0.76rem;
-    font-weight: 700;
-    text-align: center;
-  }
-
-  .badge-soft-blue {
-    background: #e8f1fb;
-    color: #24527a;
-    border: 1px solid #c8ddf2;
-  }
-
-  .badge-soft-green {
-    background: #eaf7ee;
-    color: #2f6b43;
-    border: 1px solid #cfe8d6;
-  }
-
-  .badge-soft-gray {
-    background: #f3f4f6;
-    color: #374151;
-    border: 1px solid #d1d5db;
-  }
-
-  .badge-soft-yellow {
-    background: #fff7e6;
-    color: #8a5a00;
-    border: 1px solid #f1d28a;
+  .table-inv th {
+    white-space: nowrap;
   }
 
   .btn-icon-text {
@@ -55,136 +32,128 @@
     align-items: center;
     justify-content: center;
     border-radius: 6px;
-    font-size: 0.78rem;
+    font-size: .78rem;
     font-weight: 600;
   }
 </style>
 
 <div class="container-fluid mt-4">
 
-  <div class="card shadow-sm border-0">
+  <div class="app-page-header">
+    <div>
+      <p class="app-page-kicker">Técnicos</p>
+      <h1>Inventários Técnicos</h1>
+      <p class="app-page-subtitle">
+        Histórico das conferências de materiais, ferramentas e EPIs.
+      </p>
+    </div>
 
-    <div class="card-header text-white d-flex justify-content-between align-items-center"
-         style="background-color: #002b55;">
-
-      <h5 class="mb-0 fw-semibold">
-        <i class="bi bi-clock-history me-2"></i>
-        Histórico de Inventários Técnicos
-      </h5>
-
-      <a href="{{ url_for('inventario_tecnico.registrar_inventario') }}"
-         class="btn btn-light btn-sm">
+    <div class="app-page-actions">
+      <a href="{{ url_for('inventario_tecnico.registrar_inventario') }}" class="btn btn-primary">
         <i class="bi bi-plus-circle me-1"></i>
         Novo Inventário
       </a>
+    </div>
+  </div>
 
+  <div class="row g-3 mb-4">
+    <div class="col-sm-6 col-xl-3">
+      <div class="app-kpi-card">
+        <span class="app-kpi-icon app-kpi-blue"><i class="bi bi-clipboard-check"></i></span>
+        <span class="app-kpi-label">Inventários</span>
+        <strong>{{ inventarios|length }}</strong>
+      </div>
+    </div>
+    <div class="col-sm-6 col-xl-3">
+      <div class="app-kpi-card">
+        <span class="app-kpi-icon app-kpi-green"><i class="bi bi-box-seam"></i></span>
+        <span class="app-kpi-label">Materiais</span>
+        <strong>{{ ns.material }}</strong>
+      </div>
+    </div>
+    <div class="col-sm-6 col-xl-3">
+      <div class="app-kpi-card">
+        <span class="app-kpi-icon app-kpi-yellow"><i class="bi bi-tools"></i></span>
+        <span class="app-kpi-label">Ferramentas</span>
+        <strong>{{ ns.ferramenta }}</strong>
+      </div>
+    </div>
+    <div class="col-sm-6 col-xl-3">
+      <div class="app-kpi-card">
+        <span class="app-kpi-icon app-kpi-purple"><i class="bi bi-shield-check"></i></span>
+        <span class="app-kpi-label">EPIs</span>
+        <strong>{{ ns.epi }}</strong>
+      </div>
+    </div>
+  </div>
+
+  <div class="app-panel">
+    <div class="app-panel-header">
+      <div>
+        <h2>Registros encontrados</h2>
+        <p>{{ inventarios|length }} inventário(s) registrado(s).</p>
+      </div>
     </div>
 
-    <div class="card-body">
+    <div class="table-responsive">
+      <table class="table table-hover align-middle table-inv mb-0">
+        <thead class="table-light">
+          <tr>
+            <th style="width:70px;">#</th>
+            <th>Técnico</th>
+            <th>Categoria</th>
+            <th>Tipo de Serviço</th>
+            <th>Data</th>
+            <th>Responsável</th>
+            <th class="text-center" style="width:170px;">Ações</th>
+          </tr>
+        </thead>
 
-      {% if inventarios %}
-
-      <div class="table-responsive">
-
-        <table class="table table-hover align-middle table-inv">
-
-          <thead class="table-light text-center">
-            <tr>
-              <th style="width:70px;">#</th>
-              <th>Técnico</th>
-              <th style="width:170px;">Categoria</th>
-              <th style="width:220px;">Tipo de Serviço</th>
-              <th style="width:180px;">Data</th>
-              <th>Responsável</th>
-              <th style="width:150px;">Ações</th>
-            </tr>
-          </thead>
-
-          <tbody>
-
-            {% for inv in inventarios %}
-            {% set categoria_inv = inv.itens[0].item.categoria if inv.itens and inv.itens[0].item and inv.itens[0].item.categoria else 'MATERIAL' %}
-
-            <tr>
-
-              <td class="text-center fw-semibold">
-                {{ inv.id }}
-              </td>
-
-              <td>
-                {{ inv.tecnico.nome if inv.tecnico else '-' }}
-              </td>
-
-              <td class="text-center">
-                {% if categoria_inv == 'FERRAMENTA' %}
-                  <span class="badge-soft badge-soft-yellow">FERRAMENTA</span>
-                {% elif categoria_inv == 'EPI' %}
-                  <span class="badge-soft badge-soft-blue">EPI</span>
-                {% else %}
-                  <span class="badge-soft badge-soft-gray">MATERIAL</span>
-                {% endif %}
-              </td>
-
-              <td class="text-center">
-                {% if inv.tipo_servico %}
-                  <span class="badge-soft badge-soft-blue">
-                    {{ inv.tipo_servico.nome }}
-                  </span>
-                {% else %}
-                  <span class="badge-soft badge-soft-gray">
-                    Estoque Geral
-                  </span>
-                {% endif %}
-              </td>
-
-              <td class="text-center">
-                {{ inv.data.strftime('%d/%m/%Y %H:%M') if inv.data else '-' }}
-              </td>
-
-              <td>
-                {{ inv.responsavel or '---' }}
-              </td>
-
-              <td class="text-center">
-                <div class="d-flex justify-content-center align-items-center gap-1">
-
-                  <a href="{{ url_for('inventario_tecnico.detalhes_inventario', id=inv.id) }}"
-                     class="btn btn-outline-primary btn-sm btn-icon-text"
-                     title="Detalhes">
-                    <i class="bi bi-eye me-1"></i>
-                    Detalhes
-                  </a>
-
-                  <a href="{{ url_for('inventario_tecnico.exportar_inventario', id=inv.id) }}"
-                     class="btn btn-outline-success btn-sm btn-icon-text"
-                     title="Exportar">
-                    <i class="bi bi-file-earmark-excel me-1"></i>
-                    Exportar
-                  </a>
-
-                </div>
-              </td>
-
-            </tr>
-
-            {% endfor %}
-
-          </tbody>
-
-        </table>
-
-      </div>
-
-      {% else %}
-
-      <div class="alert alert-info mb-0">
-        Nenhum inventário registrado até o momento.
-      </div>
-
-      {% endif %}
-
+        <tbody>
+          {% for inv in inventarios %}
+          {% set categoria_inv = inv.itens[0].item.categoria if inv.itens and inv.itens[0].item and inv.itens[0].item.categoria else 'MATERIAL' %}
+          <tr>
+            <td class="fw-semibold">{{ inv.id }}</td>
+            <td>{{ inv.tecnico.nome if inv.tecnico else '-' }}</td>
+            <td>
+              {% if categoria_inv == 'FERRAMENTA' %}
+                <span class="badge bg-warning text-dark">FERRAMENTA</span>
+              {% elif categoria_inv == 'EPI' %}
+                <span class="badge bg-info text-dark">EPI</span>
+              {% else %}
+                <span class="badge bg-secondary">MATERIAL</span>
+              {% endif %}
+            </td>
+            <td>{{ inv.tipo_servico.nome if inv.tipo_servico else 'Estoque Geral' }}</td>
+            <td>{{ inv.data.strftime('%d/%m/%Y %H:%M') if inv.data else '-' }}</td>
+            <td>{{ inv.responsavel or '---' }}</td>
+            <td class="text-center">
+              <div class="d-flex justify-content-center align-items-center gap-1">
+                <a href="{{ url_for('inventario_tecnico.detalhes_inventario', id=inv.id) }}"
+                   class="btn btn-outline-primary btn-sm btn-icon-text"
+                   title="Detalhes">
+                  <i class="bi bi-eye me-1"></i>
+                  Detalhes
+                </a>
+                <a href="{{ url_for('inventario_tecnico.exportar_inventario', id=inv.id) }}"
+                   class="btn btn-outline-success btn-sm btn-icon-text"
+                   title="Exportar Excel">
+                  <i class="bi bi-file-earmark-excel me-1"></i>
+                  Excel
+                </a>
+              </div>
+            </td>
+          </tr>
+          {% else %}
+          <tr>
+            <td colspan="7" class="text-center text-muted py-4">
+              Nenhum inventário registrado até o momento.
+            </td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
     </div>
-
   </div>
 
 </div>

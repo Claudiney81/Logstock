@@ -2,217 +2,163 @@
 
 {% block content %}
 
-<div class="container mt-4">
+<style>
+  .table-devolucao th,
+  .table-devolucao td {
+    vertical-align: middle;
+    font-size: .9rem;
+  }
 
-    <div class="card shadow-sm border-0">
+  .table-devolucao th {
+    white-space: nowrap;
+  }
 
-        <div class="card-header bg-primary text-white">
-            <h5 class="mb-0">
-                <i class="bi bi-arrow-return-left me-2"></i>
-                Devolução de Materiais ao Estoque
-            </h5>
-        </div>
+  .table-devolucao td:nth-child(2) {
+    min-width: 260px;
+  }
+</style>
 
-        <div class="card-body">
+<div class="container-fluid mt-4">
 
-            <div class="row mb-4">
-
-                <div class="col-md-4">
-                    <strong>Técnico:</strong><br>
-                    {{ inventario.tecnico.nome }}
-                </div>
-
-                <div class="col-md-4">
-                    <strong>Tipo Serviço:</strong><br>
-
-                    {% if inventario.tipo_servico %}
-                        {{ inventario.tipo_servico.nome }}
-                    {% else %}
-                        Não informado
-                    {% endif %}
-                </div>
-
-                <div class="col-md-4">
-                    <strong>Data Inventário:</strong><br>
-                    {{ inventario.data.strftime('%d/%m/%Y %H:%M') }}
-                </div>
-
-            </div>
-
-            <form method="POST">
-
-                <div class="row mb-3">
-
-                    <div class="col-md-4">
-                        <label class="form-label fw-bold">
-                            Motivo da Devolução
-                        </label>
-
-                        <select
-                            name="motivo"
-                            class="form-select"
-                            required
-                        >
-                            <option value="">
-                                Selecione...
-                            </option>
-
-                            <option value="ferias">
-                                Férias
-                            </option>
-
-                            <option value="afastamento">
-                                Afastamento
-                            </option>
-
-                            <option value="desligamento">
-                                Desligamento
-                            </option>
-
-                            <option value="conferencia">
-                                Conferência
-                            </option>
-
-                            <option value="outro">
-                                Outro
-                            </option>
-
-                        </select>
-                    </div>
-
-                    <div class="col-md-8">
-                        <label class="form-label fw-bold">
-                            Observação
-                        </label>
-
-                        <input
-                            type="text"
-                            name="observacao"
-                            class="form-control"
-                            placeholder="Observação opcional..."
-                        >
-                    </div>
-
-                </div>
-
-                <div class="table-responsive">
-
-                    <table class="table table-bordered align-middle">
-
-                        <thead class="table-light text-center">
-
-                            <tr>
-                                <th>Código</th>
-                                <th>Descrição</th>
-                                <th>Qtd Existente</th>
-                                <th>Qtd Contada</th>
-                                <th>Diferença</th>
-                                <th width="180">
-                                    Devolver ao Estoque
-                                </th>
-                            </tr>
-
-                        </thead>
-
-                        <tbody>
-
-                        {% for item in inventario.itens %}
-
-                            {% set existente = item.quantidade_existente or 0 %}
-                            {% set contada = item.quantidade_contada or 0 %}
-                            {% set diferenca = contada - existente %}
-
-                            <tr>
-
-                                <td class="text-center">
-                                    {{ item.item.codigo }}
-                                </td>
-
-                                <td>
-                                    {{ item.item.descricao }}
-                                </td>
-
-                                <td class="text-center">
-                                    {{ existente }}
-                                </td>
-
-                                <td class="text-center">
-                                    {{ contada }}
-                                </td>
-
-                                <td class="text-center">
-
-                                    {% if diferenca < 0 %}
-                                        <span class="badge bg-danger">
-                                            {{ diferenca }}
-                                        </span>
-                                    {% elif diferenca > 0 %}
-                                        <span class="badge bg-success">
-                                            +{{ diferenca }}
-                                        </span>
-                                    {% else %}
-                                        <span class="badge bg-secondary">
-                                            0
-                                        </span>
-                                    {% endif %}
-
-                                </td>
-
-                                <td>
-
-                                    <input
-                                        type="number"
-                                        min="0"
-                                        class="form-control text-center"
-                                        name="qtd_devolver_{{ item.item_id }}"
-                                        placeholder="0"
-                                    >
-
-                                </td>
-
-                            </tr>
-
-                        {% endfor %}
-
-                        </tbody>
-
-                    </table>
-
-                </div>
-
-                <div class="alert alert-warning mt-3">
-
-                    <strong>Atenção:</strong>
-
-                    Os materiais informados serão retirados do saldo do técnico
-                    e devolvidos ao estoque da empresa.
-
-                </div>
-
-                <div class="d-flex justify-content-end gap-2 mt-4">
-
-                    <a
-                        href="{{ url_for('inventario_tecnico.detalhes_inventario', id=inventario.id) }}"
-                        class="btn btn-secondary"
-                    >
-                        Voltar
-                    </a>
-
-                    <button
-                        type="submit"
-                        class="btn btn-success"
-                    >
-                        <i class="bi bi-check-circle me-1"></i>
-                        Confirmar Devolução
-                    </button>
-
-                </div>
-
-            </form>
-
-        </div>
-
+  <div class="app-page-header">
+    <div>
+      <p class="app-page-kicker">Técnicos</p>
+      <h1>Devolução ao Estoque</h1>
+      <p class="app-page-subtitle">
+        Informe as quantidades que devem retornar ao estoque da empresa.
+      </p>
     </div>
+
+    <div class="app-page-actions">
+      <a href="{{ url_for('inventario_tecnico.detalhes_inventario', id=inventario.id) }}" class="btn btn-outline-secondary">
+        <i class="bi bi-arrow-left me-1"></i>
+        Voltar
+      </a>
+    </div>
+  </div>
+
+  <div class="row g-3 mb-4">
+    <div class="col-md-4">
+      <div class="app-kpi-card">
+        <span class="app-kpi-icon app-kpi-blue"><i class="bi bi-person-badge"></i></span>
+        <span class="app-kpi-label">Técnico</span>
+        <strong style="font-size:1.05rem;">{{ inventario.tecnico.nome if inventario.tecnico else '-' }}</strong>
+      </div>
+    </div>
+    <div class="col-md-4">
+      <div class="app-kpi-card">
+        <span class="app-kpi-icon app-kpi-green"><i class="bi bi-briefcase"></i></span>
+        <span class="app-kpi-label">Tipo serviço</span>
+        <strong style="font-size:1.05rem;">{{ inventario.tipo_servico.nome if inventario.tipo_servico else 'Não informado' }}</strong>
+      </div>
+    </div>
+    <div class="col-md-4">
+      <div class="app-kpi-card">
+        <span class="app-kpi-icon app-kpi-yellow"><i class="bi bi-calendar-event"></i></span>
+        <span class="app-kpi-label">Data inventário</span>
+        <strong style="font-size:1.05rem;">{{ inventario.data.strftime('%d/%m/%Y %H:%M') if inventario.data else '-' }}</strong>
+      </div>
+    </div>
+  </div>
+
+  <div class="app-panel">
+    <div class="app-panel-header">
+      <div>
+        <h2>Materiais para devolução</h2>
+        <p>Somente quantidades informadas serão retiradas do saldo do técnico.</p>
+      </div>
+    </div>
+
+    <form method="POST">
+      <div class="p-3 border-bottom">
+        <div class="row g-3">
+          <div class="col-md-4">
+            <label class="form-label fw-semibold">Motivo da Devolução</label>
+            <select name="motivo" class="form-select" required>
+              <option value="">Selecione...</option>
+              <option value="ferias">Férias</option>
+              <option value="afastamento">Afastamento</option>
+              <option value="desligamento">Desligamento</option>
+              <option value="conferencia">Conferência</option>
+              <option value="outro">Outro</option>
+            </select>
+          </div>
+
+          <div class="col-md-8">
+            <label class="form-label fw-semibold">Observação</label>
+            <input
+              type="text"
+              name="observacao"
+              class="form-control"
+              placeholder="Observação opcional..."
+            >
+          </div>
+        </div>
+      </div>
+
+      <div class="table-responsive">
+        <table class="table table-hover align-middle table-devolucao mb-0">
+          <thead class="table-light">
+            <tr>
+              <th>Código</th>
+              <th>Descrição</th>
+              <th class="text-center">Qtd Existente</th>
+              <th class="text-center">Qtd Contada</th>
+              <th class="text-center">Diferença</th>
+              <th class="text-center" style="width:180px;">Devolver</th>
+            </tr>
+          </thead>
+
+          <tbody>
+            {% for item in inventario.itens %}
+            {% set existente = item.quantidade_existente or 0 %}
+            {% set contada = item.quantidade_contada or 0 %}
+            {% set diferenca = contada - existente %}
+            <tr>
+              <td class="fw-semibold">{{ item.item.codigo }}</td>
+              <td>{{ item.item.descricao }}</td>
+              <td class="text-center">{{ existente }}</td>
+              <td class="text-center">{{ contada }}</td>
+              <td class="text-center">
+                {% if diferenca < 0 %}
+                  <span class="badge bg-danger">{{ diferenca }}</span>
+                {% elif diferenca > 0 %}
+                  <span class="badge bg-success">+{{ diferenca }}</span>
+                {% else %}
+                  <span class="badge bg-secondary">0</span>
+                {% endif %}
+              </td>
+              <td>
+                <input
+                  type="number"
+                  min="0"
+                  class="form-control text-center"
+                  name="qtd_devolver_{{ item.item_id }}"
+                  placeholder="0"
+                >
+              </td>
+            </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+
+      <div class="alert alert-warning m-3">
+        <strong>Atenção:</strong>
+        os materiais informados serão retirados do saldo do técnico e devolvidos ao estoque da empresa.
+      </div>
+
+      <div class="d-flex justify-content-end gap-2 p-3 border-top">
+        <a href="{{ url_for('inventario_tecnico.detalhes_inventario', id=inventario.id) }}" class="btn btn-outline-secondary">
+          Voltar
+        </a>
+        <button type="submit" class="btn btn-success px-4">
+          <i class="bi bi-check-circle me-1"></i>
+          Confirmar Devolução
+        </button>
+      </div>
+    </form>
+  </div>
 
 </div>
 

@@ -1,200 +1,172 @@
 {% extends 'base.html' %}
 {% block content %}
 
+{% set ns = namespace(ativos=0, inativos=0, com_acesso=0) %}
+{% for tecnico in tecnicos %}
+  {% if tecnico.status == 'Ativo' %}
+    {% set ns.ativos = ns.ativos + 1 %}
+  {% elif tecnico.status == 'Inativo' %}
+    {% set ns.inativos = ns.inativos + 1 %}
+  {% endif %}
+  {% if tecnico.email or tecnico.telefone %}
+    {% set ns.com_acesso = ns.com_acesso + 1 %}
+  {% endif %}
+{% endfor %}
+
 <style>
-.table-tecnicos{
-  width:100%;
-  table-layout:fixed;
-}
+  .table-tecnicos th,
+  .table-tecnicos td {
+    vertical-align: middle;
+    font-size: .9rem;
+  }
 
-.table-tecnicos th,
-.table-tecnicos td{
-  vertical-align:middle !important;
-  padding:12px 12px !important;
-  font-size:.92rem;
-}
+  .table-tecnicos th {
+    white-space: nowrap;
+  }
 
-.table-tecnicos th{
-  font-weight:700;
-  text-align:left !important;
-  white-space:nowrap;
-}
+  .status-select {
+    min-width: 118px;
+  }
 
-.table-tecnicos td{
-  text-align:left !important;
-}
-
-.status-select{
-  width:120px;
-  margin:auto;
-}
-
-.btn-acesso{
-  width:135px;
-}
-
-.table-tecnicos th:last-child,
-.table-tecnicos td:last-child{
-  text-align:center !important;
-}
-
-.table-tecnicos th:nth-child(7),
-.table-tecnicos td:nth-child(7){
-  text-align:center !important;
-}
+  .btn-acesso {
+    min-width: 40px;
+  }
 </style>
 
-<div class="container mt-4">
+<div class="container-fluid mt-4">
 
-  <div class="card shadow-sm border-0">
+  <div class="app-page-header">
+    <div>
+      <p class="app-page-kicker">Técnicos</p>
+      <h1>Técnicos Cadastrados</h1>
+      <p class="app-page-subtitle">
+        Consulte acessos, contatos e situação dos técnicos em operação.
+      </p>
+    </div>
 
-    <div class="card-header text-white d-flex justify-content-between align-items-center"
-         style="background:#002b55;">
-
-      <h5 class="mb-0 fw-semibold">
-        Técnicos Cadastrados
-      </h5>
-
-      <a href="{{ url_for('tecnicos.cadastrar_tecnico') }}"
-         class="btn btn-light btn-sm">
-        <i class="bi bi-plus-circle me-1"></i>
+    <div class="app-page-actions">
+      <a href="{{ url_for('tecnicos.cadastrar_tecnico') }}" class="btn btn-primary">
+        <i class="bi bi-person-plus me-1"></i>
         Novo Técnico
       </a>
-
     </div>
-
-    <div class="card-body">
-
-      <form method="GET" class="row g-3 mb-4">
-
-        <div class="col-md-4">
-          <label for="status" class="form-label fw-semibold">
-            Filtrar por Status
-          </label>
-
-          <select class="form-select"
-                  name="status"
-                  id="status"
-                  onchange="this.form.submit()">
-
-            <option value="">Todos</option>
-
-            <option value="Ativo" {% if filtro_status == 'Ativo' %}selected{% endif %}>
-              Ativo
-            </option>
-
-            <option value="Inativo" {% if filtro_status == 'Inativo' %}selected{% endif %}>
-              Inativo
-            </option>
-
-          </select>
-        </div>
-
-      </form>
-
-      {% with messages = get_flashed_messages(with_categories=true) %}
-        {% if messages %}
-          {% for category, message in messages %}
-            <div class="alert alert-{{ category }} alert-dismissible fade show"
-                 role="alert">
-              {{ message }}
-
-              <button type="button"
-                      class="btn-close"
-                      data-bs-dismiss="alert">
-              </button>
-            </div>
-          {% endfor %}
-        {% endif %}
-      {% endwith %}
-
-      <div class="table-responsive">
-
-        <table class="table table-hover align-middle table-tecnicos">
-
-          <thead class="table-light">
-            <tr>
-              <th style="width:17%;">Nome</th>
-              <th style="width:13%;">Matrícula/Login</th>
-              <th style="width:13%;">CPF</th>
-              <th style="width:13%;">Telefone</th>
-              <th style="width:19%;">Email</th>
-              <th style="width:10%;">Função</th>
-              <th style="width:10%;">Status</th>
-              <th style="width:15%;">Acesso Técnico</th>
-            </tr>
-          </thead>
-
-          <tbody>
-
-            {% for tecnico in tecnicos %}
-
-            <tr>
-
-              <td>{{ tecnico.nome }}</td>
-
-              <td>{{ tecnico.matricula }}</td>
-
-              <td>{{ tecnico.cpf }}</td>
-
-              <td>{{ tecnico.telefone or '-' }}</td>
-
-              <td>{{ tecnico.email or '-' }}</td>
-
-              <td>{{ tecnico.funcao or '-' }}</td>
-
-              <td>
-                <form method="POST"
-                      action="{{ url_for('tecnicos.alterar_status', tecnico_id=tecnico.id) }}">
-
-                  <select name="status"
-                          class="form-select form-select-sm status-select"
-                          onchange="this.form.submit()">
-
-                    <option value="Ativo" {% if tecnico.status == 'Ativo' %}selected{% endif %}>
-                      Ativo
-                    </option>
-
-                    <option value="Inativo" {% if tecnico.status == 'Inativo' %}selected{% endif %}>
-                      Inativo
-                    </option>
-
-                  </select>
-
-                </form>
-              </td>
-
-              <td>
-                <a href="{{ url_for('tecnicos.qrcode_tecnico', tecnico_id=tecnico.id) }}"
-                   target="_blank"
-                   class="btn btn-sm btn-outline-primary btn-acesso">
-                  <i class="bi bi-link-45deg me-1"></i>
-                  Link / QR Code
-                </a>
-              </td>
-
-            </tr>
-
-            {% else %}
-
-            <tr>
-              <td colspan="8" class="text-center text-muted py-4">
-                Nenhum técnico cadastrado.
-              </td>
-            </tr>
-
-            {% endfor %}
-
-          </tbody>
-
-        </table>
-
-      </div>
-
-    </div>
-
   </div>
 
+  <div class="row g-3 mb-4">
+    <div class="col-sm-6 col-xl-3">
+      <div class="app-kpi-card">
+        <span class="app-kpi-icon app-kpi-blue"><i class="bi bi-people"></i></span>
+        <span class="app-kpi-label">Listados</span>
+        <strong>{{ tecnicos|length }}</strong>
+      </div>
+    </div>
+    <div class="col-sm-6 col-xl-3">
+      <div class="app-kpi-card">
+        <span class="app-kpi-icon app-kpi-green"><i class="bi bi-person-check"></i></span>
+        <span class="app-kpi-label">Ativos</span>
+        <strong>{{ ns.ativos }}</strong>
+      </div>
+    </div>
+    <div class="col-sm-6 col-xl-3">
+      <div class="app-kpi-card">
+        <span class="app-kpi-icon app-kpi-red"><i class="bi bi-person-dash"></i></span>
+        <span class="app-kpi-label">Inativos</span>
+        <strong>{{ ns.inativos }}</strong>
+      </div>
+    </div>
+    <div class="col-sm-6 col-xl-3">
+      <div class="app-kpi-card">
+        <span class="app-kpi-icon app-kpi-yellow"><i class="bi bi-qr-code"></i></span>
+        <span class="app-kpi-label">Com contato</span>
+        <strong>{{ ns.com_acesso }}</strong>
+      </div>
+    </div>
+  </div>
+
+  {% with messages = get_flashed_messages(with_categories=true) %}
+    {% if messages %}
+      {% for category, message in messages %}
+        <div class="alert alert-{{ category }} alert-dismissible fade show" role="alert">
+          {{ message }}
+          <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Fechar"></button>
+        </div>
+      {% endfor %}
+    {% endif %}
+  {% endwith %}
+
+  <div class="app-panel">
+    <div class="app-panel-header">
+      <div>
+        <h2>Cadastros encontrados</h2>
+        <p>{{ tecnicos|length }} técnico(s) conforme o filtro atual.</p>
+      </div>
+    </div>
+
+    <div class="p-3 border-bottom">
+      <form method="GET" class="row g-3 align-items-end">
+        <div class="col-sm-6 col-lg-3">
+          <label for="status" class="form-label fw-semibold">Status</label>
+          <select class="form-select" name="status" id="status" onchange="this.form.submit()">
+            <option value="">Todos</option>
+            <option value="Ativo" {% if filtro_status == 'Ativo' %}selected{% endif %}>Ativo</option>
+            <option value="Inativo" {% if filtro_status == 'Inativo' %}selected{% endif %}>Inativo</option>
+          </select>
+        </div>
+      </form>
+    </div>
+
+    <div class="table-responsive">
+      <table class="table table-hover align-middle table-tecnicos mb-0">
+        <thead class="table-light">
+          <tr>
+            <th>Nome</th>
+            <th>Matrícula/Login</th>
+            <th>CPF</th>
+            <th>Telefone</th>
+            <th>Email</th>
+            <th>Função</th>
+            <th>Status</th>
+            <th class="text-center">Acesso</th>
+          </tr>
+        </thead>
+
+        <tbody>
+          {% for tecnico in tecnicos %}
+          <tr>
+            <td class="fw-semibold">{{ tecnico.nome }}</td>
+            <td>{{ tecnico.matricula }}</td>
+            <td>{{ tecnico.cpf }}</td>
+            <td>{{ tecnico.telefone or '-' }}</td>
+            <td>{{ tecnico.email or '-' }}</td>
+            <td>{{ tecnico.funcao or '-' }}</td>
+            <td>
+              <form method="POST" action="{{ url_for('tecnicos.alterar_status', tecnico_id=tecnico.id) }}">
+                <select name="status" class="form-select form-select-sm status-select" onchange="this.form.submit()">
+                  <option value="Ativo" {% if tecnico.status == 'Ativo' %}selected{% endif %}>Ativo</option>
+                  <option value="Inativo" {% if tecnico.status == 'Inativo' %}selected{% endif %}>Inativo</option>
+                </select>
+              </form>
+            </td>
+            <td class="text-center">
+              <a href="{{ url_for('tecnicos.qrcode_tecnico', tecnico_id=tecnico.id) }}"
+                 target="_blank"
+                 class="btn btn-sm btn-outline-primary btn-acesso"
+                 title="Link e QR Code">
+                <i class="bi bi-qr-code"></i>
+              </a>
+            </td>
+          </tr>
+          {% else %}
+          <tr>
+            <td colspan="8" class="text-center text-muted py-4">
+              Nenhum técnico cadastrado.
+            </td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  </div>
 </div>
 
 {% endblock %}
