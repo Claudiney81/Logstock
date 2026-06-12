@@ -78,8 +78,12 @@ def inventario():
         )
 
     if tipo_servico_filtro and tipo_servico_filtro.isdigit():
+        tipo_servico_consulta_id = int(tipo_servico_filtro)
+        if tipo_servico_consulta_id != 1:
+            tipo_servico_consulta_id = 1
+
         query = query.filter(
-            Estoque.tipo_servico_id == int(tipo_servico_filtro)
+            Estoque.tipo_servico_id == tipo_servico_consulta_id
         )
 
     if categoria_filtro in ['MATERIAL', 'FERRAMENTA', 'EPI']:

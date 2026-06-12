@@ -264,22 +264,8 @@ def alerta_estoque_baixo():
 # Função auxiliar - Buscar Alertas de Estoque
 # ------------------------
 def buscar_alertas_estoque(tipo_servico_id=None):
-
-    # ==================================================
-    # REGRA OFICIAL:
-    # Estoque Empresa só possui saldo em Instalação.
-    # Manutenção e Reparo não exibem alertas.
-    # ==================================================
-    if tipo_servico_id:
-
-        tipo_servico = TipoServico.query.get(tipo_servico_id)
-
-        if tipo_servico and tipo_servico.nome.strip().lower() in [
-            "manutenção",
-            "manutencao",
-            "reparo"
-        ]:
-            return []
+    if tipo_servico_id and tipo_servico_id != 1:
+        tipo_servico_id = 1
 
     query = (
         db.session.query(Estoque, Item, TipoServico)
@@ -470,7 +456,7 @@ def saldo_estoque():
 
     tipo_servico_consulta_id = tipo_servico_id
 
-    if tipo_servico_id in [2, 3, 5]:
+    if tipo_servico_id and tipo_servico_id != 1:
         tipo_servico_consulta_id = 1
 
     if tipo_servico_consulta_id:
@@ -543,8 +529,9 @@ def atualizar_minimos():
                 )
 
                 if tipo_servico_id:
+                    tipo_servico_consulta_id = 1 if tipo_servico_id != 1 else tipo_servico_id
                     query = query.filter(
-                        Estoque.tipo_servico_id == tipo_servico_id
+                        Estoque.tipo_servico_id == tipo_servico_consulta_id
                     )
 
             elif tipo_estoque == "cliente":
@@ -622,7 +609,8 @@ def atualizar_enderecos():
                 query = query.filter(Estoque.tipo_estoque == "empresa")
 
                 if tipo_servico_id:
-                    query = query.filter(Estoque.tipo_servico_id == tipo_servico_id)
+                    tipo_servico_consulta_id = 1 if tipo_servico_id != 1 else tipo_servico_id
+                    query = query.filter(Estoque.tipo_servico_id == tipo_servico_consulta_id)
 
             elif tipo_estoque == "cliente":
                 query = query.filter(Estoque.tipo_estoque == "cliente")
@@ -1187,7 +1175,7 @@ def exportar_saldo_excel():
 
     tipo_servico_consulta_id = tipo_servico_id
 
-    if tipo_servico_id in [2, 3, 5]:
+    if tipo_servico_id and tipo_servico_id != 1:
         tipo_servico_consulta_id = 1
 
     if tipo_servico_consulta_id:

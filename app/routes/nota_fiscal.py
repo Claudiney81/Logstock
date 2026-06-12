@@ -183,6 +183,7 @@ def nova_nota():
 
         itens_processados = 0
         itens_ignorados = 0
+        tipo_servico_saldo_id = 1 if tipo_servico_id else None
 
         for i in range(len(codigos)):
             codigo = (codigos[i] or '').strip()
@@ -254,7 +255,7 @@ def nova_nota():
 
             estoque = Estoque.query.filter_by(
                 item_id=item.id,
-                tipo_servico_id=tipo_servico_id,
+                tipo_servico_id=tipo_servico_saldo_id,
                 tipo_estoque=tipo_estoque,
                 cliente_id=(
                     cliente_id
@@ -275,7 +276,7 @@ def nova_nota():
                     quantidade=quantidade_int,
                     quantidade_minima=0,
                     endereco=endereco.strip() if endereco else '',
-                    tipo_servico_id=tipo_servico_id,
+                    tipo_servico_id=tipo_servico_saldo_id,
                     tipo_estoque=tipo_estoque,
                     cliente_id=(
                         cliente_id

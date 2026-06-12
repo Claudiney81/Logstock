@@ -130,6 +130,7 @@ def buscar_estoque(item_db, tipo_servico_id, tipo_estoque="empresa", cliente_id=
 def carregar_saldos(requisicao):
     tipo_servico = get_tipo_servico(requisicao)
     tecnico = get_tecnico_requisicao(requisicao)
+    tipo_servico_saldo_id = 1
 
     saldos_estoque = {}
     saldos_tecnico = {}
@@ -150,7 +151,7 @@ def carregar_saldos(requisicao):
 
         estoque = buscar_estoque(
             item_db=item_db,
-            tipo_servico_id=tipo_servico.id,
+            tipo_servico_id=tipo_servico_saldo_id,
             tipo_estoque=tipo_estoque,
             cliente_id=cliente_id
         )
@@ -163,7 +164,7 @@ def carregar_saldos(requisicao):
             saldo = SaldoTecnico.query.filter_by(
                 tecnico_id=tecnico.id,
                 item_id=item_db.id,
-                tipo_servico_id=tipo_servico.id
+                tipo_servico_id=tipo_servico_saldo_id
             ).first()
 
             saldos_tecnico[item_req.codigo] = saldo.quantidade if saldo else 0

@@ -87,8 +87,8 @@ def buscar_saldo_tecnico(
     - Cliente: saldo específico do cliente e da O.S.
     """
 
-    # Manutenção/Reparo consomem do saldo de Instalação
-    if tipo_servico_id in [5, 6]:
+    # O serviço da baixa classifica o documento, mas o saldo físico é Instalação.
+    if tipo_servico_id:
         tipo_servico_id = 1
 
     query = SaldoTecnico.query.filter(
@@ -211,12 +211,8 @@ def api_itens_saldo():
     if not tecnico_id or not tipo_servico_id or tipo_estoque not in ["empresa", "cliente"]:
         return {"itens": []}
 
-    # Empresa sempre usa saldo geral do técnico em Instalação.
-    # Cliente usa exatamente o tipo de serviço selecionado e a O.S.
-    tipo_servico_consulta = tipo_servico_id
-
-    if tipo_estoque == "empresa":
-        tipo_servico_consulta = 1
+    # O serviço selecionado classifica a baixa; o saldo físico vem da Instalação.
+    tipo_servico_consulta = 1
 
     query = (
         db.session.query(

@@ -15,6 +15,7 @@ def nova_movimentacao():
     if request.method == 'POST':
         tecnico_id = request.form.get('tecnico_id')
         tipo_servico_id = request.form.get('tipo_servico_id')
+        tipo_servico_saldo_id = 1 if tipo_servico_id else None
         local = request.form.get('local')
         observacao = request.form.get('observacao')
 
@@ -33,7 +34,7 @@ def nova_movimentacao():
 
             # ➕ SAÍDA PARA TÉCNICO
             if status.lower() == 'tecnico':
-                estoque = Estoque.query.filter_by(item_id=item.id, tipo_servico_id=tipo_servico_id).first()
+                estoque = Estoque.query.filter_by(item_id=item.id, tipo_servico_id=tipo_servico_saldo_id).first()
                 if estoque and estoque.quantidade >= quantidade:
                     estoque.quantidade -= quantidade
 
@@ -68,11 +69,11 @@ def nova_movimentacao():
                     equipamento.local = local
                     equipamento.data_hora = datetime.utcnow()
 
-                estoque = Estoque.query.filter_by(item_id=item.id, tipo_servico_id=tipo_servico_id).first()
+                estoque = Estoque.query.filter_by(item_id=item.id, tipo_servico_id=tipo_servico_saldo_id).first()
                 if estoque:
                     estoque.quantidade += quantidade
                 else:
-                    novo_estoque = Estoque(item_id=item.id, tipo_servico_id=tipo_servico_id, quantidade=quantidade)
+                    novo_estoque = Estoque(item_id=item.id, tipo_servico_id=tipo_servico_saldo_id, quantidade=quantidade)
                     db.session.add(novo_estoque)
 
             # 🕒 HISTÓRICO

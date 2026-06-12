@@ -104,9 +104,11 @@ def buscar_saldo_tecnico(tecnico_id, tipo_estoque, categoria, tipo_servico_id=No
         )
     )
 
-    if categoria == 'MATERIAL' and tipo_servico_id:
+    tipo_servico_saldo_id = 1 if tipo_servico_id else None
+
+    if categoria == 'MATERIAL' and tipo_servico_saldo_id:
         query_saldo = query_saldo.filter(
-            SaldoTecnico.tipo_servico_id == tipo_servico_id
+            SaldoTecnico.tipo_servico_id == tipo_servico_saldo_id
         )
 
     if tipo_estoque == 'empresa':
@@ -299,9 +301,11 @@ def registrar_inventario():
                 )
             )
 
-            if categoria == 'MATERIAL' and tipo_servico_id:
+            tipo_servico_saldo_id = 1 if tipo_servico_id else None
+
+            if categoria == 'MATERIAL' and tipo_servico_saldo_id:
                 quantidade_existente_query = quantidade_existente_query.filter(
-                    SaldoTecnico.tipo_servico_id == tipo_servico_id
+                    SaldoTecnico.tipo_servico_id == tipo_servico_saldo_id
                 )
 
             if tipo_estoque == 'empresa':
@@ -616,7 +620,7 @@ def devolver_estoque(id):
 
             if inventario.tipo_servico_id:
                 saldos_tecnico = saldos_tecnico.filter(
-                    SaldoTecnico.tipo_servico_id == inventario.tipo_servico_id
+                    SaldoTecnico.tipo_servico_id == 1
                 )
 
             saldos_tecnico = saldos_tecnico.order_by(SaldoTecnico.id.asc()).all()
@@ -648,7 +652,7 @@ def devolver_estoque(id):
 
             estoque = Estoque.query.filter_by(
                 item_id=item_inv.item_id,
-                tipo_servico_id=inventario.tipo_servico_id,
+                tipo_servico_id=1 if inventario.tipo_servico_id else None,
                 tipo_estoque='empresa',
                 cliente_id=None
             ).first()
@@ -656,7 +660,7 @@ def devolver_estoque(id):
             if not estoque:
                 estoque = Estoque(
                     item_id=item_inv.item_id,
-                    tipo_servico_id=inventario.tipo_servico_id,
+                    tipo_servico_id=1 if inventario.tipo_servico_id else None,
                     tipo_estoque='empresa',
                     cliente_id=None,
                     quantidade=0,

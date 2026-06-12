@@ -213,13 +213,17 @@ def nova():
                     )
                     return redirect(url_for("requisicao_mobile.nova"))
 
-                estoque = Estoque.query.filter_by(
-                    item_id=item.id,
-                    tipo_servico_id=1,
-                    tipo_estoque=tipo_estoque
-                ).first()
-
-                quantidade_estoque = estoque.quantidade if estoque else 0
+                quantidade_estoque = (
+                    db.session.query(db.func.sum(Estoque.quantidade))
+                    .filter(
+                        Estoque.item_id == item.id,
+                        Estoque.tipo_servico_id == 1,
+                        Estoque.tipo_estoque == tipo_estoque,
+                        Estoque.cliente_id.is_(None)
+                    )
+                    .scalar()
+                    or 0
+                )
 
                 if quantidade_estoque <= 0:
                     db.session.rollback()

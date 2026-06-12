@@ -552,7 +552,7 @@ def nova_movimentacao():
 
                 estoque_origem = Estoque.query.filter_by(
                     item_id=item.id,
-                    tipo_servico_id=tipo_servico_id,
+                    tipo_servico_id=tipo_servico_saldo,
                     tipo_estoque='cliente',
                     cliente_id=int(cliente_os_id) if cliente_os_id else None
                 ).first()
@@ -624,7 +624,7 @@ def nova_movimentacao():
                     endereco_destino = endereco_os
                     bairro_destino = bairro_os
                     codigo_imovel_destino = codigo_imovel_os
-                    tipo_servico_destino = int(tipo_servico_id)
+                    tipo_servico_destino = tipo_servico_saldo
 
                 else:
 
@@ -1110,7 +1110,7 @@ def api_itens_movimentacao():
             .filter(
                 Estoque.tipo_estoque == 'cliente',
                 Estoque.cliente_id == cliente_id,
-                Estoque.tipo_servico_id == tipo_servico_id,
+                Estoque.tipo_servico_id == tipo_servico_consulta,
                 Estoque.quantidade > 0,
                 Item.categoria == 'MATERIAL'
             )

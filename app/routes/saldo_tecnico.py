@@ -82,10 +82,7 @@ def saldo_detalhado(id_tecnico):
         )
 
     if tipo_servico_id != 'todos':
-        tipo_servico_consulta = int(tipo_servico_id)
-
-        if tipo_estoque == 'empresa' and tipo_servico_consulta != 1:
-            tipo_servico_consulta = 1
+        tipo_servico_consulta = 1
 
         query = query.filter(
             SaldoTecnico.tipo_servico_id == tipo_servico_consulta
@@ -233,10 +230,7 @@ def exportar_saldo_tecnico(id_tecnico):
         )
 
     if tipo_servico_id != 'todos':
-        tipo_servico_consulta = int(tipo_servico_id)
-
-        if tipo_estoque == 'empresa' and tipo_servico_consulta != 1:
-            tipo_servico_consulta = 1
+        tipo_servico_consulta = 1
 
         query = query.filter(
             SaldoTecnico.tipo_servico_id == tipo_servico_consulta
