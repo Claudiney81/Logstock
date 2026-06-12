@@ -17,14 +17,13 @@
     <div>
       <p class="app-page-kicker">Gestão de Estoque</p>
       <h1>Saldo de Estoque</h1>
-      <p class="app-page-subtitle">
-        Consulta operacional de saldos por origem, categoria, condição e localização.
+      <p class="app-page-subtitle">     
       </p>
     </div>
 
     <div class="app-page-actions">
       <a
-        href="{{ url_for(
+        href="{{ url_for( 
           'estoque.exportar_saldo_excel',
           tipo_estoque=tipo_estoque,
           cliente_id=cliente_id,
@@ -95,8 +94,7 @@
 
     <div class="app-panel-header">
       <div>
-        <h2>Filtros de consulta</h2>
-        <p>Selecione a origem do estoque antes de analisar ou editar mínimos e endereços.</p>
+        <h2>Filtros de consulta</h2>        
       </div>
     </div>
 
