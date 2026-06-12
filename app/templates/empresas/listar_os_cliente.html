@@ -4,59 +4,54 @@
 
 <div class="container-fluid mt-4">
 
-  <div class="card shadow-sm border-0">
+  <div class="app-page-header">
+    <div>
+      <p class="app-page-kicker">Ordens de Serviço</p>
+      <h1>{{ cliente.razao_social }}</h1>
+      <p class="app-page-subtitle">
+        {{ cliente.cnpj or '-' }} | {{ cliente.endereco or 'Endereço não informado' }}
+      </p>
+    </div>
 
-    <div
-      class="card-header text-white d-flex justify-content-between align-items-center"
-      style="background:#002b55;"
-    >
-
-      <h5 class="mb-0">
-        <i class="bi bi-list-ul me-2"></i>
-        Ordens de Serviço - {{ cliente.razao_social }}
-      </h5>
+    <div class="app-page-actions">
+      <a
+        href="{{ url_for('empresas.exportar_os_cliente_excel', cliente_id=cliente.id) }}"
+        class="btn btn-outline-success"
+      >
+        <i class="bi bi-file-earmark-excel me-1"></i>
+        Exportar Excel
+      </a>
 
       <a
         href="{{ url_for('empresas.nova_os', cliente_id=cliente.id) }}"
-        class="btn btn-light btn-sm"
+        class="btn btn-primary"
       >
         <i class="bi bi-plus-circle me-1"></i>
         Nova O.S
       </a>
+    </div>
+  </div>
+
+  <div class="app-panel">
+
+    <div
+      class="app-panel-header"
+    >
+
+      <div>
+        <h2>O.S do cliente</h2>
+        <p>{{ ordens|length }} ordem(ns) registrada(s).</p>
+      </div>
 
     </div>
-
-    <div class="card-body">
-
-      <div class="mb-4">
-
-        <p class="mb-1">
-          <strong>Cliente:</strong>
-          {{ cliente.razao_social }}
-        </p>
-
-        <p class="mb-1">
-          <strong>CNPJ:</strong>
-          {{ cliente.cnpj or '-' }}
-        </p>
-
-        <p class="mb-0">
-          <strong>Endereço Principal:</strong>
-          {{ cliente.endereco or '-' }}
-        </p>
-
-      </div>
 
       {% if ordens %}
 
       <div class="table-responsive">
 
-        <table class="table table-hover table-bordered align-middle">
+        <table class="table table-hover align-middle mb-0 app-table">
 
-          <thead
-            class="text-white"
-            style="background:#002b55;"
-          >
+          <thead>
             <tr>
               <th class="text-center">O.S</th>
               <th>Tipo de Serviço</th>
@@ -91,7 +86,7 @@
               </td>
 
               <td class="text-center">
-                <span class="badge bg-primary">
+                <span class="app-status-pill">
                   {{ os.status or 'aberta' }}
                 </span>
               </td>
@@ -122,14 +117,14 @@
 
       {% else %}
 
-      <div class="alert alert-light border text-center">
+      <div class="text-center text-muted py-5">
         <i class="bi bi-info-circle me-2"></i>
         Nenhuma Ordem de Serviço encontrada para este cliente.
       </div>
 
       {% endif %}
 
-      <div class="mt-4">
+      <div class="p-3 border-top">
 
         <a
           href="{{ url_for('empresas.lista_clientes') }}"
@@ -140,8 +135,6 @@
         </a>
 
       </div>
-
-    </div>
 
   </div>
 

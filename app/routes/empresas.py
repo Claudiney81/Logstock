@@ -1,5 +1,9 @@
-from flask import Blueprint, render_template, request, redirect, url_for, flash, jsonify
+from datetime import datetime
+from io import BytesIO
+
+from flask import Blueprint, render_template, request, redirect, url_for, flash, jsonify, send_file
 from flask_login import login_required
+from sqlalchemy import func
 
 from app.extensions import db
 from app.models import Empresa, OrdemServico, TipoServico
@@ -12,30 +16,74 @@ empresas_bp = Blueprint(
 )
 
 
+def _empresas_query(tipo_lista, termo):
+    query = Empresa.query
+
+    if tipo_lista in ['cliente', 'fornecedor']:
+        query = query.filter_by(tipo_empresa=tipo_lista)
+
+    if termo:
+        query = query.filter(
+            (Empresa.razao_social.ilike(f"%{termo}%")) |
+            (Empresa.cnpj.ilike(f"%{termo}%")) |
+            (Empresa.email.ilike(f"%{termo}%")) |
+            (Empresa.contato.ilike(f"%{termo}%"))
+        )
+
+    return query.order_by(Empresa.razao_social.asc())
+
+
+def _contadores_empresas():
+    total = db.session.query(func.count(Empresa.id)).scalar() or 0
+    clientes = (
+        db.session.query(func.count(Empresa.id))
+        .filter(Empresa.tipo_empresa == 'cliente')
+        .scalar()
+        or 0
+    )
+    fornecedores = (
+        db.session.query(func.count(Empresa.id))
+        .filter(Empresa.tipo_empresa == 'fornecedor')
+        .scalar()
+        or 0
+    )
+    ordens_abertas = (
+        db.session.query(func.count(OrdemServico.id))
+        .filter(OrdemServico.status.in_(['aberta', 'em_andamento']))
+        .scalar()
+        or 0
+    )
+
+    return {
+        'total': total,
+        'clientes': clientes,
+        'fornecedores': fornecedores,
+        'ordens_abertas': ordens_abertas
+    }
+
+
+def _renderizar_lista_empresas(tipo_lista, titulo):
+    termo = request.args.get('busca', '').strip()
+    empresas = _empresas_query(tipo_lista, termo).all()
+
+    return render_template(
+        'empresas/lista_empresas.html',
+        empresas=empresas,
+        titulo=titulo,
+        tipo_lista=tipo_lista,
+        contadores=_contadores_empresas()
+    )
+
+
 # =========================
 # LISTAR TODAS
 # =========================
 @empresas_bp.route('/')
 @login_required
 def lista_empresas():
-
-    termo = request.args.get('busca', '').strip()
-
-    query = Empresa.query
-
-    if termo:
-        query = query.filter(
-            (Empresa.razao_social.ilike(f"%{termo}%")) |
-            (Empresa.cnpj.ilike(f"%{termo}%"))
-        )
-
-    empresas = query.order_by(Empresa.razao_social.asc()).all()
-
-    return render_template(
-        'empresas/lista_empresas.html',
-        empresas=empresas,
-        titulo='Empresas / Parceiros',
-        tipo_lista='todos'
+    return _renderizar_lista_empresas(
+        'todos',
+        'Empresas / Parceiros'
     )
 
 
@@ -45,24 +93,9 @@ def lista_empresas():
 @empresas_bp.route('/clientes')
 @login_required
 def lista_clientes():
-
-    termo = request.args.get('busca', '').strip()
-
-    query = Empresa.query.filter_by(tipo_empresa='cliente')
-
-    if termo:
-        query = query.filter(
-            (Empresa.razao_social.ilike(f"%{termo}%")) |
-            (Empresa.cnpj.ilike(f"%{termo}%"))
-        )
-
-    empresas = query.order_by(Empresa.razao_social.asc()).all()
-
-    return render_template(
-        'empresas/lista_empresas.html',
-        empresas=empresas,
-        titulo='Clientes Cadastrados',
-        tipo_lista='cliente'
+    return _renderizar_lista_empresas(
+        'cliente',
+        'Clientes Cadastrados'
     )
 
 
@@ -72,24 +105,90 @@ def lista_clientes():
 @empresas_bp.route('/fornecedores')
 @login_required
 def lista_fornecedores():
+    return _renderizar_lista_empresas(
+        'fornecedor',
+        'Fornecedores Cadastrados'
+    )
 
+
+@empresas_bp.route('/exportar_excel')
+@login_required
+def exportar_empresas_excel():
+
+    import pandas as pd
+
+    tipo_lista = request.args.get('tipo_lista', 'todos')
     termo = request.args.get('busca', '').strip()
 
-    query = Empresa.query.filter_by(tipo_empresa='fornecedor')
+    if tipo_lista not in ['todos', 'cliente', 'fornecedor']:
+        tipo_lista = 'todos'
 
-    if termo:
-        query = query.filter(
-            (Empresa.razao_social.ilike(f"%{termo}%")) |
-            (Empresa.cnpj.ilike(f"%{termo}%"))
+    empresas = _empresas_query(tipo_lista, termo).all()
+
+    linhas = []
+
+    for empresa in empresas:
+        ordens = getattr(empresa, 'ordens_servico', [])
+        ordens_abertas = [
+            os for os in ordens
+            if (os.status or 'aberta') in ['aberta', 'em_andamento']
+        ]
+
+        linhas.append({
+            'Razão Social': empresa.razao_social,
+            'CNPJ': empresa.cnpj,
+            'Tipo': (empresa.tipo_empresa or 'empresa').capitalize(),
+            'Endereço': empresa.endereco or '-',
+            'Contato': empresa.contato or '-',
+            'Email': empresa.email or '-',
+            'O.S Total': len(ordens),
+            'O.S Abertas': len(ordens_abertas),
+            'Observações': empresa.observacoes or '-'
+        })
+
+    output = BytesIO()
+
+    with pd.ExcelWriter(output, engine='xlsxwriter') as writer:
+        df = pd.DataFrame(linhas)
+
+        if df.empty:
+            df = pd.DataFrame([{
+                'Mensagem': 'Nenhum cadastro encontrado.'
+            }])
+
+        df.to_excel(
+            writer,
+            index=False,
+            sheet_name='Empresas'
         )
 
-    empresas = query.order_by(Empresa.razao_social.asc()).all()
+        workbook = writer.book
+        worksheet = writer.sheets['Empresas']
 
-    return render_template(
-        'empresas/lista_empresas.html',
-        empresas=empresas,
-        titulo='Fornecedores Cadastrados',
-        tipo_lista='fornecedor'
+        header_format = workbook.add_format({
+            'bold': True,
+            'bg_color': '#002B55',
+            'font_color': '#FFFFFF',
+            'border': 1
+        })
+
+        for col_num, value in enumerate(df.columns.values):
+            worksheet.write(0, col_num, value, header_format)
+            largura = max(14, min(42, len(str(value)) + 8))
+            worksheet.set_column(col_num, col_num, largura)
+
+        worksheet.freeze_panes(1, 0)
+        worksheet.autofilter(0, 0, len(df), len(df.columns) - 1)
+
+    output.seek(0)
+
+    data_arquivo = datetime.now().strftime('%Y%m%d_%H%M%S')
+
+    return send_file(
+        output,
+        as_attachment=True,
+        download_name=f'empresas_{tipo_lista}_{data_arquivo}.xlsx',
+        mimetype='application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
     )
 
 
@@ -256,6 +355,85 @@ def listar_os_cliente(cliente_id):
         'empresas/listar_os_cliente.html',
         cliente=cliente,
         ordens=ordens
+    )
+
+
+@empresas_bp.route('/ordens-servico/<int:cliente_id>/excel')
+@login_required
+def exportar_os_cliente_excel(cliente_id):
+
+    import pandas as pd
+
+    cliente = Empresa.query.get_or_404(cliente_id)
+
+    ordens = (
+        OrdemServico.query
+        .filter_by(cliente_id=cliente.id)
+        .order_by(OrdemServico.id.desc())
+        .all()
+    )
+
+    linhas = []
+
+    for os in ordens:
+        linhas.append({
+            'O.S': os.numero_os,
+            'Cliente': cliente.razao_social,
+            'CNPJ': cliente.cnpj or '-',
+            'Tipo Serviço': os.tipo_servico.nome if os.tipo_servico else '-',
+            'Endereço': os.endereco or '-',
+            'Responsável': os.responsavel or '-',
+            'Status': os.status or 'aberta',
+            'Data Abertura': (
+                os.data_abertura.strftime('%d/%m/%Y %H:%M')
+                if os.data_abertura else '-'
+            ),
+            'Observação': os.observacao or '-'
+        })
+
+    output = BytesIO()
+
+    with pd.ExcelWriter(output, engine='xlsxwriter') as writer:
+        df = pd.DataFrame(linhas)
+
+        if df.empty:
+            df = pd.DataFrame([{
+                'Mensagem': 'Nenhuma Ordem de Serviço encontrada.'
+            }])
+
+        df.to_excel(
+            writer,
+            index=False,
+            sheet_name='Ordens de Serviço'
+        )
+
+        workbook = writer.book
+        worksheet = writer.sheets['Ordens de Serviço']
+
+        header_format = workbook.add_format({
+            'bold': True,
+            'bg_color': '#002B55',
+            'font_color': '#FFFFFF',
+            'border': 1
+        })
+
+        for col_num, value in enumerate(df.columns.values):
+            worksheet.write(0, col_num, value, header_format)
+            largura = max(14, min(42, len(str(value)) + 8))
+            worksheet.set_column(col_num, col_num, largura)
+
+        worksheet.freeze_panes(1, 0)
+        worksheet.autofilter(0, 0, len(df), len(df.columns) - 1)
+
+    output.seek(0)
+
+    data_arquivo = datetime.now().strftime('%Y%m%d_%H%M%S')
+
+    return send_file(
+        output,
+        as_attachment=True,
+        download_name=f'ordens_servico_cliente_{cliente.id}_{data_arquivo}.xlsx',
+        mimetype='application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
     )
     
 # =========================

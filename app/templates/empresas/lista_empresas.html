@@ -2,72 +2,144 @@
 
 {% block content %}
 
-<div class="card shadow-sm mt-4 border-0">
-  <div class="card-body">
+<div class="container-fluid mt-4">
 
-    <div class="d-flex justify-content-between align-items-center flex-wrap mb-4">
-      <h2 class="mb-2 mb-md-0 fw-semibold">
-        <i class="bi bi-buildings me-2"></i>
-        {{ titulo if titulo else 'Empresas / Parceiros' }}
-      </h2>
+  <div class="app-page-header">
+    <div>
+      <p class="app-page-kicker">Empresas / Parceiros</p>
+      <h1>{{ titulo if titulo else 'Empresas / Parceiros' }}</h1>
+      <p class="app-page-subtitle">
+        Consulta de clientes, fornecedores, contatos e ordens de serviço.
+      </p>
+    </div>
 
-      <div class="d-flex gap-2 flex-wrap">
-        {% if tipo_lista == 'cliente' %}
-          <a href="{{ url_for('empresas.cadastrar_cliente') }}" class="btn btn-primary btn-sm">
-            <i class="bi bi-person-plus-fill me-1"></i>
-            Novo Cliente
-          </a>
-        {% elif tipo_lista == 'fornecedor' %}
-          <a href="{{ url_for('empresas.cadastrar_fornecedor') }}" class="btn btn-success btn-sm">
-            <i class="bi bi-truck me-1"></i>
-            Novo Fornecedor
-          </a>
-        {% else %}
-          <a href="{{ url_for('empresas.cadastrar_cliente') }}" class="btn btn-primary btn-sm">
-            <i class="bi bi-person-plus-fill me-1"></i>
-            Novo Cliente
-          </a>
+    <div class="app-page-actions">
+      {% if tipo_lista != 'fornecedor' %}
+        <a href="{{ url_for('empresas.cadastrar_cliente') }}" class="btn btn-primary">
+          <i class="bi bi-person-plus-fill me-1"></i>
+          Novo Cliente
+        </a>
+      {% endif %}
 
-          <a href="{{ url_for('empresas.cadastrar_fornecedor') }}" class="btn btn-success btn-sm">
-            <i class="bi bi-truck me-1"></i>
-            Novo Fornecedor
-          </a>
-        {% endif %}
+      {% if tipo_lista != 'cliente' %}
+        <a href="{{ url_for('empresas.cadastrar_fornecedor') }}" class="btn btn-success">
+          <i class="bi bi-truck me-1"></i>
+          Novo Fornecedor
+        </a>
+      {% endif %}
+
+      <a
+        href="{{ url_for('empresas.exportar_empresas_excel', tipo_lista=tipo_lista, busca=request.args.get('busca', '')) }}"
+        class="btn btn-outline-success"
+      >
+        <i class="bi bi-file-earmark-excel me-1"></i>
+        Exportar Excel
+      </a>
+    </div>
+  </div>
+
+  <div class="row g-3 mb-4">
+    <div class="col-sm-6 col-xl-3">
+      <a href="{{ url_for('empresas.lista_empresas') }}" class="app-kpi-card">
+        <span class="app-kpi-icon app-kpi-blue">
+          <i class="bi bi-buildings"></i>
+        </span>
+        <span class="app-kpi-label">Cadastros</span>
+        <strong>{{ contadores.total }}</strong>
+      </a>
+    </div>
+
+    <div class="col-sm-6 col-xl-3">
+      <a href="{{ url_for('empresas.lista_clientes') }}" class="app-kpi-card">
+        <span class="app-kpi-icon app-kpi-green">
+          <i class="bi bi-people"></i>
+        </span>
+        <span class="app-kpi-label">Clientes</span>
+        <strong>{{ contadores.clientes }}</strong>
+      </a>
+    </div>
+
+    <div class="col-sm-6 col-xl-3">
+      <a href="{{ url_for('empresas.lista_fornecedores') }}" class="app-kpi-card">
+        <span class="app-kpi-icon app-kpi-gray">
+          <i class="bi bi-truck"></i>
+        </span>
+        <span class="app-kpi-label">Fornecedores</span>
+        <strong>{{ contadores.fornecedores }}</strong>
+      </a>
+    </div>
+
+    <div class="col-sm-6 col-xl-3">
+      <div class="app-kpi-card">
+        <span class="app-kpi-icon app-kpi-yellow">
+          <i class="bi bi-clipboard-pulse"></i>
+        </span>
+        <span class="app-kpi-label">O.S abertas</span>
+        <strong>{{ contadores.ordens_abertas }}</strong>
+      </div>
+    </div>
+  </div>
+
+  <div class="app-panel">
+
+    <div class="app-panel-header">
+      <div>
+        <h2>Cadastros encontrados</h2>
+        <p>{{ empresas|length }} registro(s) conforme o filtro atual.</p>
       </div>
     </div>
 
-    <form method="GET" class="row g-3 mb-4">
-      <div class="col-md-5">
-        <input
-          type="text"
-          name="busca"
-          class="form-control shadow-sm"
-          placeholder="🔎 Buscar por Razão Social ou CNPJ"
-          value="{{ request.args.get('busca', '') }}"
-        >
-      </div>
+    <div class="p-3 border-bottom">
+      <form method="GET" class="row g-3 align-items-end">
+        <div class="col-md-7 col-xl-5">
+          <label class="form-label fw-semibold">Busca</label>
+          <input
+            type="text"
+            name="busca"
+            class="form-control"
+            placeholder="Razão social, CNPJ, email ou contato"
+            value="{{ request.args.get('busca', '') }}"
+          >
+        </div>
 
-      <div class="col-md-auto">
-        <button type="submit" class="btn btn-dark shadow-sm">
-          <i class="bi bi-search me-1"></i>
-          Buscar
-        </button>
-      </div>
-    </form>
+        <div class="col-md-auto d-grid">
+          <button type="submit" class="btn btn-primary">
+            <i class="bi bi-search me-1"></i>
+            Buscar
+          </button>
+        </div>
+
+        <div class="col-md-auto d-grid">
+          {% if tipo_lista == 'cliente' %}
+            <a href="{{ url_for('empresas.lista_clientes') }}" class="btn btn-outline-secondary">
+              Limpar
+            </a>
+          {% elif tipo_lista == 'fornecedor' %}
+            <a href="{{ url_for('empresas.lista_fornecedores') }}" class="btn btn-outline-secondary">
+              Limpar
+            </a>
+          {% else %}
+            <a href="{{ url_for('empresas.lista_empresas') }}" class="btn btn-outline-secondary">
+              Limpar
+            </a>
+          {% endif %}
+        </div>
+      </form>
+    </div>
 
     {% if empresas %}
 
     <div class="table-responsive">
-      <table class="table table-hover align-middle" style="font-size:0.94rem;">
-        <thead class="text-white" style="background:#002b55;">
+      <table class="table table-hover align-middle mb-0 app-table">
+        <thead>
           <tr>
             <th>Razão Social</th>
             <th>CNPJ</th>
             <th>Tipo</th>
-            <th>Endereço</th>
             <th>Contato</th>
             <th>Email</th>
-            <th>Observações</th>
+            <th>Endereço</th>
+            <th>O.S</th>
             <th class="text-center">Ações</th>
           </tr>
         </thead>
@@ -75,8 +147,11 @@
         <tbody>
           {% for empresa in empresas %}
           <tr>
-            <td class="fw-semibold">
-              {{ empresa.razao_social }}
+            <td>
+              <div class="fw-semibold">{{ empresa.razao_social }}</div>
+              {% if empresa.observacoes %}
+                <small class="text-muted">{{ empresa.observacoes }}</small>
+              {% endif %}
             </td>
 
             <td class="text-nowrap">
@@ -85,16 +160,12 @@
 
             <td class="text-nowrap">
               {% if empresa.tipo_empresa == 'cliente' %}
-                <span class="badge bg-primary px-3 py-2">Cliente</span>
+                <span class="app-status-pill">Cliente</span>
               {% elif empresa.tipo_empresa == 'fornecedor' %}
-                <span class="badge bg-success px-3 py-2">Fornecedor</span>
+                <span class="app-status-pill">Fornecedor</span>
               {% else %}
-                <span class="badge bg-secondary px-3 py-2">Empresa</span>
+                <span class="app-status-pill">Empresa</span>
               {% endif %}
-            </td>
-
-            <td>
-              {{ empresa.endereco or '-' }}
             </td>
 
             <td class="text-nowrap">
@@ -113,13 +184,9 @@
                   class="btn btn-sm btn-outline-success"
                   title="Abrir WhatsApp"
                 >
-                  <i class="bi bi-whatsapp me-1"></i>
-                  WhatsApp
+                  <i class="bi bi-whatsapp"></i>
                 </a>
-
-                <small class="text-muted d-block mt-1">
-                  {{ empresa.contato }}
-                </small>
+                <span class="ms-1">{{ empresa.contato }}</span>
               {% else %}
                 -
               {% endif %}
@@ -127,51 +194,42 @@
 
             <td class="text-nowrap">
               {% if empresa.email %}
-                <div class="d-flex gap-1 flex-wrap">
-                  <a
-                    href="mailto:{{ empresa.email }}"
-                    class="btn btn-sm btn-outline-primary"
-                    title="Abrir aplicativo padrão de email"
-                  >
-                    <i class="bi bi-envelope-fill me-1"></i>
-                    Email
-                  </a>
-
-                  <a
-                    href="https://mail.google.com/mail/?view=cm&fs=1&to={{ empresa.email }}"
-                    target="_blank"
-                    class="btn btn-sm btn-outline-danger"
-                    title="Abrir no Gmail"
-                  >
-                    <i class="bi bi-google me-1"></i>
-                    Gmail
-                  </a>
-                </div>
-
-                <small class="text-muted d-block mt-1">
-                  {{ empresa.email }}
-                </small>
+                <a
+                  href="mailto:{{ empresa.email }}"
+                  class="btn btn-sm btn-outline-primary"
+                  title="Enviar email"
+                >
+                  <i class="bi bi-envelope-fill"></i>
+                </a>
+                <span class="ms-1">{{ empresa.email }}</span>
               {% else %}
                 -
               {% endif %}
             </td>
 
             <td>
-              {{ empresa.observacoes or '-' }}
+              {{ empresa.endereco or '-' }}
+            </td>
+
+            <td class="text-center">
+              {% if empresa.tipo_empresa == 'cliente' %}
+                <a
+                  href="{{ url_for('empresas.listar_os_cliente', cliente_id=empresa.id) }}"
+                  class="btn btn-sm btn-outline-info"
+                  title="Ver O.S do Cliente"
+                >
+                  <i class="bi bi-list-ul me-1"></i>
+                  {{ empresa.ordens_servico|length }}
+                </a>
+              {% else %}
+                -
+              {% endif %}
             </td>
 
             <td class="text-center" style="white-space: nowrap;">
               <div class="d-flex justify-content-center gap-2">
 
                 {% if empresa.tipo_empresa == 'cliente' %}
-                  <a
-                    href="{{ url_for('empresas.listar_os_cliente', cliente_id=empresa.id) }}"
-                    class="btn btn-sm btn-outline-info"
-                    title="Ver O.S do Cliente"
-                  >
-                    <i class="bi bi-list-ul"></i>
-                  </a>
-
                   <a
                     href="{{ url_for('empresas.nova_os', cliente_id=empresa.id) }}"
                     class="btn btn-sm btn-outline-primary"
@@ -213,7 +271,7 @@
 
     {% else %}
 
-    <div class="alert alert-light border text-center">
+    <div class="text-center text-muted py-5">
       <i class="bi bi-info-circle me-2"></i>
       Nenhum cadastro encontrado.
     </div>
