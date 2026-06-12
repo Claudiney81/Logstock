@@ -2,51 +2,269 @@
 
 {% block content %}
 
-<div
-  class="container d-flex flex-column justify-content-center align-items-center text-center"
-  style="flex: 1; min-height: 75vh;"
->
+<div class="container-fluid mt-4 app-dashboard">
 
-  <div style="transform: translateY(-60px);">
-
-    <!-- Logo -->
-    <div class="mb-4">
-
-      <img
-        src="{{ url_for('static', filename='img/logo.png') }}"
-        alt="LogiStock"
-        style="
-          width: 240px;
-          max-width: 100%;
-          height: auto;
-        "
-      >
-
+  <div class="app-page-header">
+    <div>
+      <p class="app-page-kicker">Painel operacional</p>
+      <h1>LogiStock</h1>
+      <p class="app-page-subtitle">
+        Visão rápida dos principais pontos de acompanhamento.
+      </p>
     </div>
 
-    <!-- Título -->
-<h1
-  class="fw-bold mb-2"
-  style="
-    font-size: 2.5rem;
-    color: #1f2937;
-    letter-spacing: -1px;
-  "
->
-  
-Gestão de Materiais
-</h1>
+    <div class="app-page-actions">
+      <a
+        href="{{ url_for('movimentacao_estoque.nova_movimentacao') }}"
+        class="btn btn-primary"
+      >
+        <i class="bi bi-arrow-left-right me-1"></i>
+        Movimentar
+      </a>
 
-<p
-  class="text-secondary mb-0"
-  style="
-    font-size: 0.95rem;
-    letter-spacing: 2px;
-  "
->
-  CONTROLE OPERACIONAL E LOGÍSTICO
-</p>
+      <a
+        href="{{ url_for('nota_fiscal.nova_nota') }}"
+        class="btn btn-outline-primary"
+      >
+        <i class="bi bi-receipt-cutoff me-1"></i>
+        Nova NF
+      </a>
+    </div>
+  </div>
 
+  <div class="row g-3 mb-4">
+    <div class="col-sm-6 col-xl-2">
+      <a href="{{ url_for('estoque.listar_itens') }}" class="app-kpi-card">
+        <span class="app-kpi-icon app-kpi-blue">
+          <i class="bi bi-box-seam"></i>
+        </span>
+        <span class="app-kpi-label">Itens</span>
+        <strong>{{ indicadores.itens }}</strong>
+      </a>
+    </div>
+
+    <div class="col-sm-6 col-xl-2">
+      <a href="{{ url_for('tecnicos.listar_tecnicos') }}" class="app-kpi-card">
+        <span class="app-kpi-icon app-kpi-green">
+          <i class="bi bi-person-badge"></i>
+        </span>
+        <span class="app-kpi-label">Técnicos ativos</span>
+        <strong>{{ indicadores.tecnicos_ativos }}</strong>
+      </a>
+    </div>
+
+    <div class="col-sm-6 col-xl-2">
+      <a href="{{ url_for('estoque.alerta_estoque_baixo') }}" class="app-kpi-card">
+        <span class="app-kpi-icon app-kpi-yellow">
+          <i class="bi bi-exclamation-triangle"></i>
+        </span>
+        <span class="app-kpi-label">Estoque baixo</span>
+        <strong>{{ indicadores.estoque_baixo }}</strong>
+      </a>
+    </div>
+
+    <div class="col-sm-6 col-xl-2">
+      <a href="{{ url_for('requisicoes_tecnicos.mobile_recebidas') }}" class="app-kpi-card">
+        <span class="app-kpi-icon app-kpi-red">
+          <i class="bi bi-inbox"></i>
+        </span>
+        <span class="app-kpi-label">Requisições pend.</span>
+        <strong>{{ indicadores.requisicoes_pendentes }}</strong>
+      </a>
+    </div>
+
+    <div class="col-sm-6 col-xl-2">
+      <a href="{{ url_for('baixa_desktop.baixas_pendentes') }}" class="app-kpi-card">
+        <span class="app-kpi-icon app-kpi-purple">
+          <i class="bi bi-journal-check"></i>
+        </span>
+        <span class="app-kpi-label">Baixas pend.</span>
+        <strong>{{ indicadores.baixas_pendentes }}</strong>
+      </a>
+    </div>
+
+    <div class="col-sm-6 col-xl-2">
+      <a href="{{ url_for('nota_fiscal.historico') }}" class="app-kpi-card">
+        <span class="app-kpi-icon app-kpi-gray">
+          <i class="bi bi-file-earmark-text"></i>
+        </span>
+        <span class="app-kpi-label">NFs 30 dias</span>
+        <strong>{{ indicadores.notas_30_dias }}</strong>
+      </a>
+    </div>
+  </div>
+
+  <div class="row g-4">
+    <div class="col-xl-8">
+      <div class="app-panel">
+        <div class="app-panel-header">
+          <div>
+            <h2>Movimentações recentes</h2>
+            <p>Últimos registros de entrada, saída e devolução.</p>
+          </div>
+          <a href="{{ url_for('movimentacao_estoque.historico') }}" class="btn btn-sm btn-outline-primary">
+            Ver histórico
+          </a>
+        </div>
+
+        <div class="table-responsive">
+          <table class="table table-hover align-middle mb-0 app-table">
+            <thead>
+              <tr>
+                <th>ID</th>
+                <th>Data</th>
+                <th>Origem</th>
+                <th>Destino</th>
+                <th>Tipo serviço</th>
+                <th class="text-end">Itens</th>
+              </tr>
+            </thead>
+            <tbody>
+              {% for mov in movimentacoes_recentes %}
+              <tr>
+                <td class="fw-semibold">#{{ mov.id }}</td>
+                <td>{{ mov.data_hora.strftime('%d/%m/%Y %H:%M') if mov.data_hora else '-' }}</td>
+                <td>{{ mov.origem_tipo|capitalize if mov.origem_tipo else '-' }}</td>
+                <td>{{ mov.destino_tipo|capitalize if mov.destino_tipo else '-' }}</td>
+                <td>{{ mov.tipo_servico.nome if mov.tipo_servico else '-' }}</td>
+                <td class="text-end">{{ mov.itens|length }}</td>
+              </tr>
+              {% else %}
+              <tr>
+                <td colspan="6" class="text-center text-muted py-4">
+                  Nenhuma movimentação encontrada.
+                </td>
+              </tr>
+              {% endfor %}
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+
+    <div class="col-xl-4">
+      <div class="app-panel h-100">
+        <div class="app-panel-header">
+          <div>
+            <h2>Ações rápidas</h2>
+            <p>Atalhos para as operações mais usadas.</p>
+          </div>
+        </div>
+
+        <div class="app-shortcut-list">
+          <a href="{{ url_for('estoque.saldo_estoque') }}">
+            <i class="bi bi-graph-up"></i>
+            <span>Saldo de estoque</span>
+          </a>
+          <a href="{{ url_for('saldo_tecnico.exibir_saldo') }}">
+            <i class="bi bi-person-bounding-box"></i>
+            <span>Saldo técnico</span>
+          </a>
+          <a href="{{ url_for('baixa_desktop.nova_baixa') }}">
+            <i class="bi bi-plus-square"></i>
+            <span>Nova baixa</span>
+          </a>
+          <a href="{{ url_for('inventario_estoque.inventario') }}">
+            <i class="bi bi-clipboard-check"></i>
+            <span>Inventário de estoque</span>
+          </a>
+          <a href="{{ url_for('ferramentas_epis.historico') }}">
+            <i class="bi bi-tools"></i>
+            <span>Ferramentas & EPIs</span>
+          </a>
+        </div>
+      </div>
+    </div>
+
+    <div class="col-xl-6">
+      <div class="app-panel">
+        <div class="app-panel-header">
+          <div>
+            <h2>Notas fiscais recentes</h2>
+            <p>Entradas registradas mais recentemente.</p>
+          </div>
+          <a href="{{ url_for('nota_fiscal.historico') }}" class="btn btn-sm btn-outline-primary">
+            Ver notas
+          </a>
+        </div>
+
+        <div class="table-responsive">
+          <table class="table table-hover align-middle mb-0 app-table">
+            <thead>
+              <tr>
+                <th>NF</th>
+                <th>Fornecedor</th>
+                <th>Data</th>
+                <th>Estoque</th>
+              </tr>
+            </thead>
+            <tbody>
+              {% for nota in notas_recentes %}
+              <tr>
+                <td class="fw-semibold">{{ nota.numero_nf }}</td>
+                <td>{{ nota.fornecedor or '-' }}</td>
+                <td>{{ nota.data_hora.strftime('%d/%m/%Y') if nota.data_hora else '-' }}</td>
+                <td>{{ nota.tipo_estoque|capitalize if nota.tipo_estoque else '-' }}</td>
+              </tr>
+              {% else %}
+              <tr>
+                <td colspan="4" class="text-center text-muted py-4">
+                  Nenhuma nota registrada.
+                </td>
+              </tr>
+              {% endfor %}
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+
+    <div class="col-xl-6">
+      <div class="app-panel">
+        <div class="app-panel-header">
+          <div>
+            <h2>Baixas recentes</h2>
+            <p>Últimas baixas lançadas no sistema.</p>
+          </div>
+          <a href="{{ url_for('baixa_desktop.historico_baixas') }}" class="btn btn-sm btn-outline-primary">
+            Ver baixas
+          </a>
+        </div>
+
+        <div class="table-responsive">
+          <table class="table table-hover align-middle mb-0 app-table">
+            <thead>
+              <tr>
+                <th>ID</th>
+                <th>Técnico</th>
+                <th>Status</th>
+                <th>Data</th>
+              </tr>
+            </thead>
+            <tbody>
+              {% for baixa in baixas_recentes %}
+              <tr>
+                <td class="fw-semibold">#{{ baixa.id }}</td>
+                <td>{{ baixa.tecnico.nome if baixa.tecnico else '-' }}</td>
+                <td>
+                  <span class="app-status-pill">
+                    {{ baixa.status|replace('_', ' ')|capitalize if baixa.status else '-' }}
+                  </span>
+                </td>
+                <td>{{ baixa.data_hora.strftime('%d/%m/%Y') if baixa.data_hora else '-' }}</td>
+              </tr>
+              {% else %}
+              <tr>
+                <td colspan="4" class="text-center text-muted py-4">
+                  Nenhuma baixa registrada.
+                </td>
+              </tr>
+              {% endfor %}
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
   </div>
 
 </div>

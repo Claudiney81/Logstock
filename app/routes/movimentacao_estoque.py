@@ -790,6 +790,151 @@ def historico():
     )
 
 
+@bp_movimentacao.route('/historico/excel')
+@login_required
+def exportar_historico_excel():
+
+    import pandas as pd
+
+    movimentacoes = MovimentacaoEstoque.query.order_by(
+        MovimentacaoEstoque.data_hora.desc()
+    ).all()
+
+    tecnicos_dict = {
+        t.id: t.nome
+        for t in Tecnico.query.all()
+    }
+
+    empresas_dict = {
+        e.id: e.razao_social
+        for e in Empresa.query.all()
+    }
+
+    linhas = []
+
+    for mov in movimentacoes:
+        tecnico = '-'
+
+        if mov.destino_tipo == 'tecnico':
+            tecnico = tecnicos_dict.get(int(mov.destino_id or 0), '-')
+
+        elif mov.origem_tipo == 'tecnico':
+            tecnico = tecnicos_dict.get(int(mov.origem_id or 0), '-')
+
+        cliente_os = '-'
+
+        if mov.origem_tipo == 'cliente':
+            cliente_os = empresas_dict.get(int(mov.origem_id or 0), '-')
+
+        elif (
+            mov.origem_tipo == 'empresa'
+            and mov.destino_tipo == 'tecnico'
+            and int(mov.origem_id or 0) > 0
+        ):
+            cliente_os = empresas_dict.get(int(mov.origem_id or 0), '-')
+
+        elif mov.origem_tipo == 'empresa' and mov.destino_tipo == 'tecnico':
+            cliente_os = 'Empresa'
+
+        elif mov.origem_tipo == 'tecnico' and mov.destino_tipo == 'empresa':
+            cliente_os = 'Não se aplica'
+
+        if mov.ordem_servico:
+            cliente_os = f"{cliente_os} - {mov.ordem_servico.numero_os}"
+
+        condicoes = [
+            item.condicao_material
+            for item in mov.itens
+            if item.condicao_material
+        ]
+
+        if not condicoes:
+            condicao = 'Disponível'
+        elif len(set(condicoes)) == 1:
+            condicao = condicoes[0]
+        else:
+            condicao = 'MISTO'
+
+        total = sum(
+            (item.quantidade or 0) * (item.valor_unitario or 0)
+            for item in mov.itens
+        )
+
+        linhas.append({
+            'ID': mov.id,
+            'Data/Hora': (
+                mov.data_hora.strftime('%d/%m/%Y %H:%M')
+                if mov.data_hora else '-'
+            ),
+            'Origem': (mov.origem_tipo or '-').capitalize(),
+            'Destino': (mov.destino_tipo or '-').capitalize(),
+            'Técnico': tecnico,
+            'Cliente / O.S': cliente_os,
+            'Tipo Serviço': mov.tipo_servico.nome if mov.tipo_servico else '-',
+            'Categoria': mov.categoria_movimentacao or '-',
+            'Tipo Movimentação': mov.tipo_movimentacao or '-',
+            'Condição': condicao,
+            'Itens': len(mov.itens or []),
+            'Valor Total': total,
+            'Assinatura': 'Sim' if mov.assinatura else 'Não',
+            'E-mail': 'Enviado' if mov.email_enviado else 'Pendente',
+            'Observação': mov.observacao or '-'
+        })
+
+    output = BytesIO()
+
+    with pd.ExcelWriter(output, engine='xlsxwriter') as writer:
+        df = pd.DataFrame(linhas)
+
+        if df.empty:
+            df = pd.DataFrame([{
+                'Mensagem': 'Nenhuma movimentação encontrada.'
+            }])
+
+        df.to_excel(
+            writer,
+            index=False,
+            sheet_name='Histórico'
+        )
+
+        workbook = writer.book
+        worksheet = writer.sheets['Histórico']
+
+        header_format = workbook.add_format({
+            'bold': True,
+            'bg_color': '#002B55',
+            'font_color': '#FFFFFF',
+            'border': 1
+        })
+
+        money_format = workbook.add_format({
+            'num_format': 'R$ #,##0.00'
+        })
+
+        for col_num, value in enumerate(df.columns.values):
+            worksheet.write(0, col_num, value, header_format)
+            largura = max(14, min(38, len(str(value)) + 6))
+            worksheet.set_column(col_num, col_num, largura)
+
+        if 'Valor Total' in df.columns:
+            valor_col = df.columns.get_loc('Valor Total')
+            worksheet.set_column(valor_col, valor_col, 16, money_format)
+
+        worksheet.freeze_panes(1, 0)
+        worksheet.autofilter(0, 0, len(df), len(df.columns) - 1)
+
+    output.seek(0)
+
+    data_arquivo = datetime.now().strftime('%Y%m%d_%H%M%S')
+
+    return send_file(
+        output,
+        as_attachment=True,
+        download_name=f'historico_movimentacoes_{data_arquivo}.xlsx',
+        mimetype='application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
+    )
+
+
 @bp_movimentacao.route('/detalhes/<int:id>')
 @login_required
 def detalhes(id):

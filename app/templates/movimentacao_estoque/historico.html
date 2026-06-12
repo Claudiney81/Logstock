@@ -79,13 +79,23 @@
         Histórico de Movimentações de Estoque
       </h5>
 
-      <a
-        href="{{ url_for('movimentacao_estoque.nova_movimentacao') }}"
-        class="btn btn-light btn-sm"
-      >
-        <i class="bi bi-plus-circle me-1"></i>
-        Nova Movimentação
-      </a>
+      <div class="d-flex gap-2 flex-wrap justify-content-end">
+        <a
+          href="{{ url_for('movimentacao_estoque.exportar_historico_excel') }}"
+          class="btn btn-success btn-sm"
+        >
+          <i class="bi bi-file-earmark-excel me-1"></i>
+          Exportar Excel
+        </a>
+
+        <a
+          href="{{ url_for('movimentacao_estoque.nova_movimentacao') }}"
+          class="btn btn-light btn-sm"
+        >
+          <i class="bi bi-plus-circle me-1"></i>
+          Nova Movimentação
+        </a>
+      </div>
     </div>
 
     <div class="card-body">
