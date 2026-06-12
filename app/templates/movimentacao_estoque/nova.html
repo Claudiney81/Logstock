@@ -3,34 +3,8 @@
 {# Versão com seleção em lote, checkbox geral, saldo técnico empresa/cliente e condição de devolução #}
 
 <style>
-  .mov-page {
-    max-width: 1600px;
-    margin: 0 auto;
-  }
-
-  .mov-form-grid {
-    display: grid;
-    grid-template-columns: minmax(420px, .9fr) minmax(720px, 1.45fr);
-    grid-template-areas:
-      "dados lote"
-      "itens lote"
-      "assinatura lote"
-      "acoes lote";
-    gap: 16px;
-    align-items: start;
-  }
-
-  .mov-card {
-    border: 1px solid #dbe3ee !important;
-    border-radius: 10px;
-    overflow: hidden;
-  }
-
-  .mov-dados { grid-area: dados; }
-  .mov-lote { grid-area: lote; }
-  .mov-itens { grid-area: itens; }
-  .mov-assinatura { grid-area: assinatura; }
-  .mov-actions { grid-area: acoes; }
+  .page-title { color:#002b55; font-weight:700; }
+  .card-main { border:0; border-radius:10px; }
 
   .section-header {
     background:#f8fafc;
@@ -125,55 +99,29 @@
   cursor: text;
 }
 
-  .lote-qtd:focus {
+.lote-qtd:focus {
   background: #fff8dc;
   border: 2px solid #0d6efd;
   box-shadow: 0 0 6px rgba(13,110,253,.25);
 }
-
-  .mov-lote .table-responsive {
-    max-height: 540px !important;
-  }
-
-  .mov-itens .table-responsive {
-    max-height: 320px;
-    overflow: auto;
-  }
-
-  @media (max-width: 1200px) {
-    .mov-form-grid {
-      display: block;
-    }
-
-    #signature-pad {
-      max-width: 100%;
-    }
-  }
 </style>
 
 <div class="container-fluid mt-4">
-  <div class="mov-page">
 
-    <div class="app-page-header">
-      <div>
-        <p class="app-page-kicker">Movimentação de Estoque</p>
-        <h1>Nova Movimentação</h1>
-        <p class="app-page-subtitle">
-          Registre transferências, devoluções e documentos assinados de movimentação.
-        </p>
-      </div>
+  <div class="card shadow-sm card-main mb-4">
 
-      <div class="app-page-actions">
-        <a href="{{ url_for('movimentacao_estoque.historico') }}" class="btn btn-outline-primary">
-          <i class="bi bi-clock-history me-1"></i>
-          Histórico
-        </a>
-      </div>
+    <div class="card-header text-white" style="background:#002b55;">
+      <h5 class="mb-0 fw-semibold">
+        <i class="bi bi-arrow-left-right me-2"></i>
+        Movimentação de Estoque
+      </h5>
     </div>
 
-      <form method="POST" action="{{ url_for('movimentacao_estoque.nova_movimentacao') }}" autocomplete="off" class="mov-form-grid">
+    <div class="card-body">
 
-        <div class="card shadow-sm border-0 mb-4 mov-card mov-dados">
+      <form method="POST" action="{{ url_for('movimentacao_estoque.nova_movimentacao') }}" autocomplete="off">
+
+        <div class="card shadow-sm border-0 mb-4">
           <div class="card-header section-header">
             <i class="bi bi-box-arrow-in-right me-2"></i>
             Dados da Movimentação
@@ -306,7 +254,7 @@
           </div>
         </div>
 
-        <div class="card shadow-sm border-0 mb-4 mov-card mov-lote">
+        <div class="card shadow-sm border-0 mb-4">
           <div class="card-header section-header">
             <i class="bi bi-list-check me-2"></i>
             Seleção em Lote
@@ -372,7 +320,7 @@
           </div>
         </div>
 
-        <div class="card shadow-sm border-0 mb-4 mov-card mov-itens">
+        <div class="card shadow-sm border-0 mb-4">
           <div class="card-header section-header">
             <i class="bi bi-box-seam me-2"></i>
             Itens da Movimentação
@@ -445,7 +393,7 @@
           </div>
         </div>
 
-        <div class="card shadow-sm border-0 mb-4 mov-card mov-assinatura">
+        <div class="card shadow-sm border-0 mb-4">
           <div class="card-header section-header">
             <i class="bi bi-pencil-square me-2"></i>
             Assinatura do Técnico
@@ -463,7 +411,7 @@
           </div>
         </div>
 
-        <div class="mov-actions d-flex gap-2 flex-wrap">
+        <div class="mt-4 d-flex gap-2">
           <button type="submit" class="btn btn-main">
             <i class="bi bi-save me-1"></i>
             Registrar Movimentação
@@ -477,6 +425,7 @@
 
       </form>
 
+    </div>
   </div>
 </div>
 
