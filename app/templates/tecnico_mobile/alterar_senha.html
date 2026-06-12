@@ -1,175 +1,139 @@
 <!DOCTYPE html>
 <html lang="pt-br">
 <head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <title>Alterar Senha</title>
 
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Alterar Senha</title>
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css">
 
-    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
-    <link rel="stylesheet"
-          href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css">
+  <style>
+    body {
+      background: #eef3f8;
+      min-height: 100vh;
+      color: #0f172a;
+      padding-bottom: 58px;
+    }
 
-    <style>
-        body{
-            background:#f4f6f9;
-            min-height:100vh;
-        }
+    .topo {
+      background: #002b55;
+      color: white;
+      padding: 20px 16px;
+      border-radius: 0 0 22px 22px;
+      box-shadow: 0 10px 26px rgba(15, 23, 42, .18);
+    }
 
-        .topo{
-            background:#002b55;
-            color:white;
-            padding:25px 20px;
-            border-radius:0 0 20px 20px;
-            box-shadow:0 4px 10px rgba(0,0,0,.1);
-        }
+    .topo h1 {
+      margin: 0;
+      font-size: 1.28rem;
+      font-weight: 850;
+      letter-spacing: 0;
+    }
 
-        .topo h4{
-            margin:0;
-            font-weight:700;
-        }
+    .topo small {
+      display: block;
+      margin-top: 4px;
+      opacity: .88;
+    }
 
-        .container-form{
-            padding:25px 18px;
-        }
+    .container-form {
+      width: min(100%, 560px);
+      margin: 0 auto;
+      padding: 18px 14px;
+    }
 
-        .card-form{
-            background:white;
-            border:none;
-            border-radius:18px;
-            padding:22px;
-            box-shadow:0 6px 18px rgba(0,0,0,.08);
-        }
+    .card-form {
+      background: white;
+      border: 1px solid #d9e2ec;
+      border-radius: 16px;
+      padding: 18px;
+      box-shadow: 0 10px 26px rgba(15, 23, 42, .08);
+    }
 
-        .btn-salvar{
-            height:48px;
-            border-radius:12px;
-            font-weight:600;
-            background:#002b55;
-            border:none;
-        }
+    .form-label {
+      font-weight: 700;
+      font-size: .9rem;
+    }
 
-        .btn-voltar{
-            height:48px;
-            border-radius:12px;
-            font-weight:600;
-        }
-    </style>
+    .form-control {
+      min-height: 48px;
+      border-radius: 12px;
+      border-color: #cbd5e1;
+    }
 
+    .btn-salvar,
+    .btn-voltar {
+      min-height: 48px;
+      border-radius: 12px;
+      font-weight: 800;
+    }
+
+    .btn-salvar {
+      background: #002b55;
+      border: none;
+    }
+  </style>
 </head>
 <body>
 
 <div class="topo">
-    <h4>
-        <i class="bi bi-shield-lock me-2"></i>
-        Alterar Senha
-    </h4>
-
-    <small>
-        {{ tecnico.nome }}
-    </small>
+  <h1>
+    <i class="bi bi-shield-lock me-2"></i>
+    Alterar Senha
+  </h1>
+  <small>{{ tecnico.nome }}</small>
 </div>
 
 <div class="container-form">
+  <div class="card-form">
+    {% with messages = get_flashed_messages(with_categories=true) %}
+      {% if messages %}
+        {% for category, message in messages %}
+          <div class="alert alert-{{ category }} alert-dismissible fade show" role="alert">
+            {{ message }}
+            <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Fechar"></button>
+          </div>
+        {% endfor %}
+      {% endif %}
+    {% endwith %}
 
-    <div class="card-form">
+    <form method="POST">
+      <div class="mb-3">
+        <label class="form-label">Senha Atual</label>
+        <input type="password" name="senha_atual" class="form-control" autocomplete="current-password" required>
+      </div>
 
-        {% with messages = get_flashed_messages(with_categories=true) %}
-            {% if messages %}
-                {% for category, message in messages %}
+      <div class="mb-3">
+        <label class="form-label">Nova Senha</label>
+        <input type="password" name="nova_senha" class="form-control" autocomplete="new-password" required>
+      </div>
 
-                    <div
-                        class="alert alert-{{ category }} alert-dismissible fade show"
-                        role="alert"
-                    >
-                        {{ message }}
+      <div class="mb-4">
+        <label class="form-label">Confirmar Nova Senha</label>
+        <input type="password" name="confirmar_senha" class="form-control" autocomplete="new-password" required>
+      </div>
 
-                        <button
-                            type="button"
-                            class="btn-close"
-                            data-bs-dismiss="alert"
-                            aria-label="Fechar"
-                        ></button>
-                    </div>
+      <button type="submit" class="btn btn-primary w-100 btn-salvar">
+        <i class="bi bi-check-circle me-2"></i>
+        Salvar Nova Senha
+      </button>
+    </form>
 
-                {% endfor %}
-            {% endif %}
-        {% endwith %}
-
-        <form method="POST">
-
-            <div class="mb-3">
-                <label class="form-label fw-semibold">
-                    Senha Atual
-                </label>
-
-                <input
-                    type="password"
-                    name="senha_atual"
-                    class="form-control"
-                    required
-                >
-            </div>
-
-            <div class="mb-3">
-                <label class="form-label fw-semibold">
-                    Nova Senha
-                </label>
-
-                <input
-                    type="password"
-                    name="nova_senha"
-                    class="form-control"
-                    required
-                >
-            </div>
-
-            <div class="mb-4">
-                <label class="form-label fw-semibold">
-                    Confirmar Nova Senha
-                </label>
-
-                <input
-                    type="password"
-                    name="confirmar_senha"
-                    class="form-control"
-                    required
-                >
-            </div>
-
-            <button
-                type="submit"
-                class="btn btn-primary w-100 btn-salvar"
-            >
-                <i class="bi bi-check-circle me-2"></i>
-                Salvar Nova Senha
-            </button>
-
-        </form>
-
-        <a
-            href="{{ url_for('tecnico_mobile.home') }}"
-            class="btn btn-outline-secondary w-100 mt-3 btn-voltar"
-        >
-            <i class="bi bi-arrow-left me-2"></i>
-            Voltar
-        </a>
-
-    </div>
-
+    <a href="{{ url_for('tecnico_mobile.home') }}" class="btn btn-outline-secondary w-100 mt-3 btn-voltar">
+      <i class="bi bi-arrow-left me-2"></i>
+      Voltar
+    </a>
+  </div>
 </div>
 
 <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
-
 <script>
-    setTimeout(() => {
-        const alerts = document.querySelectorAll(".alert");
-
-        alerts.forEach((alert) => {
-            const bsAlert = bootstrap.Alert.getOrCreateInstance(alert);
-            bsAlert.close();
-        });
-    }, 3000);
+  setTimeout(() => {
+    document.querySelectorAll(".alert").forEach((alert) => {
+      bootstrap.Alert.getOrCreateInstance(alert).close();
+    });
+  }, 3000);
 </script>
 
 </body>

@@ -1,163 +1,204 @@
 {% extends "base_mobile.html" %}
 {% block title %}Nova Requisição{% endblock %}
 
+{% block head %}
+<style>
+  .req-summary {
+    display: grid;
+    grid-template-columns: 1fr;
+    gap: 10px;
+    margin-bottom: 14px;
+  }
+
+  .req-chip {
+    background: #fff;
+    border: 1px solid #d9e2ec;
+    border-radius: 14px;
+    padding: 12px 14px;
+    box-shadow: 0 8px 20px rgba(15, 23, 42, .06);
+  }
+
+  .req-chip span {
+    display: block;
+    color: #64748b;
+    font-size: .78rem;
+    font-weight: 800;
+    text-transform: uppercase;
+  }
+
+  .req-chip strong {
+    display: block;
+    margin-top: 2px;
+    font-size: .98rem;
+  }
+
+  .item-table-wrap {
+    max-height: 50vh;
+    overflow: auto;
+  }
+
+  #tabela-itens th,
+  #tabela-itens td {
+    white-space: nowrap;
+  }
+
+  #tabela-itens td:nth-child(2) {
+    min-width: 240px;
+  }
+
+  .btn-remove-row {
+    width: 38px;
+    min-height: 38px;
+    padding: 0;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+  }
+</style>
+{% endblock %}
+
 {% block content %}
 
-<h5 class="mb-3 text-primary">
-  📱 Nova Requisição
-</h5>
+<div class="mobile-page-title">
+  <p class="kicker">Requisição Mobile</p>
+  <h1>Nova Requisição</h1>
+  <p>Solicite materiais disponíveis no estoque da empresa.</p>
+</div>
+
+<div class="req-summary">
+  <div class="req-chip">
+    <span>Técnico</span>
+    <strong>{{ tecnico.nome }}</strong>
+  </div>
+</div>
 
 <form method="post" id="formRequisicao">
+  <div class="mobile-panel mb-3">
+    <div class="mobile-panel-header">
+      <h2>Dados da solicitação</h2>
+      <p>Escolha o tipo de serviço antes de adicionar os itens.</p>
+    </div>
 
-  <!-- TÉCNICO LOGADO -->
-  <div class="mb-3">
-    <label class="form-label fw-semibold">Técnico</label>
-    <input
-      type="text"
-      class="form-control form-control-sm"
-      value="{{ tecnico.nome }}"
-      readonly
-    >
+    <div class="p-3">
+      <div class="mb-3">
+        <label class="form-label fw-semibold">Tipo de Serviço</label>
+        <select
+          name="tipo_servico_id"
+          id="tipo-servico-select"
+          class="form-select"
+          required
+        >
+          <option value="">Selecione</option>
+          {% for tipo in tipos_servico %}
+          <option value="{{ tipo.id }}">{{ tipo.nome }}</option>
+          {% endfor %}
+        </select>
+      </div>
+
+      <div>
+        <label class="form-label fw-semibold">Observação</label>
+        <textarea
+          name="observacao"
+          class="form-control"
+          rows="2"
+          placeholder="Informe uma observação, se necessário"
+        ></textarea>
+      </div>
+    </div>
   </div>
 
-  <!-- TIPO SERVIÇO -->
-  <div class="mb-3">
-    <label class="form-label fw-semibold">Tipo de Serviço</label>
-    <select
-      name="tipo_servico_id"
-      id="tipo-servico-select"
-      class="form-select form-select-sm"
-      required
-    >
-      <option value="">Selecione</option>
-      {% for tipo in tipos_servico %}
-      <option value="{{ tipo.id }}">{{ tipo.nome }}</option>
-      {% endfor %}
-    </select>
+  <div class="mobile-panel">
+    <div class="mobile-panel-header">
+      <h2>Itens da Requisição</h2>
+      <p>Adicione material, confira o saldo e informe a quantidade.</p>
+    </div>
+
+    <div class="table-responsive item-table-wrap">
+      <table class="table table-sm table-bordered align-middle mb-0" id="tabela-itens">
+        <thead class="table-light">
+          <tr>
+            <th style="width:110px;">Código</th>
+            <th>Descrição</th>
+            <th style="width:96px;">Qtd</th>
+            <th style="width:48px;"></th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr id="linhaVaziaItens">
+            <td colspan="4" class="text-center text-muted py-4">
+              Nenhum item adicionado.
+            </td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+
+    <div class="p-3 border-top">
+      <button type="button" class="btn btn-outline-primary w-100 mb-2" onclick="adicionarLinha()">
+        <i class="bi bi-plus-circle me-1"></i>
+        Adicionar Item
+      </button>
+
+      <button type="button" class="btn btn-success w-100" onclick="abrirConfirmacaoEnvio()">
+        <i class="bi bi-send me-1"></i>
+        Enviar Requisição
+      </button>
+    </div>
   </div>
-
-  <!-- OBS -->
-  <div class="mb-3">
-    <label class="form-label fw-semibold">Observação</label>
-    <textarea
-      name="observacao"
-      class="form-control form-control-sm"
-      rows="2"
-      placeholder="Informe uma observação, se necessário"
-    ></textarea>
-  </div>
-
-  <!-- ITENS -->
-  <h6 class="text-success mt-4">Itens da Requisição</h6>
-
-  <div class="table-responsive mb-3">
-    <table class="table table-sm table-bordered" id="tabela-itens">
-      <thead class="table-light">
-        <tr>
-          <th>Código</th>
-          <th>Descrição</th>
-          <th>Qtd</th>
-          <th></th>
-        </tr>
-      </thead>
-      <tbody></tbody>
-    </table>
-  </div>
-
-  <button
-    type="button"
-    class="btn btn-outline-primary w-100 mb-2"
-    onclick="adicionarLinha()"
-  >
-    + Adicionar Item
-  </button>
-
-  <button
-    type="button"
-    class="btn btn-success w-100"
-    onclick="abrirConfirmacaoEnvio()"
-  >
-    📤 Enviar Requisição
-  </button>
-
 </form>
 
-<!-- MODAL CONFIRMAÇÃO -->
 <div class="modal fade" id="modalConfirmacao" tabindex="-1" aria-hidden="true">
   <div class="modal-dialog modal-dialog-centered">
     <div class="modal-content border-0 rounded-4 shadow">
-
       <div class="modal-header bg-warning-subtle">
         <h5 class="modal-title fw-bold">
           <i class="bi bi-exclamation-triangle me-2"></i>
           Confirmar Envio
         </h5>
-
-        <button
-          type="button"
-          class="btn-close"
-          data-bs-dismiss="modal"
-          aria-label="Fechar">
-        </button>
+        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Fechar"></button>
       </div>
 
       <div class="modal-body">
         <p class="mb-2 fw-semibold">
-          Você tem certeza que deseja enviar esta requisição?
+          Você confirma o envio desta requisição?
         </p>
-
         <p class="mb-0 text-muted small">
-          Confira o tipo de serviço, observação e itens solicitados.
-          Após o envio, a requisição será encaminhada para análise do setor responsável.
+          Após o envio, a solicitação ficará pendente para análise do setor responsável.
         </p>
       </div>
 
       <div class="modal-footer">
-        <button
-          type="button"
-          class="btn btn-outline-secondary"
-          data-bs-dismiss="modal"
-        >
+        <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">
           Cancelar
         </button>
-
-        <button
-          type="button"
-          class="btn btn-success"
-          onclick="confirmarEnvioRequisicao()"
-        >
+        <button type="button" class="btn btn-success" onclick="confirmarEnvioRequisicao()">
           <i class="bi bi-check-circle me-2"></i>
           Sim, Enviar
         </button>
       </div>
-
     </div>
   </div>
 </div>
 
 <script>
-
 let tipoSelecionado = "";
 let tipoEstoqueSelecionado = "empresa";
 let envioConfirmado = false;
-
-// ==================================================
-// LIMPAR ITENS AO ALTERAR TIPO DE SERVIÇO
-// ==================================================
 
 document
   .getElementById("tipo-servico-select")
   .addEventListener("change", function () {
     tipoSelecionado = this.value;
-    document.querySelector("#tabela-itens tbody").innerHTML = "";
+    document.querySelector("#tabela-itens tbody").innerHTML = `
+      <tr id="linhaVaziaItens">
+        <td colspan="4" class="text-center text-muted py-4">
+          Nenhum item adicionado.
+        </td>
+      </tr>
+    `;
   });
 
-// ==================================================
-// ADICIONAR ITEM
-// ==================================================
-
 function adicionarLinha() {
-
   tipoEstoqueSelecionado = "empresa";
   tipoSelecionado = document.getElementById("tipo-servico-select").value;
 
@@ -166,22 +207,20 @@ function adicionarLinha() {
     return;
   }
 
+  document.getElementById("linhaVaziaItens")?.remove();
+
   const tbody = document.querySelector("#tabela-itens tbody");
   const linha = document.createElement("tr");
 
   linha.innerHTML = `
     <td>
-      <input
-        name="codigo[]"
-        class="form-control form-control-sm codigo"
-        readonly
-      >
+      <input name="codigo[]" class="form-control form-control-sm codigo" readonly>
     </td>
 
     <td>
       <select
         name="item_id[]"
-        class="form-control form-control-sm descricao-select"
+        class="form-select form-select-sm descricao-select"
         required
         onchange="preencherCampos(this)"
       >
@@ -194,41 +233,41 @@ function adicionarLinha() {
         name="quantidade[]"
         type="number"
         min="1"
-        class="form-control form-control-sm quantidade"
+        class="form-control form-control-sm quantidade text-center"
         required
       >
     </td>
 
-    <td>
-      <button
-        type="button"
-        class="btn btn-danger btn-sm"
-        onclick="removerLinha(this)"
-      >
-        ✕
+    <td class="text-center">
+      <button type="button" class="btn btn-outline-danger btn-sm btn-remove-row" onclick="removerLinha(this)">
+        <i class="bi bi-x-lg"></i>
       </button>
     </td>
   `;
 
   tbody.appendChild(linha);
-
   carregarItens(linha.querySelector(".descricao-select"));
 }
 
 function removerLinha(btn) {
   btn.closest("tr").remove();
+
+  const tbody = document.querySelector("#tabela-itens tbody");
+  if (!tbody.querySelector("tr")) {
+    tbody.innerHTML = `
+      <tr id="linhaVaziaItens">
+        <td colspan="4" class="text-center text-muted py-4">
+          Nenhum item adicionado.
+        </td>
+      </tr>
+    `;
+  }
 }
 
-// ==================================================
-// CARREGAR ITENS COM SALDO DO ESTOQUE EMPRESA
-// ==================================================
-
 function carregarItens(select) {
-
   fetch(`/requisicao_mobile/api/itens/${tipoSelecionado}/${tipoEstoqueSelecionado}`)
     .then(res => res.json())
     .then(data => {
-
       select.innerHTML = '<option value="">Selecione...</option>';
 
       if (!data.itens || data.itens.length === 0) {
@@ -238,32 +277,23 @@ function carregarItens(select) {
       }
 
       data.itens.forEach(item => {
-
         const opt = document.createElement("option");
 
         opt.value = item.id;
         opt.textContent = `${item.codigo} - ${item.descricao} (Saldo: ${item.saldo})`;
-
         opt.dataset.codigo = item.codigo;
         opt.dataset.unidade = item.unidade;
         opt.dataset.saldo = item.saldo;
 
         select.appendChild(opt);
-
       });
-
     })
     .catch(() => {
       select.innerHTML = '<option value="">Erro ao carregar itens</option>';
     });
 }
 
-// ==================================================
-// PREENCHER CAMPOS DO ITEM
-// ==================================================
-
 function preencherCampos(select) {
-
   const item = select.selectedOptions[0];
   const linha = select.closest("tr");
 
@@ -284,17 +314,10 @@ function preencherCampos(select) {
   };
 }
 
-// ==================================================
-// VALIDAR REQUISIÇÃO
-// ==================================================
-
 function validarRequisicao() {
-
   const tipoServico = document.getElementById("tipo-servico-select").value;
-
   const itens = document.querySelectorAll("select[name='item_id[]']");
   const quantidades = document.querySelectorAll("input[name='quantidade[]']");
-
   let temItemValido = false;
 
   if (!tipoServico) {
@@ -325,36 +348,23 @@ function validarRequisicao() {
   return true;
 }
 
-// ==================================================
-// MODAL CONFIRMAÇÃO
-// ==================================================
-
 function abrirConfirmacaoEnvio() {
-
   if (!validarRequisicao()) {
     return;
   }
 
-  const modal = new bootstrap.Modal(
-    document.getElementById("modalConfirmacao")
-  );
-
+  const modal = new bootstrap.Modal(document.getElementById("modalConfirmacao"));
   modal.show();
 }
 
 function confirmarEnvioRequisicao() {
-
   envioConfirmado = true;
-
-  document
-    .getElementById("formRequisicao")
-    .submit();
+  document.getElementById("formRequisicao").submit();
 }
 
 document
   .getElementById("formRequisicao")
   .addEventListener("submit", function(e) {
-
     if (!validarRequisicao()) {
       e.preventDefault();
       return;
@@ -364,9 +374,7 @@ document
       e.preventDefault();
       abrirConfirmacaoEnvio();
     }
-
-});
-
+  });
 </script>
 
 {% endblock %}

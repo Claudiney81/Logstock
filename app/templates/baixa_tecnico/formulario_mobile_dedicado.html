@@ -1,12 +1,111 @@
       {% extends 'base_mobile_tecnico.html' %}
       {% block title %}Baixa Técnica - {{ tecnico_nome }}{% endblock %}
+      {% block head %}
+      <style>
+        .baixa-hero {
+          background: #002b55;
+          color: #fff;
+          border-radius: 16px;
+          padding: 16px;
+          margin: 4px 0 14px;
+          box-shadow: 0 10px 26px rgba(15, 23, 42, .16);
+        }
+
+        .baixa-hero .kicker {
+          margin: 0 0 2px;
+          font-size: .76rem;
+          font-weight: 800;
+          opacity: .78;
+          text-transform: uppercase;
+        }
+
+        .baixa-hero h1 {
+          margin: 0;
+          font-size: 1.24rem;
+          font-weight: 850;
+          letter-spacing: 0;
+        }
+
+        .baixa-hero p {
+          margin: 4px 0 0;
+          opacity: .88;
+          font-size: .88rem;
+        }
+
+        .baixa-card {
+          border: 1px solid #d9e2ec !important;
+          border-radius: 16px !important;
+          overflow: hidden;
+          box-shadow: 0 10px 26px rgba(15, 23, 42, .08) !important;
+        }
+
+        .baixa-section-title {
+          display: flex;
+          align-items: center;
+          gap: 8px;
+          color: #002b55;
+          font-size: .96rem;
+          font-weight: 850;
+          margin-bottom: 10px;
+        }
+
+        .baixa-section-title i {
+          width: 32px;
+          height: 32px;
+          border-radius: 10px;
+          display: inline-flex;
+          align-items: center;
+          justify-content: center;
+          background: #e8f1fb;
+        }
+
+        .baixa-table-wrap {
+          border: 1px solid #d9e2ec;
+          border-radius: 12px;
+          overflow: auto;
+          max-height: 46vh;
+          background: #fff;
+        }
+
+        .baixa-table-wrap table {
+          margin-bottom: 0;
+        }
+
+        .baixa-table-wrap th {
+          position: sticky;
+          top: 0;
+          z-index: 2;
+          background: #f8fafc !important;
+        }
+
+        .foto-item {
+          border-color: #d9e2ec !important;
+          border-radius: 14px;
+          background: #f8fafc;
+        }
+
+        #btnEnviarBaixa {
+          min-height: 52px;
+          font-size: 1rem;
+        }
+      </style>
+      {% endblock %}
 
       {% block content %}
 
-      <div class="card mt-3 shadow-sm border-0">
+      <div class="baixa-hero">
+        <p class="kicker">Portal Técnico</p>
+        <h1>Baixa de Materiais</h1>
+        <p>{{ tecnico_nome }}</p>
+      </div>
 
-        <div class="card-header text-white text-center" style="background:#002b55;">
-          <strong>🛠️ Baixa Técnica - {{ tecnico_nome }}</strong>
+      <div class="card mt-3 shadow-sm border-0 baixa-card">
+
+        <div class="card-header text-white" style="background:#002b55;">
+          <strong>
+            <i class="bi bi-tools me-1"></i>
+            Registrar utilização em campo
+          </strong>
         </div>
 
         {% if baixas_recusadas %}
@@ -319,9 +418,12 @@
             </div>
 
             <div class="mt-4">
-              <h6 class="fw-bold text-success">Itens disponíveis</h6>
+              <div class="baixa-section-title">
+                <i class="bi bi-box-seam"></i>
+                <span>Itens disponíveis</span>
+              </div>
 
-              <div class="table-responsive">
+              <div class="table-responsive baixa-table-wrap">
                 <table class="table table-bordered table-sm align-middle">
                   <thead class="table-light text-center">
                     <tr>
@@ -334,7 +436,7 @@
 
                   <tbody id="tbodyItens">
                     <tr>
-                      <td colspan="5" class="text-center text-muted">
+                      <td colspan="4" class="text-center text-muted">
                         Selecione os filtros
                       </td>
                     </tr>
@@ -352,9 +454,12 @@
             </div>
 
             <div class="mt-4">
-              <h6 class="fw-bold text-primary">Itens adicionados</h6>
+              <div class="baixa-section-title">
+                <i class="bi bi-list-check"></i>
+                <span>Itens adicionados</span>
+              </div>
 
-              <div class="table-responsive">
+              <div class="table-responsive baixa-table-wrap">
                 <table class="table table-bordered table-sm align-middle">
                   <thead class="table-light text-center">
                     <tr>
@@ -381,9 +486,10 @@
 
       <!-- FOTOS -->
       <div class="mt-4">
-        <h6 class="fw-bold text-primary">
-          📸 Fotos do Serviço
-        </h6>
+        <div class="baixa-section-title">
+          <i class="bi bi-camera"></i>
+          <span>Fotos do Serviço</span>
+        </div>
 
         <div id="containerFotos">
 
