@@ -9,7 +9,13 @@
       <p class="app-page-kicker">Empresas / Parceiros</p>
       <h1>{{ titulo if titulo else 'Empresas / Parceiros' }}</h1>
       <p class="app-page-subtitle">
-        Consulta de clientes, fornecedores, contatos e ordens de serviço.
+        {% if tipo_lista == 'cliente' %}
+          Consulta exclusiva de clientes, contatos e ordens de serviço.
+        {% elif tipo_lista == 'fornecedor' %}
+          Consulta exclusiva de fornecedores, contatos e dados comerciais.
+        {% else %}
+          Consulta de clientes, fornecedores, contatos e ordens de serviço.
+        {% endif %}
       </p>
     </div>
 
@@ -39,6 +45,77 @@
   </div>
 
   <div class="row g-3 mb-4">
+    {% if tipo_lista == 'cliente' %}
+    <div class="col-sm-6 col-xl-3">
+      <div class="app-kpi-card">
+        <span class="app-kpi-icon app-kpi-blue">
+          <i class="bi bi-people"></i>
+        </span>
+        <span class="app-kpi-label">Clientes</span>
+        <strong>{{ contadores.cadastros }}</strong>
+      </div>
+    </div>
+
+    <div class="col-sm-6 col-xl-3">
+      <div class="app-kpi-card">
+        <span class="app-kpi-icon app-kpi-yellow">
+          <i class="bi bi-clipboard-pulse"></i>
+        </span>
+        <span class="app-kpi-label">O.S abertas</span>
+        <strong>{{ contadores.ordens_abertas }}</strong>
+      </div>
+    </div>
+
+    <div class="col-sm-6 col-xl-3">
+      <div class="app-kpi-card">
+        <span class="app-kpi-icon app-kpi-green">
+          <i class="bi bi-list-ul"></i>
+        </span>
+        <span class="app-kpi-label">O.S total</span>
+        <strong>{{ contadores.ordens_total }}</strong>
+      </div>
+    </div>
+
+    <div class="col-sm-6 col-xl-3">
+      <div class="app-kpi-card">
+        <span class="app-kpi-icon app-kpi-gray">
+          <i class="bi bi-search"></i>
+        </span>
+        <span class="app-kpi-label">Filtro atual</span>
+        <strong>{{ empresas|length }}</strong>
+      </div>
+    </div>
+    {% elif tipo_lista == 'fornecedor' %}
+    <div class="col-sm-6 col-xl-4">
+      <div class="app-kpi-card">
+        <span class="app-kpi-icon app-kpi-blue">
+          <i class="bi bi-truck"></i>
+        </span>
+        <span class="app-kpi-label">Fornecedores</span>
+        <strong>{{ contadores.cadastros }}</strong>
+      </div>
+    </div>
+
+    <div class="col-sm-6 col-xl-4">
+      <div class="app-kpi-card">
+        <span class="app-kpi-icon app-kpi-green">
+          <i class="bi bi-whatsapp"></i>
+        </span>
+        <span class="app-kpi-label">Com contato</span>
+        <strong>{{ contadores.com_contato }}</strong>
+      </div>
+    </div>
+
+    <div class="col-sm-6 col-xl-4">
+      <div class="app-kpi-card">
+        <span class="app-kpi-icon app-kpi-purple">
+          <i class="bi bi-envelope"></i>
+        </span>
+        <span class="app-kpi-label">Com email</span>
+        <strong>{{ contadores.com_email }}</strong>
+      </div>
+    </div>
+    {% else %}
     <div class="col-sm-6 col-xl-3">
       <a href="{{ url_for('empresas.lista_empresas') }}" class="app-kpi-card">
         <span class="app-kpi-icon app-kpi-blue">
@@ -78,6 +155,7 @@
         <strong>{{ contadores.ordens_abertas }}</strong>
       </div>
     </div>
+    {% endif %}
   </div>
 
   <div class="app-panel">

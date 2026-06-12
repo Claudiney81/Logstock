@@ -62,6 +62,48 @@ def _contadores_empresas():
     }
 
 
+def _contadores_contexto(tipo_lista, empresas):
+    if tipo_lista == 'cliente':
+        ids_clientes = [empresa.id for empresa in empresas]
+
+        ordens_total = 0
+        ordens_abertas = 0
+
+        if ids_clientes:
+            ordens_total = (
+                db.session.query(func.count(OrdemServico.id))
+                .filter(OrdemServico.cliente_id.in_(ids_clientes))
+                .scalar()
+                or 0
+            )
+
+            ordens_abertas = (
+                db.session.query(func.count(OrdemServico.id))
+                .filter(OrdemServico.cliente_id.in_(ids_clientes))
+                .filter(OrdemServico.status.in_(['aberta', 'em_andamento']))
+                .scalar()
+                or 0
+            )
+
+        return {
+            'cadastros': len(empresas),
+            'ordens_total': ordens_total,
+            'ordens_abertas': ordens_abertas
+        }
+
+    if tipo_lista == 'fornecedor':
+        com_email = sum(1 for empresa in empresas if empresa.email)
+        com_contato = sum(1 for empresa in empresas if empresa.contato)
+
+        return {
+            'cadastros': len(empresas),
+            'com_email': com_email,
+            'com_contato': com_contato
+        }
+
+    return _contadores_empresas()
+
+
 def _renderizar_lista_empresas(tipo_lista, titulo):
     termo = request.args.get('busca', '').strip()
     empresas = _empresas_query(tipo_lista, termo).all()
@@ -71,7 +113,7 @@ def _renderizar_lista_empresas(tipo_lista, titulo):
         empresas=empresas,
         titulo=titulo,
         tipo_lista=tipo_lista,
-        contadores=_contadores_empresas()
+        contadores=_contadores_contexto(tipo_lista, empresas)
     )
 
 
