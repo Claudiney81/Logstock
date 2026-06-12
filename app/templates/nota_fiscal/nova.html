@@ -4,8 +4,20 @@
 
 <style>
   .nf-page {
-    max-width: 1180px;
+    max-width: 1600px;
     margin: 0 auto;
+  }
+
+  .nf-workspace {
+    display: grid;
+    grid-template-columns: minmax(360px, 0.92fr) minmax(680px, 1.6fr);
+    gap: 16px;
+    align-items: start;
+  }
+
+  .nf-sticky-column {
+    position: sticky;
+    top: 84px;
   }
 
   .nf-card {
@@ -31,7 +43,7 @@
   }
 
   .nf-card-body {
-    padding: 16px;
+    padding: 14px;
   }
 
   .nf-label {
@@ -69,7 +81,7 @@
   }
 
   .nf-table-wrap {
-    max-height: 300px;
+    max-height: 260px;
     overflow-y: auto;
     border: 1px solid #dbe3ee;
     border-radius: 10px;
@@ -124,6 +136,20 @@
     padding: 12px;
   }
 
+  .nf-quick-grid {
+    display: grid;
+    grid-template-columns: minmax(120px, .8fr) minmax(260px, 2fr) minmax(110px, .7fr) minmax(110px, .7fr) minmax(130px, .75fr);
+    gap: 12px;
+    align-items: end;
+  }
+
+  .nf-lote-toolbar-grid {
+    display: grid;
+    grid-template-columns: minmax(280px, 1fr) 140px 140px 190px;
+    gap: 10px;
+    align-items: end;
+  }
+
   .select2-container {
     z-index: 2001 !important;
   }
@@ -160,6 +186,22 @@
     background: #fff8dc;
     border: 2px solid #0d6efd;
     box-shadow: 0 0 6px rgba(13,110,253,.25);
+  }
+
+  @media (max-width: 1200px) {
+    .nf-workspace {
+      display: block;
+    }
+
+    .nf-sticky-column {
+      position: static;
+    }
+
+    .nf-quick-grid,
+    .nf-lote-toolbar-grid {
+      display: grid;
+      grid-template-columns: 1fr;
+    }
   }
 
   @media (max-width: 768px) {
@@ -231,338 +273,343 @@
       onsubmit="return validarItens()"
     >
 
-      <div class="nf-card">
-        <div class="nf-card-header">
-          <i class="bi bi-receipt"></i>
-          Dados da Nota Fiscal
-        </div>
-
-        <div class="nf-card-body">
-          <div class="row g-3">
-            <div class="col-md-2">
-              <label class="nf-label">Origem</label>
-              <select id="tipo_documento" class="form-select">
-                <option value="nf" selected>NF</option>
-                <option value="inventario">Inventário</option>
-              </select>
+      <div class="nf-workspace">
+        <div class="nf-sticky-column">
+          <div class="nf-card">
+            <div class="nf-card-header">
+              <i class="bi bi-receipt"></i>
+              Dados da Nota Fiscal
             </div>
 
-            <div class="col-md-3">
-              <label class="nf-label">Número NF</label>
-              <input
-                type="text"
-                id="numero_nf"
-                name="numero_nf"
-                class="form-control"
-                required
-              >
-            </div>
-
-            <div class="col-md-7">
-              <label class="nf-label">Fornecedor</label>
-              <select name="fornecedor" class="form-select" required>
-                <option value="">Selecione</option>
-                {% for fornecedor in fornecedores %}
-                <option value="{{ fornecedor.razao_social }}">
-                  {{ fornecedor.razao_social }}
-                </option>
-                {% endfor %}
-              </select>
-            </div>
-
-            <div class="col-md-3">
-              <label class="nf-label">Categoria Entrada</label>
-              <select
-                name="categoria_entrada"
-                id="categoria_entrada"
-                class="form-select"
-                required
-              >
-                <option value="MATERIAL">Material</option>
-                <option value="FERRAMENTA">Ferramenta</option>
-                <option value="EPI">EPI</option>
-              </select>
-            </div>
-
-            <div class="col-md-3">
-              <label class="nf-label">Tipo de Estoque</label>
-              <select
-                name="tipo_estoque"
-                id="tipo_estoque"
-                class="form-select"
-                required
-              >
-                <option value="">Selecione</option>
-                <option value="empresa">Empresa</option>
-                <option value="cliente">Cliente</option>
-              </select>
-            </div>
-
-            <div class="col-md-3" id="campo-tipo-servico-wrapper">
-              <label class="nf-label">Tipo de Serviço</label>
-              <select
-                name="tipo_servico_id"
-                id="tipo_servico_id"
-                class="form-select"
-                required
-              >
-                <option value="">Selecione</option>
-                {% for tipo in tipos_servico %}
-                <option value="{{ tipo.id }}" data-tipo="{{ tipo.tipo_estoque }}">
-                  {{ tipo.nome }}
-                </option>
-                {% endfor %}
-              </select>
-            </div>
-
-            <div class="col-md-3" id="campo-cliente-wrapper">
-              <label class="nf-label">Cliente</label>
-              <select
-                name="cliente_id"
-                id="cliente_id"
-                class="form-select"
-              >
-                <option value="">Selecione</option>
-                {% for cliente in clientes %}
-                <option value="{{ cliente.id }}">
-                  {{ cliente.razao_social }}
-                </option>
-                {% endfor %}
-              </select>
-            </div>
-
-            <div class="col-md-3" id="campo-os-wrapper">
-              <label class="nf-label">O.S</label>
-              <select
-                name="ordem_servico_id"
-                id="ordem_servico_id"
-                class="form-select"
-              >
-                <option value="">Selecione um cliente primeiro</option>
-              </select>
-            </div>
-
-            <div class="col-md-12">
-              <label class="nf-label">Observações</label>
-              <textarea
-                name="observacao"
-                class="form-control"
-                rows="2"
-                placeholder="Informe observações relevantes para esta entrada, se houver."
-              ></textarea>
-            </div>
-          </div>
-        </div>
-      </div>
-
-      <div class="nf-card">
-        <div class="nf-card-header">
-          <i class="bi bi-plus-circle"></i>
-          Adicionar Itens
-        </div>
-
-        <div class="nf-card-body">
-          <div class="nf-section-title">
-            <i class="bi bi-lightning-charge"></i>
-            Adição Rápida
-          </div>
-
-          <div class="row align-items-end g-3">
-            <div class="col-md-2">
-              <label class="nf-label">Código</label>
-              <input
-                type="text"
-                id="codigo"
-                class="form-control"
-                placeholder="Digite ou cole"
-              >
-            </div>
-
-            <div class="col-md-4">
-              <label class="nf-label">Descrição</label>
-              <select id="descricao" class="form-select">
-                <option value="">Selecione um item...</option>
-              </select>
-            </div>
-
-            <div class="col-md-2">
-              <label class="nf-label">Quantidade</label>
-              <input
-                type="number"
-                id="quantidade"
-                class="form-control"
-                min="1"
-              >
-            </div>
-
-            <div class="col-md-2">
-              <label class="nf-label">Valor Unit.</label>
-              <input
-                type="text"
-                id="valor"
-                class="form-control"
-                readonly
-              >
-            </div>
-
-            <div class="col-md-2 d-grid">
-              <button
-                type="button"
-                class="btn btn-nf-primary"
-                onclick="adicionarItem()"
-              >
-                <i class="bi bi-plus-lg me-1"></i>
-                Adicionar
-              </button>
-            </div>
-          </div>
-
-          <div class="nf-import-box mt-3">
-            <div class="row align-items-center g-2">
-              <div class="col-md-4">
-                <div class="fw-bold text-dark">
-                  <i class="bi bi-file-earmark-excel me-1"></i>
-                  Importar Itens por Excel
+            <div class="nf-card-body">
+              <div class="row g-3">
+                <div class="col-md-4">
+                  <label class="nf-label">Origem</label>
+                  <select id="tipo_documento" class="form-select">
+                    <option value="nf" selected>NF</option>
+                    <option value="inventario">Inventário</option>
+                  </select>
                 </div>
-                <div class="nf-help">
-                  Use arquivo .xlsx com código, descrição, quantidade e valor.
-                </div>
-              </div>
 
-              <div class="col-md-8">
-                <input
-                  type="file"
-                  id="importarExcel"
-                  accept=".xlsx"
-                  class="form-control"
-                >
-              </div>
-            </div>
-          </div>
-
-          <hr class="my-4">
-
-          <div class="nf-section-title">
-            <i class="bi bi-list-check"></i>
-            Seleção em Lote
-          </div>
-
-          <div class="nf-lote-box">
-            <div class="nf-lote-toolbar p-3">
-              <div class="row g-2 align-items-end">
-                <div class="col-md-5">
-                  <label class="form-label fw-semibold mb-1">Pesquisar na lista</label>
+                <div class="col-md-8">
+                  <label class="nf-label">Número NF</label>
                   <input
                     type="text"
-                    id="busca_lote_nf"
-                    class="form-control form-control-sm"
-                    placeholder="Digite código ou descrição"
+                    id="numero_nf"
+                    name="numero_nf"
+                    class="form-control"
+                    required
                   >
                 </div>
 
-                <div class="col-md-2">
-                  <button
-                    type="button"
-                    class="btn btn-outline-primary btn-sm w-100"
-                    onclick="marcarItensNotaLote(true)"
-                  >
-                    Marcar todos
-                  </button>
+                <div class="col-12">
+                  <label class="nf-label">Fornecedor</label>
+                  <select name="fornecedor" class="form-select" required>
+                    <option value="">Selecione</option>
+                    {% for fornecedor in fornecedores %}
+                    <option value="{{ fornecedor.razao_social }}">
+                      {{ fornecedor.razao_social }}
+                    </option>
+                    {% endfor %}
+                  </select>
                 </div>
 
-                <div class="col-md-2">
-                  <button
-                    type="button"
-                    class="btn btn-outline-secondary btn-sm w-100"
-                    onclick="marcarItensNotaLote(false)"
+                <div class="col-md-6">
+                  <label class="nf-label">Categoria Entrada</label>
+                  <select
+                    name="categoria_entrada"
+                    id="categoria_entrada"
+                    class="form-select"
+                    required
                   >
-                    Desmarcar
-                  </button>
+                    <option value="MATERIAL">Material</option>
+                    <option value="FERRAMENTA">Ferramenta</option>
+                    <option value="EPI">EPI</option>
+                  </select>
                 </div>
 
-                <div class="col-md-3">
-                  <button
-                    type="button"
-                    id="btnInserirSelecionadosNota"
-                    class="btn btn-nf-primary btn-sm w-100"
-                    onclick="inserirSelecionadosNotaLote()"
+                <div class="col-md-6">
+                  <label class="nf-label">Tipo de Estoque</label>
+                  <select
+                    name="tipo_estoque"
+                    id="tipo_estoque"
+                    class="form-select"
+                    required
                   >
-                    <i class="bi bi-plus-circle me-1"></i>
-                    Inserir Selecionados
+                    <option value="">Selecione</option>
+                    <option value="empresa">Empresa</option>
+                    <option value="cliente">Cliente</option>
+                  </select>
+                </div>
+
+                <div class="col-12" id="campo-tipo-servico-wrapper">
+                  <label class="nf-label">Tipo de Serviço</label>
+                  <select
+                    name="tipo_servico_id"
+                    id="tipo_servico_id"
+                    class="form-select"
+                    required
+                  >
+                    <option value="">Selecione</option>
+                    {% for tipo in tipos_servico %}
+                    <option value="{{ tipo.id }}" data-tipo="{{ tipo.tipo_estoque }}">
+                      {{ tipo.nome }}
+                    </option>
+                    {% endfor %}
+                  </select>
+                </div>
+
+                <div class="col-12" id="campo-cliente-wrapper">
+                  <label class="nf-label">Cliente</label>
+                  <select
+                    name="cliente_id"
+                    id="cliente_id"
+                    class="form-select"
+                  >
+                    <option value="">Selecione</option>
+                    {% for cliente in clientes %}
+                    <option value="{{ cliente.id }}">
+                      {{ cliente.razao_social }}
+                    </option>
+                    {% endfor %}
+                  </select>
+                </div>
+
+                <div class="col-12" id="campo-os-wrapper">
+                  <label class="nf-label">O.S</label>
+                  <select
+                    name="ordem_servico_id"
+                    id="ordem_servico_id"
+                    class="form-select"
+                  >
+                    <option value="">Selecione um cliente primeiro</option>
+                  </select>
+                </div>
+
+                <div class="col-12">
+                  <label class="nf-label">Observações</label>
+                  <textarea
+                    name="observacao"
+                    class="form-control"
+                    rows="3"
+                    placeholder="Informe observações relevantes para esta entrada, se houver."
+                  ></textarea>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <div class="nf-card">
+            <div class="nf-card-header">
+              <i class="bi bi-box-seam"></i>
+              Itens da Nota Fiscal
+            </div>
+
+            <div class="nf-card-body">
+              <div class="nf-table-wrap">
+                <table class="table table-bordered table-sm table-hover nf-table mb-0">
+                  <thead>
+                    <tr>
+                      <th style="width: 14%;">Código</th>
+                      <th>Descrição</th>
+                      <th style="width: 14%;">Quantidade</th>
+                      <th style="width: 16%;">Valor Unitário</th>
+                      <th style="width: 12%;">Ação</th>
+                    </tr>
+                  </thead>
+                  <tbody id="tabela-itens"></tbody>
+                </table>
+              </div>
+
+              <div class="nf-actions-bar">
+                <button
+                  type="reset"
+                  class="btn btn-outline-secondary"
+                  onclick="limparItens()"
+                >
+                  <i class="bi bi-eraser me-1"></i>
+                  Limpar
+                </button>
+
+                <div class="d-flex gap-2 justify-content-end">
+                  <button type="submit" class="btn btn-nf-success px-4">
+                    <i class="bi bi-check-circle me-1"></i>
+                    Salvar Nota Fiscal
                   </button>
                 </div>
               </div>
             </div>
+          </div>
+        </div>
 
-            <div class="table-responsive" style="max-height:360px; overflow:auto;">
-              <table class="table table-bordered table-sm table-hover table-nf-lote mb-0" id="tabela-lote-nf">
-                <thead class="table-light" style="position:sticky; top:0; z-index:1;">
-                  <tr>
-                    <th style="width:5%" class="text-center">
-                      <input
-                        type="checkbox"
-                        class="form-check-input"
-                        id="nf_lote_check_todos"
-                        title="Selecionar todos"
-                      >
-                    </th>
-                    <th style="width:12%">Código</th>
-                    <th>Descrição</th>
-                    <th style="width:12%">Qtd</th>
-                    <th style="width:14%">Valor Unit.</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  <tr>
-                    <td colspan="5" class="text-center text-muted py-3">
-                      Selecione a categoria para carregar os itens cadastrados.
-                    </td>
-                  </tr>
-                </tbody>
-              </table>
+        <div>
+          <div class="nf-card">
+            <div class="nf-card-header">
+              <i class="bi bi-plus-circle"></i>
+              Adicionar Itens
             </div>
-          </div>
 
-        </div>
-      </div>
+            <div class="nf-card-body">
+              <div class="nf-section-title">
+                <i class="bi bi-lightning-charge"></i>
+                Adição Rápida
+              </div>
 
-      <div class="nf-card">
-        <div class="nf-card-header">
-          <i class="bi bi-box-seam"></i>
-          Itens da Nota Fiscal
-        </div>
+              <div class="nf-quick-grid">
+                <div>
+                  <label class="nf-label">Código</label>
+                  <input
+                    type="text"
+                    id="codigo"
+                    class="form-control"
+                    placeholder="Digite ou cole"
+                  >
+                </div>
 
-        <div class="nf-card-body">
-          <div class="nf-table-wrap">
-            <table class="table table-bordered table-sm table-hover nf-table mb-0">
-              <thead>
-                <tr>
-                  <th style="width: 14%;">Código</th>
-                  <th>Descrição</th>
-                  <th style="width: 14%;">Quantidade</th>
-                  <th style="width: 16%;">Valor Unitário</th>
-                  <th style="width: 12%;">Ação</th>
-                </tr>
-              </thead>
-              <tbody id="tabela-itens"></tbody>
-            </table>
-          </div>
+                <div>
+                  <label class="nf-label">Descrição</label>
+                  <select id="descricao" class="form-select">
+                    <option value="">Selecione um item...</option>
+                  </select>
+                </div>
 
-          <div class="nf-actions-bar">
-            <button
-              type="reset"
-              class="btn btn-outline-secondary"
-              onclick="limparItens()"
-            >
-              <i class="bi bi-eraser me-1"></i>
-              Limpar
-            </button>
+                <div>
+                  <label class="nf-label">Quantidade</label>
+                  <input
+                    type="number"
+                    id="quantidade"
+                    class="form-control"
+                    min="1"
+                  >
+                </div>
 
-            <div class="d-flex gap-2 justify-content-end">
-              <button type="submit" class="btn btn-nf-success px-4">
-                <i class="bi bi-check-circle me-1"></i>
-                Salvar Nota Fiscal
-              </button>
+                <div>
+                  <label class="nf-label">Valor Unit.</label>
+                  <input
+                    type="text"
+                    id="valor"
+                    class="form-control"
+                    readonly
+                  >
+                </div>
+
+                <div class="d-grid">
+                  <button
+                    type="button"
+                    class="btn btn-nf-primary"
+                    onclick="adicionarItem()"
+                  >
+                    <i class="bi bi-plus-lg me-1"></i>
+                    Adicionar
+                  </button>
+                </div>
+              </div>
+
+              <div class="nf-import-box mt-3">
+                <div class="row align-items-center g-2">
+                  <div class="col-md-4">
+                    <div class="fw-bold text-dark">
+                      <i class="bi bi-file-earmark-excel me-1"></i>
+                      Importar Itens por Excel
+                    </div>
+                    <div class="nf-help">
+                      Use arquivo .xlsx com código, descrição, quantidade e valor.
+                    </div>
+                  </div>
+
+                  <div class="col-md-8">
+                    <input
+                      type="file"
+                      id="importarExcel"
+                      accept=".xlsx"
+                      class="form-control"
+                    >
+                  </div>
+                </div>
+              </div>
+
+              <hr class="my-4">
+
+              <div class="nf-section-title">
+                <i class="bi bi-list-check"></i>
+                Seleção em Lote
+              </div>
+
+              <div class="nf-lote-box">
+                <div class="nf-lote-toolbar p-3">
+                  <div class="nf-lote-toolbar-grid">
+                    <div>
+                      <label class="form-label fw-semibold mb-1">Pesquisar na lista</label>
+                      <input
+                        type="text"
+                        id="busca_lote_nf"
+                        class="form-control form-control-sm"
+                        placeholder="Digite código ou descrição"
+                      >
+                    </div>
+
+                    <div>
+                      <button
+                        type="button"
+                        class="btn btn-outline-primary btn-sm w-100"
+                        onclick="marcarItensNotaLote(true)"
+                      >
+                        Marcar todos
+                      </button>
+                    </div>
+
+                    <div>
+                      <button
+                        type="button"
+                        class="btn btn-outline-secondary btn-sm w-100"
+                        onclick="marcarItensNotaLote(false)"
+                      >
+                        Desmarcar
+                      </button>
+                    </div>
+
+                    <div>
+                      <button
+                        type="button"
+                        id="btnInserirSelecionadosNota"
+                        class="btn btn-nf-primary btn-sm w-100"
+                        onclick="inserirSelecionadosNotaLote()"
+                      >
+                        <i class="bi bi-plus-circle me-1"></i>
+                        Inserir Selecionados
+                      </button>
+                    </div>
+                  </div>
+                </div>
+
+                <div class="table-responsive" style="max-height:540px; overflow:auto;">
+                  <table class="table table-bordered table-sm table-hover table-nf-lote mb-0" id="tabela-lote-nf">
+                    <thead class="table-light" style="position:sticky; top:0; z-index:1;">
+                      <tr>
+                        <th style="width:5%" class="text-center">
+                          <input
+                            type="checkbox"
+                            class="form-check-input"
+                            id="nf_lote_check_todos"
+                            title="Selecionar todos"
+                          >
+                        </th>
+                        <th style="width:12%">Código</th>
+                        <th>Descrição</th>
+                        <th style="width:12%">Qtd</th>
+                        <th style="width:14%">Valor Unit.</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      <tr>
+                        <td colspan="5" class="text-center text-muted py-3">
+                          Selecione a categoria para carregar os itens cadastrados.
+                        </td>
+                      </tr>
+                    </tbody>
+                  </table>
+                </div>
+              </div>
             </div>
           </div>
         </div>
