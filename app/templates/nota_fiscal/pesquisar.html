@@ -1,91 +1,97 @@
 {% extends 'base.html' %}
-
 {% block content %}
 
-<style>
-  .table-notas th,
-  .table-notas td {
-    font-size: 0.88rem;
-    text-align: center;
-    vertical-align: middle;
-    white-space: nowrap;
-  }
-
-  .tabela-container {
-    max-height: 500px;
-    overflow-y: auto;
-  }
-
-  .tabela-container thead th {
-    position: sticky;
-    top: 0;
-    z-index: 10;
-    background: #f8f9fa;
-    border-bottom: 1px solid #dee2e6;
-  }
-
-  .btn-icon {
-    width: 32px;
-    height: 32px;
-    padding: 0;
-    display: inline-flex;
-    align-items: center;
-    justify-content: center;
-    border-radius: 6px;
-  }
-
-  .btn-search-custom {
-    background: #002b55;
-    color: #fff;
-    border: none;
-  }
-
-  .btn-search-custom:hover {
-    background: #01427f;
-    color: #fff;
-  }
-</style>
+{% set resumo = namespace(total=0, itens=0, valor=0) %}
+{% for n in notas %}
+  {% set resumo.total = resumo.total + 1 %}
+  {% set resumo.itens = resumo.itens + (n.total_itens or 0) %}
+  {% set resumo.valor = resumo.valor + (n.total_nota or 0) %}
+{% endfor %}
 
 <div class="container-fluid mt-4">
 
-  <div class="card shadow-sm border-0">
-
-    <div class="card-header text-white" style="background:#002b55;">
-      <h5 class="mb-0 fw-semibold">
-        <i class="bi bi-search me-2"></i>
-        Pesquisar Nota Fiscal
-      </h5>
+  <div class="app-page-header">
+    <div>
+      <p class="app-page-kicker">Nota Fiscal</p>
+      <h1>Pesquisar Nota Fiscal</h1>
+      <p class="app-page-subtitle">
+        Localize entradas por número, fornecedor, origem, categoria ou data.
+      </p>
     </div>
 
-    <div class="card-body">
+    <div class="app-page-actions">
+      <a href="{{ url_for('nota_fiscal.nova_nota') }}" class="btn btn-primary">
+        <i class="bi bi-plus-circle me-1"></i>
+        Nova NF
+      </a>
+      <a href="{{ url_for('nota_fiscal.historico') }}" class="btn btn-outline-secondary">
+        <i class="bi bi-clock-history me-1"></i>
+        Histórico
+      </a>
+    </div>
+  </div>
 
-      <form method="GET" class="row g-3 mb-4 align-items-end">
+  <div class="row g-3 mb-4">
+    <div class="col-sm-6 col-xl-4">
+      <div class="app-kpi-card">
+        <span class="app-kpi-icon app-kpi-blue"><i class="bi bi-search"></i></span>
+        <span class="app-kpi-label">Notas encontradas</span>
+        <strong>{{ resumo.total }}</strong>
+      </div>
+    </div>
+    <div class="col-sm-6 col-xl-4">
+      <div class="app-kpi-card">
+        <span class="app-kpi-icon app-kpi-green"><i class="bi bi-box-seam"></i></span>
+        <span class="app-kpi-label">Quantidade total</span>
+        <strong>{{ resumo.itens }}</strong>
+      </div>
+    </div>
+    <div class="col-sm-6 col-xl-4">
+      <div class="app-kpi-card">
+        <span class="app-kpi-icon app-kpi-yellow"><i class="bi bi-cash-coin"></i></span>
+        <span class="app-kpi-label">Valor total filtrado</span>
+        <strong style="font-size:1.05rem;">{{ resumo.valor|brl }}</strong>
+      </div>
+    </div>
+  </div>
 
+  <div class="app-panel mb-4">
+    <div class="app-panel-header">
+      <div>
+        <h2>Filtros de pesquisa</h2>
+        <p>Combine campos para reduzir o resultado da busca.</p>
+      </div>
+    </div>
+
+    <form method="GET" class="p-3">
+      <div class="row g-3 align-items-end">
         <div class="col-md-2">
-          <label class="form-label fw-semibold">Número NF</label>
+          <label for="numero" class="form-label fw-semibold">Número NF</label>
           <input
             type="text"
             class="form-control"
+            id="numero"
             name="numero"
-            placeholder="Número da NF"
+            placeholder="Número"
             value="{{ numero or '' }}"
           >
         </div>
 
         <div class="col-md-3">
-          <label class="form-label fw-semibold">Fornecedor</label>
+          <label for="fornecedor" class="form-label fw-semibold">Fornecedor</label>
           <input
             type="text"
             class="form-control"
+            id="fornecedor"
             name="fornecedor"
-            placeholder="Digite o fornecedor"
+            placeholder="Fornecedor"
             value="{{ fornecedor or '' }}"
           >
         </div>
 
         <div class="col-md-2">
-          <label class="form-label fw-semibold">Tipo Estoque</label>
-          <select name="tipo_estoque" class="form-select">
+          <label for="tipo_estoque" class="form-label fw-semibold">Tipo Estoque</label>
+          <select name="tipo_estoque" id="tipo_estoque" class="form-select">
             <option value="">Todos</option>
             <option value="empresa" {% if tipo_estoque == 'empresa' %}selected{% endif %}>Empresa</option>
             <option value="cliente" {% if tipo_estoque == 'cliente' %}selected{% endif %}>Cliente</option>
@@ -93,183 +99,130 @@
         </div>
 
         <div class="col-md-2">
-          <label class="form-label fw-semibold">Categoria</label>
-          <select name="categoria" class="form-select">
+          <label for="categoria" class="form-label fw-semibold">Categoria</label>
+          <select name="categoria" id="categoria" class="form-select">
             <option value="">Todas</option>
-            <option value="MATERIAL" {% if request.args.get('categoria') == 'MATERIAL' %}selected{% endif %}>Material</option>
-            <option value="FERRAMENTA" {% if request.args.get('categoria') == 'FERRAMENTA' %}selected{% endif %}>Ferramenta</option>
-            <option value="EPI" {% if request.args.get('categoria') == 'EPI' %}selected{% endif %}>EPI</option>
+            <option value="MATERIAL" {% if categoria == 'MATERIAL' %}selected{% endif %}>Material</option>
+            <option value="FERRAMENTA" {% if categoria == 'FERRAMENTA' %}selected{% endif %}>Ferramenta</option>
+            <option value="EPI" {% if categoria == 'EPI' %}selected{% endif %}>EPI</option>
           </select>
         </div>
 
         <div class="col-md-2">
-          <label class="form-label fw-semibold">Data</label>
+          <label for="data_emissao" class="form-label fw-semibold">Data</label>
           <input
             type="date"
             class="form-control"
+            id="data_emissao"
             name="data_emissao"
             value="{{ data_emissao or '' }}"
           >
         </div>
 
         <div class="col-md-1 d-grid">
-          <button type="submit" class="btn btn-search-custom">
+          <button type="submit" class="btn btn-primary" title="Pesquisar">
             <i class="bi bi-search"></i>
           </button>
         </div>
 
         <div class="col-md-2 d-grid">
-          <a href="{{ url_for('nota_fiscal.pesquisar') }}"
-            class="btn"
-            style="
-                background:#edf4ff;
-                border:1px solid #c9dcff;
-                color:#295ea8;
-                font-weight:500;
-            ">
-            <i class="bi bi-x-lg me-1"></i>
+          <a href="{{ url_for('nota_fiscal.pesquisar') }}" class="btn btn-outline-secondary">
             Limpar
           </a>
         </div>
-
-      </form>
-
-      {% if notas %}
-
-      <div class="tabela-container table-responsive">
-
-        <table class="table table-hover align-middle table-notas">
-
-          <thead class="table-light">
-            <tr>
-              <th>Número NF</th>
-              <th>Fornecedor</th>
-              <th>Categoria</th>
-              <th>Tipo Estoque</th>
-              <th>Cliente</th>
-              <th>Tipo Serviço</th>
-              <th>Registrado por</th>
-              <th>Data</th>
-              <th>Total Itens</th>
-              <th>Valor Total</th>
-              <th>Ações</th>
-            </tr>
-          </thead>
-
-          <tbody>
-
-            {% for n in notas %}
-
-            {% set categoria_nota = 'MATERIAL' %}
-
-            {% if n.nota.itens
-                  and n.nota.itens[0].item
-                  and n.nota.itens[0].item.categoria %}
-              {% set categoria_nota = n.nota.itens[0].item.categoria %}
-            {% endif %}
-
-            <tr>
-
-              <td>{{ n.nota.numero_nf }}</td>
-
-              <td>{{ n.nota.fornecedor or '—' }}</td>
-
-              <td>
-                {% if categoria_nota == 'EPI' %}
-                  EPI
-                {% else %}
-                  {{ categoria_nota.capitalize() }}
-                {% endif %}
-              </td>
-
-              <td>
-                {% if n.nota.tipo_estoque == 'cliente' %}
-                  Cliente
-                {% elif n.nota.tipo_estoque == 'empresa' %}
-                  Empresa
-                {% else %}
-                  —
-                {% endif %}
-              </td>
-
-              <td>
-                {% if n.nota.tipo_estoque == 'cliente' %}
-                  {{ n.nota.cliente.razao_social if n.nota.cliente else '—' }}
-                {% else %}
-                  Empresa
-                {% endif %}
-              </td>
-
-              <td>
-                {% if categoria_nota in ['FERRAMENTA', 'EPI'] %}
-                  TODOS
-                {% else %}
-                  {{ n.nota.tipo_servico_ref.nome if n.nota.tipo_servico_ref else n.nota.tipo_servico or '—' }}
-                {% endif %}
-              </td>
-
-              <td>
-                {{ n.nota.usuario.nome if n.nota.usuario else '—' }}
-              </td>
-
-              <td>
-                {{ n.nota.data_hora.strftime('%d/%m/%Y') if n.nota.data_hora else '-' }}
-              </td>
-
-              <td>
-                {{ n.total_itens or 0 }}
-              </td>
-
-              <td class="fw-semibold">
-                R$ {{ "{:,.2f}".format(n.total_nota or 0).replace(",", "X").replace(".", ",").replace("X", ".") }}
-              </td>
-
-              <td>
-                <div class="d-flex justify-content-center gap-1">
-
-                  <a href="{{ url_for('nota_fiscal.detalhes', id=n.nota.id) }}"
-                     class="btn btn-sm btn-outline-primary btn-icon"
-                     title="Visualizar">
-                    <i class="bi bi-eye"></i>
-                  </a>
-
-                  <a href="{{ url_for('nota_fiscal.exportar_pdf', id=n.nota.id) }}"
-                     class="btn btn-sm btn-outline-danger btn-icon"
-                     title="Exportar PDF">
-                    <i class="bi bi-file-earmark-pdf"></i>
-                  </a>
-
-                  <a href="{{ url_for('nota_fiscal.exportar_excel', id=n.nota.id) }}"
-                     class="btn btn-sm btn-outline-success btn-icon"
-                     title="Exportar Excel">
-                    <i class="bi bi-file-earmark-excel"></i>
-                  </a>
-
-                </div>
-              </td>
-
-            </tr>
-
-            {% endfor %}
-
-          </tbody>
-
-        </table>
-
       </div>
-
-      {% else %}
-
-      <div class="alert alert-warning mt-3">
-        Nenhuma nota encontrada.
-      </div>
-
-      {% endif %}
-
-    </div>
-
+    </form>
   </div>
 
+  <div class="app-panel">
+    <div class="app-panel-header">
+      <div>
+        <h2>Resultado da pesquisa</h2>
+        <p>Notas fiscais que atendem aos filtros informados.</p>
+      </div>
+    </div>
+
+    <div class="table-responsive" style="max-height:68vh; overflow-y:auto;">
+      <table class="table table-hover align-middle mb-0 app-table">
+        <thead style="position:sticky; top:0; z-index:10;">
+          <tr>
+            <th>Número NF</th>
+            <th>Fornecedor</th>
+            <th>Categoria</th>
+            <th>Tipo Estoque</th>
+            <th>Cliente</th>
+            <th>Tipo Serviço</th>
+            <th>Registrado por</th>
+            <th>Data</th>
+            <th class="text-end">Total Itens</th>
+            <th class="text-end">Valor Total</th>
+            <th class="text-center">Ações</th>
+          </tr>
+        </thead>
+
+        <tbody>
+          {% for n in notas %}
+          {% set categoria_nota = 'MATERIAL' %}
+          {% if n.nota.itens and n.nota.itens[0].item and n.nota.itens[0].item.categoria %}
+            {% set categoria_nota = n.nota.itens[0].item.categoria %}
+          {% endif %}
+
+          <tr>
+            <td class="fw-semibold text-nowrap">{{ n.nota.numero_nf }}</td>
+            <td>{{ n.nota.fornecedor or '-' }}</td>
+            <td><span class="app-status-pill">{{ 'EPI' if categoria_nota == 'EPI' else categoria_nota.capitalize() }}</span></td>
+            <td>
+              {% if n.nota.tipo_estoque == 'cliente' %}
+                Cliente
+              {% elif n.nota.tipo_estoque == 'empresa' %}
+                Empresa
+              {% else %}
+                -
+              {% endif %}
+            </td>
+            <td>
+              {% if n.nota.tipo_estoque == 'cliente' %}
+                {{ n.nota.cliente.razao_social if n.nota.cliente else '-' }}
+              {% else %}
+                Empresa
+              {% endif %}
+            </td>
+            <td>
+              {% if categoria_nota in ['FERRAMENTA', 'EPI'] %}
+                Todos
+              {% else %}
+                {{ n.nota.tipo_servico_ref.nome if n.nota.tipo_servico_ref else n.nota.tipo_servico or '-' }}
+              {% endif %}
+            </td>
+            <td>{{ n.nota.usuario.nome if n.nota.usuario else '-' }}</td>
+            <td class="text-nowrap">{{ n.nota.data_hora.strftime('%d/%m/%Y') if n.nota.data_hora else '-' }}</td>
+            <td class="text-end">{{ n.total_itens or 0 }}</td>
+            <td class="text-end fw-semibold">{{ (n.total_nota or 0)|brl }}</td>
+            <td>
+              <div class="d-flex justify-content-center gap-1">
+                <a href="{{ url_for('nota_fiscal.detalhes', id=n.nota.id) }}" class="btn btn-sm btn-outline-primary" title="Visualizar">
+                  <i class="bi bi-eye"></i>
+                </a>
+                <a href="{{ url_for('nota_fiscal.exportar_pdf', id=n.nota.id) }}" class="btn btn-sm btn-outline-danger" title="Exportar PDF">
+                  <i class="bi bi-file-earmark-pdf"></i>
+                </a>
+                <a href="{{ url_for('nota_fiscal.exportar_excel', id=n.nota.id) }}" class="btn btn-sm btn-outline-success" title="Exportar Excel">
+                  <i class="bi bi-file-earmark-excel"></i>
+                </a>
+              </div>
+            </td>
+          </tr>
+          {% else %}
+          <tr>
+            <td colspan="11" class="text-center text-muted py-5">
+              Nenhuma nota encontrada.
+            </td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  </div>
 </div>
 
 {% endblock %}

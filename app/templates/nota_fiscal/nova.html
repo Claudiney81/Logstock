@@ -8,26 +8,6 @@
     margin: 0 auto;
   }
 
-  .nf-title {
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    gap: 12px;
-    margin-bottom: 18px;
-  }
-
-  .nf-title h4 {
-    margin: 0;
-    font-weight: 800;
-    color: #0f172a;
-  }
-
-  .nf-subtitle {
-    font-size: .88rem;
-    color: #64748b;
-    margin-top: 3px;
-  }
-
   .nf-card {
     background: #fff;
     border: 1px solid #dbe3ee;
@@ -201,15 +181,24 @@
 <div class="container-fluid mt-4 mb-4">
   <div class="nf-page">
 
-    <div class="nf-title">
+    <div class="app-page-header">
       <div>
-        <h4>
-          <i class="bi bi-file-earmark-plus me-1"></i>
-          Nova Nota Fiscal
-        </h4>
-        <div class="nf-subtitle">
+        <p class="app-page-kicker">Nota Fiscal</p>
+        <h1>Nova Nota Fiscal</h1>
+        <p class="app-page-subtitle">
           Registre entradas de materiais, ferramentas, EPIs ou regularizações por inventário.
-        </div>
+        </p>
+      </div>
+
+      <div class="app-page-actions">
+        <a href="{{ url_for('nota_fiscal.historico') }}" class="btn btn-outline-secondary">
+          <i class="bi bi-clock-history me-1"></i>
+          Histórico
+        </a>
+        <a href="{{ url_for('nota_fiscal.pesquisar') }}" class="btn btn-outline-primary">
+          <i class="bi bi-search me-1"></i>
+          Pesquisar
+        </a>
       </div>
     </div>
 

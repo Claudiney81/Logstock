@@ -1,265 +1,175 @@
 {% extends 'base.html' %}
-
 {% block content %}
 
 <div class="container-fluid mt-4">
 
-    <div class="card shadow-sm border-0">
-
-        <div class="card-header text-white d-flex justify-content-between align-items-center"
-             style="background:#002b55;">
-
-            <h5 class="mb-0">
-                <i class="bi bi-graph-up-arrow"></i>
-                Histórico de Valores de Entrada
-            </h5>
-
-            <a href="{{ url_for(
-                'nota_fiscal.exportar_historico_valores_excel',
-                codigo=codigo,
-                descricao=descricao,
-                fornecedor=fornecedor,
-                data_inicio=data_inicio,
-                data_fim=data_fim
-            ) }}"
-               class="btn btn-success btn-sm">
-
-                <i class="bi bi-file-earmark-excel"></i>
-                Exportar Excel
-
-            </a>
-
-        </div>
-
-        <div class="card-body">
-
-            <form method="GET">
-
-                <div class="row g-2 mb-3">
-
-                    <div class="col-md-2">
-                        <label>Código</label>
-
-                        <input
-                            type="text"
-                            name="codigo"
-                            class="form-control"
-                            value="{{ codigo }}"
-                        >
-                    </div>
-
-                    <div class="col-md-3">
-                        <label>Descrição</label>
-
-                        <input
-                            type="text"
-                            name="descricao"
-                            class="form-control"
-                            value="{{ descricao }}"
-                        >
-                    </div>
-
-                    <div class="col-md-2">
-                        <label>Fornecedor</label>
-
-                        <input
-                            type="text"
-                            name="fornecedor"
-                            class="form-control"
-                            value="{{ fornecedor }}"
-                        >
-                    </div>
-
-                    <div class="col-md-2">
-                        <label>Data Inicial</label>
-
-                        <input
-                            type="date"
-                            name="data_inicio"
-                            class="form-control"
-                            value="{{ data_inicio }}"
-                        >
-                    </div>
-
-                    <div class="col-md-2">
-                        <label>Data Final</label>
-
-                        <input
-                            type="date"
-                            name="data_fim"
-                            class="form-control"
-                            value="{{ data_fim }}"
-                        >
-                    </div>
-
-                    <div class="col-md-1 d-grid">
-                        <label>&nbsp;</label>
-
-                        <button
-                            type="submit"
-                            class="btn btn-primary"
-                        >
-                            Filtrar
-                        </button>
-                    </div>
-
-                </div>
-
-            </form>
-
-            <div class="row mb-3">
-
-                <div class="col-md-2">
-                    <div class="card border-primary">
-                        <div class="card-body text-center">
-                            <small>Último Valor</small>
-                            <h6 class="mb-0">
-                                R$ {{ "%.2f"|format(resumo.ultimo) }}
-                            </h6>
-                        </div>
-                    </div>
-                </div>
-
-                <div class="col-md-2">
-                    <div class="card border-success">
-                        <div class="card-body text-center">
-                            <small>Menor Valor</small>
-                            <h6 class="mb-0">
-                                R$ {{ "%.2f"|format(resumo.menor) }}
-                            </h6>
-                        </div>
-                    </div>
-                </div>
-
-                <div class="col-md-2">
-                    <div class="card border-danger">
-                        <div class="card-body text-center">
-                            <small>Maior Valor</small>
-                            <h6 class="mb-0">
-                                R$ {{ "%.2f"|format(resumo.maior) }}
-                            </h6>
-                        </div>
-                    </div>
-                </div>
-
-                <div class="col-md-2">
-                    <div class="card border-info">
-                        <div class="card-body text-center">
-                            <small>Média</small>
-                            <h6 class="mb-0">
-                                R$ {{ "%.2f"|format(resumo.media) }}
-                            </h6>
-                        </div>
-                    </div>
-                </div>
-
-                <div class="col-md-2">
-                    <div class="card border-warning">
-                        <div class="card-body text-center">
-                            <small>Variação</small>
-                            <h6 class="mb-0">
-                                {{ "%.2f"|format(resumo.variacao) }}%
-                            </h6>
-                        </div>
-                    </div>
-                </div>
-
-                <div class="col-md-2">
-                    <div class="card border-secondary">
-                        <div class="card-body text-center">
-                            <small>Registros</small>
-                            <h6 class="mb-0">
-                                {{ resumo.total_registros }}
-                            </h6>
-                        </div>
-                    </div>
-                </div>
-
-            </div>
-
-            <div class="table-responsive">
-
-                <table class="table table-bordered table-hover table-sm">
-
-                    <thead class="table-dark">
-
-                        <tr>
-
-                            <th>Data</th>
-                            <th>NF</th>
-                            <th>Fornecedor</th>
-                            <th>Código</th>
-                            <th>Descrição</th>
-                            <th>Qtd</th>
-                            <th>Valor Entrada</th>
-                            <th>Subtotal</th>
-                            <th>Valor Atual</th>
-
-                        </tr>
-
-                    </thead>
-
-                    <tbody>
-
-                        {% for r in resultados %}
-
-                        <tr>
-
-                            <td>
-                                {{ r.data_hora.strftime('%d/%m/%Y %H:%M') if r.data_hora else '' }}
-                            </td>
-
-                            <td>{{ r.numero_nf }}</td>
-
-                            <td>{{ r.fornecedor }}</td>
-
-                            <td>{{ r.codigo }}</td>
-
-                            <td>{{ r.descricao }}</td>
-
-                            <td class="text-center">
-                                {{ r.quantidade }}
-                            </td>
-
-                            <td class="text-end">
-                                R$ {{ "%.2f"|format(r.valor_unitario or 0) }}
-                            </td>
-
-                            <td class="text-end">
-                                R$ {{ "%.2f"|format((r.quantidade or 0) * (r.valor_unitario or 0)) }}
-                            </td>
-
-                            <td class="text-end">
-                                R$ {{ "%.2f"|format(r.valor_atual or 0) }}
-                            </td>
-
-                        </tr>
-
-                        {% else %}
-
-                        <tr>
-
-                            <td colspan="9"
-                                class="text-center text-muted py-4">
-
-                                Nenhum histórico encontrado.
-
-                            </td>
-
-                        </tr>
-
-                        {% endfor %}
-
-                    </tbody>
-
-                </table>
-
-            </div>
-
-        </div>
-
+  <div class="app-page-header">
+    <div>
+      <p class="app-page-kicker">Nota Fiscal</p>
+      <h1>Histórico de Valores de Entrada</h1>
+      <p class="app-page-subtitle">
+        Compare preços de entrada por item, fornecedor e período.
+      </p>
     </div>
 
+    <div class="app-page-actions">
+      <a
+        href="{{ url_for('nota_fiscal.exportar_historico_valores_excel', codigo=codigo, descricao=descricao, fornecedor=fornecedor, data_inicio=data_inicio, data_fim=data_fim) }}"
+        class="btn btn-outline-success"
+      >
+        <i class="bi bi-file-earmark-excel me-1"></i>
+        Excel
+      </a>
+      <a href="{{ url_for('nota_fiscal.historico') }}" class="btn btn-outline-secondary">
+        <i class="bi bi-clock-history me-1"></i>
+        Histórico
+      </a>
+    </div>
+  </div>
+
+  <div class="row g-3 mb-4">
+    <div class="col-sm-6 col-xl-2">
+      <div class="app-kpi-card">
+        <span class="app-kpi-icon app-kpi-blue"><i class="bi bi-cash"></i></span>
+        <span class="app-kpi-label">Último valor</span>
+        <strong style="font-size:1.05rem;">{{ resumo.ultimo|brl }}</strong>
+      </div>
+    </div>
+    <div class="col-sm-6 col-xl-2">
+      <div class="app-kpi-card">
+        <span class="app-kpi-icon app-kpi-green"><i class="bi bi-arrow-down-circle"></i></span>
+        <span class="app-kpi-label">Menor valor</span>
+        <strong style="font-size:1.05rem;">{{ resumo.menor|brl }}</strong>
+      </div>
+    </div>
+    <div class="col-sm-6 col-xl-2">
+      <div class="app-kpi-card">
+        <span class="app-kpi-icon app-kpi-red"><i class="bi bi-arrow-up-circle"></i></span>
+        <span class="app-kpi-label">Maior valor</span>
+        <strong style="font-size:1.05rem;">{{ resumo.maior|brl }}</strong>
+      </div>
+    </div>
+    <div class="col-sm-6 col-xl-2">
+      <div class="app-kpi-card">
+        <span class="app-kpi-icon app-kpi-purple"><i class="bi bi-calculator"></i></span>
+        <span class="app-kpi-label">Média</span>
+        <strong style="font-size:1.05rem;">{{ resumo.media|brl }}</strong>
+      </div>
+    </div>
+    <div class="col-sm-6 col-xl-2">
+      <div class="app-kpi-card">
+        <span class="app-kpi-icon app-kpi-yellow"><i class="bi bi-percent"></i></span>
+        <span class="app-kpi-label">Variação</span>
+        <strong style="font-size:1.05rem;">{{ "%.2f"|format(resumo.variacao) }}%</strong>
+      </div>
+    </div>
+    <div class="col-sm-6 col-xl-2">
+      <div class="app-kpi-card">
+        <span class="app-kpi-icon app-kpi-gray"><i class="bi bi-list-ul"></i></span>
+        <span class="app-kpi-label">Registros</span>
+        <strong>{{ resumo.total_registros }}</strong>
+      </div>
+    </div>
+  </div>
+
+  <div class="app-panel mb-4">
+    <div class="app-panel-header">
+      <div>
+        <h2>Filtros</h2>
+        <p>Pesquise o histórico por item, fornecedor ou intervalo de datas.</p>
+      </div>
+    </div>
+
+    <form method="GET" class="p-3">
+      <div class="row g-3 align-items-end">
+        <div class="col-md-2">
+          <label for="codigo" class="form-label fw-semibold">Código</label>
+          <input type="text" id="codigo" name="codigo" class="form-control" value="{{ codigo }}">
+        </div>
+
+        <div class="col-md-3">
+          <label for="descricao" class="form-label fw-semibold">Descrição</label>
+          <input type="text" id="descricao" name="descricao" class="form-control" value="{{ descricao }}">
+        </div>
+
+        <div class="col-md-2">
+          <label for="fornecedor" class="form-label fw-semibold">Fornecedor</label>
+          <input type="text" id="fornecedor" name="fornecedor" class="form-control" value="{{ fornecedor }}">
+        </div>
+
+        <div class="col-md-2">
+          <label for="data_inicio" class="form-label fw-semibold">Data Inicial</label>
+          <input type="date" id="data_inicio" name="data_inicio" class="form-control" value="{{ data_inicio }}">
+        </div>
+
+        <div class="col-md-2">
+          <label for="data_fim" class="form-label fw-semibold">Data Final</label>
+          <input type="date" id="data_fim" name="data_fim" class="form-control" value="{{ data_fim }}">
+        </div>
+
+        <div class="col-md-1 d-grid">
+          <button type="submit" class="btn btn-primary" title="Filtrar">
+            <i class="bi bi-search"></i>
+          </button>
+        </div>
+
+        <div class="col-md-2 d-grid">
+          <a href="{{ url_for('nota_fiscal.historico_valores') }}" class="btn btn-outline-secondary">
+            Limpar
+          </a>
+        </div>
+      </div>
+    </form>
+  </div>
+
+  <div class="app-panel">
+    <div class="app-panel-header">
+      <div>
+        <h2>Valores encontrados</h2>
+        <p>Entradas registradas para os filtros selecionados.</p>
+      </div>
+    </div>
+
+    <div class="table-responsive" style="max-height:68vh; overflow-y:auto;">
+      <table class="table table-hover align-middle mb-0 app-table">
+        <thead style="position:sticky; top:0; z-index:10;">
+          <tr>
+            <th>Data</th>
+            <th>NF</th>
+            <th>Fornecedor</th>
+            <th>Código</th>
+            <th>Descrição</th>
+            <th class="text-end">Qtd</th>
+            <th class="text-end">Valor Entrada</th>
+            <th class="text-end">Subtotal</th>
+            <th class="text-end">Valor Atual</th>
+          </tr>
+        </thead>
+
+        <tbody>
+          {% for r in resultados %}
+          <tr>
+            <td class="text-nowrap">{{ r.data_hora.strftime('%d/%m/%Y %H:%M') if r.data_hora else '' }}</td>
+            <td class="fw-semibold">{{ r.numero_nf }}</td>
+            <td>{{ r.fornecedor }}</td>
+            <td class="text-nowrap">{{ r.codigo }}</td>
+            <td>{{ r.descricao }}</td>
+            <td class="text-end">{{ r.quantidade }}</td>
+            <td class="text-end fw-semibold">{{ (r.valor_unitario or 0)|brl }}</td>
+            <td class="text-end">{{ ((r.quantidade or 0) * (r.valor_unitario or 0))|brl }}</td>
+            <td class="text-end">{{ (r.valor_atual or 0)|brl }}</td>
+          </tr>
+          {% else %}
+          <tr>
+            <td colspan="9" class="text-center text-muted py-5">
+              Nenhum histórico encontrado.
+            </td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  </div>
 </div>
 
 {% endblock %}

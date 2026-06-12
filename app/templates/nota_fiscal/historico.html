@@ -1,280 +1,201 @@
 {% extends 'base.html' %}
 {% block content %}
 
-<style>
-  .btn-search-custom{
-    background:#002b55;
-    color:#fff;
-    border:none;
-    font-weight:500;
-  }
-
-  .btn-search-custom:hover{
-    background:#0b3d70;
-    color:#fff;
-  }
-
-  .btn-clear-custom{
-    background:#edf4ff;
-    border:1px solid #c9dcff;
-    color:#295ea8;
-    font-weight:500;
-  }
-
-  .btn-clear-custom:hover{
-    background:#dfeeff;
-    color:#174a88;
-  }
-
-  .table-notas th,
-  .table-notas td{
-    text-align:center;
-    vertical-align:middle;
-    white-space:nowrap;
-    font-size:.90rem;
-  }
-
-  .table-notas thead th{
-    position:sticky;
-    top:0;
-    z-index:10;
-    background:#f8f9fa;
-  }
-
-  .acoes-nota .btn{
-    width:34px;
-    height:34px;
-    padding:0;
-    display:flex;
-    align-items:center;
-    justify-content:center;
-    border-radius:7px;
-  }
-
-  .tabela-container{
-    max-height:68vh;
-    overflow-y:auto;
-  }
-</style>
+{% set resumo = namespace(total=0, empresa=0, cliente=0, itens=0) %}
+{% for nota in notas %}
+  {% set resumo.total = resumo.total + 1 %}
+  {% if nota.tipo_estoque == 'cliente' %}
+    {% set resumo.cliente = resumo.cliente + 1 %}
+  {% else %}
+    {% set resumo.empresa = resumo.empresa + 1 %}
+  {% endif %}
+  {% set resumo.itens = resumo.itens + (nota.itens|length) %}
+{% endfor %}
 
 <div class="container-fluid mt-4">
 
-<div class="card shadow-sm border-0">
+  <div class="app-page-header">
+    <div>
+      <p class="app-page-kicker">Nota Fiscal</p>
+      <h1>Histórico de Notas Fiscais</h1>
+      <p class="app-page-subtitle">
+        Entradas registradas no estoque com exportação por PDF ou Excel.
+      </p>
+    </div>
 
-<div class="card-header text-white"
-     style="background:#002b55;">
-  <h5 class="fw-semibold mb-0">
-    <i class="bi bi-clock-history me-2"></i>
-    Histórico de Notas Fiscais de Entrada
-  </h5>
-</div>
+    <div class="app-page-actions">
+      <a href="{{ url_for('nota_fiscal.nova_nota') }}" class="btn btn-primary">
+        <i class="bi bi-plus-circle me-1"></i>
+        Nova NF
+      </a>
+      <a href="{{ url_for('nota_fiscal.pesquisar') }}" class="btn btn-outline-primary">
+        <i class="bi bi-search me-1"></i>
+        Pesquisar
+      </a>
+    </div>
+  </div>
 
-<div class="card-body">
+  <div class="row g-3 mb-4">
+    <div class="col-sm-6 col-xl-3">
+      <div class="app-kpi-card">
+        <span class="app-kpi-icon app-kpi-blue"><i class="bi bi-receipt"></i></span>
+        <span class="app-kpi-label">Notas encontradas</span>
+        <strong>{{ resumo.total }}</strong>
+      </div>
+    </div>
+    <div class="col-sm-6 col-xl-3">
+      <div class="app-kpi-card">
+        <span class="app-kpi-icon app-kpi-green"><i class="bi bi-building"></i></span>
+        <span class="app-kpi-label">Estoque empresa</span>
+        <strong>{{ resumo.empresa }}</strong>
+      </div>
+    </div>
+    <div class="col-sm-6 col-xl-3">
+      <div class="app-kpi-card">
+        <span class="app-kpi-icon app-kpi-purple"><i class="bi bi-person-badge"></i></span>
+        <span class="app-kpi-label">Estoque cliente</span>
+        <strong>{{ resumo.cliente }}</strong>
+      </div>
+    </div>
+    <div class="col-sm-6 col-xl-3">
+      <div class="app-kpi-card">
+        <span class="app-kpi-icon app-kpi-gray"><i class="bi bi-box-seam"></i></span>
+        <span class="app-kpi-label">Linhas de itens</span>
+        <strong>{{ resumo.itens }}</strong>
+      </div>
+    </div>
+  </div>
 
-<form method="GET" class="mb-4">
+  <div class="app-panel mb-4">
+    <div class="app-panel-header">
+      <div>
+        <h2>Filtros</h2>
+        <p>Filtre por origem do estoque e tipo de serviço.</p>
+      </div>
+    </div>
 
-<div class="row g-3 align-items-end">
+    <form method="GET" class="p-3">
+      <div class="row g-3 align-items-end">
+        <div class="col-md-3">
+          <label for="tipo_estoque" class="form-label fw-semibold">Tipo de Estoque</label>
+          <select class="form-select" id="tipo_estoque" name="tipo_estoque">
+            <option value="">Todos os tipos</option>
+            <option value="empresa" {% if request.args.get('tipo_estoque') == 'empresa' %}selected{% endif %}>Empresa</option>
+            <option value="cliente" {% if request.args.get('tipo_estoque') == 'cliente' %}selected{% endif %}>Cliente</option>
+          </select>
+        </div>
 
-<div class="col-md-3">
-<label class="form-label fw-semibold">
-Tipo de Estoque
-</label>
+        <div class="col-md-5">
+          <label for="tipo_servico" class="form-label fw-semibold">Tipo de Serviço</label>
+          <select class="form-select" id="tipo_servico" name="tipo_servico">
+            <option value="">Todos os tipos de serviço</option>
+            {% for ts in tipos_servico %}
+            <option value="{{ ts.id }}" {% if request.args.get('tipo_servico') == ts.id|string %}selected{% endif %}>
+              {{ ts.nome }}
+            </option>
+            {% endfor %}
+          </select>
+        </div>
 
-<select
-  class="form-select"
-  name="tipo_estoque"
->
-<option value="">Todos os Tipos</option>
+        <div class="col-md-4 d-flex gap-2">
+          <button type="submit" class="btn btn-primary flex-fill">
+            <i class="bi bi-search me-1"></i>
+            Filtrar
+          </button>
+          <a href="{{ url_for('nota_fiscal.historico') }}" class="btn btn-outline-secondary">
+            Limpar
+          </a>
+        </div>
+      </div>
+    </form>
+  </div>
 
-<option value="empresa"
-{% if request.args.get('tipo_estoque') == 'empresa' %}selected{% endif %}>
-Empresa
-</option>
+  <div class="app-panel">
+    <div class="app-panel-header">
+      <div>
+        <h2>Notas fiscais registradas</h2>
+        <p>Histórico ordenado pelas entradas mais recentes.</p>
+      </div>
+    </div>
 
-<option value="cliente"
-{% if request.args.get('tipo_estoque') == 'cliente' %}selected{% endif %}>
-Cliente
-</option>
+    <div class="table-responsive" style="max-height:68vh; overflow-y:auto;">
+      <table class="table table-hover align-middle mb-0 app-table">
+        <thead style="position:sticky; top:0; z-index:10;">
+          <tr>
+            <th>Número NF</th>
+            <th>Data/Hora</th>
+            <th>Fornecedor</th>
+            <th>Categoria</th>
+            <th>Tipo Estoque</th>
+            <th>Cliente</th>
+            <th>Tipo Serviço</th>
+            <th>Registrado por</th>
+            <th class="text-center">Ações</th>
+          </tr>
+        </thead>
 
-</select>
-</div>
+        <tbody>
+          {% for nota in notas %}
+          {% set categoria_nota = 'MATERIAL' %}
+          {% if nota.itens and nota.itens[0].item and nota.itens[0].item.categoria %}
+            {% set categoria_nota = nota.itens[0].item.categoria %}
+          {% endif %}
 
-<div class="col-md-4">
-<label class="form-label fw-semibold">
-Tipo de Serviço
-</label>
-
-<select
-  class="form-select"
-  name="tipo_servico"
->
-<option value="">Todos os Tipos de Serviço</option>
-
-{% for ts in tipos_servico %}
-<option
-  value="{{ ts.id }}"
-  {% if request.args.get('tipo_servico') == ts.id|string %}selected{% endif %}
->
-  {{ ts.nome }}
-</option>
-{% endfor %}
-</select>
-</div>
-
-<div class="col-md-2 d-grid">
-<button
-  type="submit"
-  class="btn btn-search-custom"
->
-<i class="bi bi-search me-1"></i>
-Filtrar
-</button>
-</div>
-
-<div class="col-md-2 d-grid">
-<a
-  href="{{ url_for('nota_fiscal.historico') }}"
-  class="btn btn-clear-custom"
->
-<i class="bi bi-x-lg me-1"></i>
-Limpar
-</a>
-</div>
-
-</div>
-</form>
-
-<div class="table-responsive tabela-container">
-
-<table class="table table-hover table-notas align-middle mb-0">
-
-<thead>
-<tr>
-<th>Número NF</th>
-<th>Data/Hora</th>
-<th>Fornecedor</th>
-<th>Categoria</th>
-<th>Tipo Estoque</th>
-<th>Cliente</th>
-<th>Tipo Serviço</th>
-<th>Registrado por</th>
-<th>Ações</th>
-</tr>
-</thead>
-
-<tbody>
-
-{% for nota in notas %}
-
-{% set categoria_nota = 'Material' %}
-{% if nota.itens and nota.itens[0].item and nota.itens[0].item.categoria %}
-{% set categoria_nota = nota.itens[0].item.categoria %}
-{% endif %}
-
-<tr>
-
-<td>{{ nota.numero_nf }}</td>
-
-<td>
-{{ nota.data_hora.strftime('%d/%m/%Y %H:%M') if nota.data_hora else '-' }}
-</td>
-
-<td>{{ nota.fornecedor or '—' }}</td>
-
-<td>
-{% if categoria_nota == 'EPI' %}
-EPI
-{% else %}
-{{ categoria_nota.capitalize() }}
-{% endif %}
-</td>
-
-<td>
-{{ nota.tipo_estoque|capitalize if nota.tipo_estoque else '—' }}
-</td>
-
-<td>
-{% if nota.tipo_estoque == 'cliente' %}
-{{ nota.cliente.razao_social if nota.cliente else '—' }}
-{% else %}
-Empresa
-{% endif %}
-</td>
-
-<td>
-{% if categoria_nota in ['Ferramenta','EPI'] %}
-Todos
-{% else %}
-{{ nota.tipo_servico_ref.nome if nota.tipo_servico_ref else '—' }}
-{% endif %}
-</td>
-
-<td>
-{{ nota.usuario.nome if nota.usuario else '—' }}
-</td>
-
-<td>
-
-<div class="d-flex justify-content-center gap-1 acoes-nota">
-
-<a
-href="{{ url_for('nota_fiscal.detalhes', id=nota.id) }}"
-class="btn btn-outline-primary btn-sm"
-title="Visualizar">
-<i class="bi bi-eye"></i>
-</a>
-
-<a
-href="{{ url_for('nota_fiscal.exportar_pdf', id=nota.id) }}"
-class="btn btn-outline-danger btn-sm"
-title="PDF">
-<i class="bi bi-file-earmark-pdf"></i>
-</a>
-
-<a
-href="{{ url_for('nota_fiscal.exportar_excel', id=nota.id) }}"
-class="btn btn-outline-success btn-sm"
-title="Excel">
-<i class="bi bi-file-earmark-excel"></i>
-</a>
-
-<form
-method="POST"
-action="{{ url_for('nota_fiscal.excluir_nota', id=nota.id) }}"
-style="display:inline-block;"
-onsubmit="return confirm('Deseja excluir esta nota fiscal?')">
-
-<button
-type="submit"
-class="btn btn-outline-secondary btn-sm"
-title="Excluir">
-<i class="bi bi-trash"></i>
-</button>
-
-</form>
-
-</div>
-
-</td>
-
-</tr>
-
-{% else %}
-
-<tr>
-<td colspan="9" class="text-center text-muted py-4">
-Nenhuma nota fiscal encontrada.
-</td>
-</tr>
-
-{% endfor %}
-
-</tbody>
-</table>
-</div>
-
-</div>
-</div>
+          <tr>
+            <td class="fw-semibold text-nowrap">{{ nota.numero_nf }}</td>
+            <td class="text-nowrap">{{ nota.data_hora.strftime('%d/%m/%Y %H:%M') if nota.data_hora else '-' }}</td>
+            <td>{{ nota.fornecedor or '-' }}</td>
+            <td><span class="app-status-pill">{{ 'EPI' if categoria_nota == 'EPI' else categoria_nota.capitalize() }}</span></td>
+            <td>{{ nota.tipo_estoque|capitalize if nota.tipo_estoque else '-' }}</td>
+            <td>
+              {% if nota.tipo_estoque == 'cliente' %}
+                {{ nota.cliente.razao_social if nota.cliente else '-' }}
+              {% else %}
+                Empresa
+              {% endif %}
+            </td>
+            <td>
+              {% if categoria_nota in ['Ferramenta','FERRAMENTA','EPI'] %}
+                Todos
+              {% else %}
+                {{ nota.tipo_servico_ref.nome if nota.tipo_servico_ref else '-' }}
+              {% endif %}
+            </td>
+            <td>{{ nota.usuario.nome if nota.usuario else '-' }}</td>
+            <td>
+              <div class="d-flex justify-content-center gap-1">
+                <a href="{{ url_for('nota_fiscal.detalhes', id=nota.id) }}" class="btn btn-sm btn-outline-primary" title="Visualizar">
+                  <i class="bi bi-eye"></i>
+                </a>
+                <a href="{{ url_for('nota_fiscal.exportar_pdf', id=nota.id) }}" class="btn btn-sm btn-outline-danger" title="PDF">
+                  <i class="bi bi-file-earmark-pdf"></i>
+                </a>
+                <a href="{{ url_for('nota_fiscal.exportar_excel', id=nota.id) }}" class="btn btn-sm btn-outline-success" title="Excel">
+                  <i class="bi bi-file-earmark-excel"></i>
+                </a>
+                <form
+                  method="POST"
+                  action="{{ url_for('nota_fiscal.excluir_nota', id=nota.id) }}"
+                  onsubmit="return confirm('Deseja excluir esta nota fiscal?')"
+                >
+                  <button type="submit" class="btn btn-sm btn-outline-secondary" title="Excluir">
+                    <i class="bi bi-trash"></i>
+                  </button>
+                </form>
+              </div>
+            </td>
+          </tr>
+          {% else %}
+          <tr>
+            <td colspan="9" class="text-center text-muted py-5">
+              Nenhuma nota fiscal encontrada.
+            </td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  </div>
 </div>
 
 {% endblock %}
