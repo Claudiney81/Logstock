@@ -145,8 +145,8 @@ def nova():
         os_cliente = None
 
         item_ids = request.form.getlist("item_id[]")
-        quantidades = request.form.getlist("quantidade[]")
-
+        quantidades = request.form.getlist("quantidade[]")        
+      
         tipo_servico = TipoServico.query.get(tipo_servico_id)
 
         if not tipo_servico:
