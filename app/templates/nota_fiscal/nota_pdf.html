@@ -312,7 +312,7 @@ body {
     {% set ns = namespace(total_geral=0) %}
 
     {% for it in itens %}
-      {% set q = (it.quantidade or 0) %}
+      <td class="num">{{ q|int }}</td>
       {% set vu = (it.valor_unit or it.valor_unitario or 0) %}
       {% set vt = q * vu %}
       {% set ns.total_geral = ns.total_geral + vt %}
