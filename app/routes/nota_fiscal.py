@@ -1,4 +1,4 @@
-from flask import Blueprint, render_template, request, redirect, url_for, flash, jsonify, make_response
+from flask import Blueprint, render_template, request, redirect, url_for, flash, jsonify, make_response, current_app
 from app import db
 from sqlalchemy import func
 from app.models import (
@@ -378,12 +378,22 @@ def exportar_pdf(id):
     itens = []
     total = 0.0
 
+    logo_path = os.path.abspath(
+        os.path.join(
+            current_app.root_path,
+            "static",
+            "img",
+            "start_logo.png"
+        )
+    )
+
     for ni in itens_nf:
         produto = Item.query.get(ni.item_id)
 
         codigo = produto.codigo if produto else ''
         descricao = produto.descricao if produto else ''
         unidade = getattr(produto, 'unidade', '') if produto else ''
+        categoria = getattr(produto, 'categoria', 'MATERIAL') if produto else 'MATERIAL'
 
         valor = float(ni.valor_unitario or 0)
         qtd = float(ni.quantidade or 0)
@@ -395,9 +405,11 @@ def exportar_pdf(id):
             'codigo': codigo,
             'descricao': descricao,
             'unidade': unidade,
+            'categoria': categoria,
             'quantidade': qtd,
             'valor': valor,
             'valor_unit': valor,
+            'valor_unitario': valor,
             'subtotal': subtotal
         })
 
@@ -413,6 +425,7 @@ def exportar_pdf(id):
         observacao=nota.observacao or '',
         itens=itens,
         total=round(total, 2),
+        logo_path=f"file:///{logo_path.replace(os.sep, '/')}"
     )
 
     html = render_template('nota_fiscal/nota_pdf.html', **ctx)
@@ -425,6 +438,8 @@ def exportar_pdf(id):
         'margin-bottom': '12mm',
         'margin-left': '10mm',
         'enable-local-file-access': '',
+        'load-error-handling': 'ignore',
+        'load-media-error-handling': 'ignore',
     }
 
     pdf_bytes = pdfkit.from_string(
