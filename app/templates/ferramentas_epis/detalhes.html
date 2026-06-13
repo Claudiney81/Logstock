@@ -1,47 +1,146 @@
 {% extends "base.html" %}
 {% block content %}
 
-<div class="container mt-4">
+<style>
+  .tools-page-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-end;
+    gap: 16px;
+    margin-bottom: 18px;
+  }
 
-  <div class="card shadow-sm border-0">
+  .tools-kicker {
+    color: #5b6b82;
+    font-size: .78rem;
+    font-weight: 700;
+    letter-spacing: .04em;
+    margin: 0 0 4px;
+    text-transform: uppercase;
+  }
 
-    <div class="card-header text-white d-flex justify-content-between align-items-center"
-         style="background:#002b55;">
+  .tools-title {
+    color: #07152b;
+    font-size: 1.75rem;
+    font-weight: 800;
+    margin: 0;
+  }
 
-      <h5 class="mb-0 fw-semibold">
-        <i class="bi bi-file-earmark-text me-2"></i>
-        Detalhes da Transferência
-      </h5>
+  .tools-card {
+    background: #fff;
+    border: 1px solid #d9e1ea;
+    border-radius: 6px;
+    box-shadow: 0 10px 24px rgba(15, 23, 42, .05);
+  }
 
+  .tools-section-title {
+    color: #07152b;
+    font-size: 1rem;
+    font-weight: 800;
+    margin-bottom: 14px;
+  }
+
+  .info-label {
+    color: #5b6b82;
+    display: block;
+    font-size: .76rem;
+    font-weight: 700;
+    margin-bottom: 4px;
+    text-transform: uppercase;
+  }
+
+  .signature-box {
+    border: 1px solid #d9e1ea;
+    border-radius: 6px;
+    background: #fff;
+    padding: 16px;
+    text-align: center;
+    height: 100%;
+  }
+
+  @media print {
+    .navbar,
+    footer,
+    .footer,
+    .footer-center-fix,
+    .no-print {
+      display: none !important;
+    }
+
+    body {
+      background: #fff !important;
+      padding: 0 !important;
+    }
+
+    #main-content,
+    .container-fluid {
+      padding: 0 !important;
+      margin: 0 !important;
+    }
+
+    .tools-card {
+      box-shadow: none !important;
+      border-color: #999 !important;
+    }
+  }
+</style>
+
+<div class="container-fluid mt-4">
+
+  <div class="tools-page-header no-print">
+    <div>
+      <p class="tools-kicker">Ferramentas & EPIs</p>
+      <h1 class="tools-title">Detalhes da Transferência</h1>
+    </div>
+
+    <div class="d-flex gap-2">
       <a href="{{ url_for('ferramentas_epis.historico') }}"
-         class="btn btn-light btn-sm">
+         class="btn btn-outline-secondary">
         <i class="bi bi-arrow-left me-1"></i>
         Voltar
       </a>
 
+      <a href="{{ url_for('ferramentas_epis.gerar_termo', id=historico.id) }}"
+         class="btn btn-primary"
+         target="_blank">
+        <i class="bi bi-file-earmark-pdf me-1"></i>
+        PDF
+      </a>
+
+      <button type="button"
+              onclick="window.print()"
+              class="btn btn-outline-dark">
+        <i class="bi bi-printer me-1"></i>
+        Imprimir
+      </button>
     </div>
+  </div>
+
+  <div class="tools-card">
 
     <div class="card-body">
+
+      <h2 class="tools-title mb-4 d-none d-print-block">Detalhes da Transferência</h2>
 
       <!-- DADOS GERAIS -->
       <div class="row g-3 mb-4">
 
         <div class="col-md-3">
-          <small class="text-muted">Data</small><br>
+          <span class="info-label">Data</span>
           <strong>
             {{ historico.data_hora.strftime('%d/%m/%Y %H:%M') if historico.data_hora else '-' }}
           </strong>
         </div>
 
         <div class="col-md-3">
-          <small class="text-muted">Técnico</small><br>
+          <span class="info-label">Técnico</span>
           <strong>
             {{ historico.tecnico.nome if historico.tecnico else '-' }}
           </strong>
         </div>
 
         <div class="col-md-3">
-          <small class="text-muted">Movimento</small><br>
+          <span class="info-label">Movimento</span>
           <strong>
             {% if historico.tipo_movimentacao == 'saida' %}
               Saída - Empresa para Técnico
@@ -54,7 +153,7 @@
         </div>
 
         <div class="col-md-3">
-          <small class="text-muted">Status</small><br>
+          <span class="info-label">Status</span>
           <strong>{{ historico.status or '-' }}</strong>
         </div>
 
@@ -63,10 +162,10 @@
       <hr>
 
       <!-- ITENS -->
-      <h6 class="fw-semibold mb-3">
+      <h3 class="tools-section-title">
         <i class="bi bi-box-seam me-2"></i>
         Itens da Transferência
-      </h6>
+      </h3>
 
       <div class="table-responsive mb-4">
 
@@ -137,12 +236,12 @@
       <div class="row g-3 mb-4">
 
         <div class="col-md-6">
-          <small class="text-muted">Motivo</small><br>
+          <span class="info-label">Motivo</span>
           <strong>{{ historico.motivo or '-' }}</strong>
         </div>
 
         <div class="col-md-6">
-          <small class="text-muted">Observação</small><br>
+          <span class="info-label">Observação</span>
           <strong>{{ historico.observacao or '-' }}</strong>
         </div>
 
@@ -151,18 +250,18 @@
       <hr>
 
       <!-- ASSINATURAS -->
-      <h6 class="fw-semibold mb-3">
+      <h3 class="tools-section-title">
         <i class="bi bi-pen me-2"></i>
         Assinaturas
-      </h6>
+      </h3>
 
-      <div class="border rounded p-3 mb-4 bg-light">
+      <div class="mb-4">
 
         <div class="row g-4">
 
           <div class="col-md-6">
 
-            <div class="border rounded bg-white p-3 text-center h-100">
+            <div class="signature-box">
 
               <p class="fw-semibold mb-3">
                 Assinatura do Técnico
@@ -191,7 +290,7 @@
 
           <div class="col-md-6">
 
-            <div class="border rounded bg-white p-3 text-center h-100">
+            <div class="signature-box">
 
               <p class="fw-semibold mb-3">
                 Assinatura Almoxarifado / Logística
@@ -219,56 +318,6 @@
           </div>
 
         </div>
-
-      </div>
-
-      <!-- PDF / EMAIL -->
-      <div class="row g-3 mb-4">
-
-        <div class="col-md-6">
-          <small class="text-muted">Termo PDF</small><br>
-
-          {% if historico.termo_pdf %}
-            <strong>{{ historico.termo_pdf }}</strong>
-          {% else %}
-            <span class="text-muted">Ainda não gerado</span>
-          {% endif %}
-        </div>
-
-        <div class="col-md-6">
-          <small class="text-muted">E-mail</small><br>
-
-          {% if historico.email_enviado %}
-            <strong>Enviado</strong>
-          {% else %}
-            <span class="text-muted">Pendente</span>
-          {% endif %}
-        </div>
-
-      </div>
-
-      <!-- BOTÕES -->
-      <div class="d-flex flex-wrap gap-2">
-
-        <a href="{{ url_for('ferramentas_epis.historico') }}"
-           class="btn btn-outline-secondary">
-          <i class="bi bi-arrow-left me-1"></i>
-          Voltar
-        </a>
-
-        <a href="{{ url_for('ferramentas_epis.gerar_termo', id=historico.id) }}"
-           class="btn btn-primary"
-           target="_blank">
-          <i class="bi bi-file-earmark-pdf me-1"></i>
-          Gerar Termo PDF
-        </a>
-
-        <button type="button"
-                onclick="window.print()"
-                class="btn btn-outline-dark">
-          <i class="bi bi-printer me-1"></i>
-          Imprimir
-        </button>
 
       </div>
 

@@ -2,20 +2,47 @@
 {% block content %}
 
 <style>
-  .titulo-pagina-transferencia{
-    color:#0b2e59;
-    font-weight:700;
+  .tools-page-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-end;
+    gap: 16px;
+    margin-bottom: 18px;
   }
 
-  .header-transferencia{
-    background: linear-gradient(
-      90deg,
-      #082f5d 0%,
-      #0b3d75 100%
-    ) !important;
-    border:none;
-    font-size:1rem;
-    letter-spacing:.2px;
+  .tools-kicker {
+    color: #5b6b82;
+    font-size: .78rem;
+    font-weight: 700;
+    letter-spacing: .04em;
+    margin: 0 0 4px;
+    text-transform: uppercase;
+  }
+
+  .tools-title {
+    color: #07152b;
+    font-size: 1.75rem;
+    font-weight: 800;
+    margin: 0;
+  }
+
+  .tools-card {
+    background: #fff;
+    border: 1px solid #d9e1ea;
+    border-radius: 6px;
+    box-shadow: 0 10px 24px rgba(15, 23, 42, .05);
+  }
+
+  .tools-card-header {
+    border-bottom: 1px solid #d9e1ea;
+    padding: 14px 16px;
+  }
+
+  .tools-card-title {
+    color: #07152b;
+    font-size: 1rem;
+    font-weight: 800;
+    margin: 0;
   }
 
   .card-header.bg-light{
@@ -51,28 +78,50 @@
     box-shadow:0 0 0 .15rem rgba(11,46,89,.12);
   }
 
-  .card{
-    border-radius:12px;
-    overflow:hidden;
+  .signature-panel {
+    border: 1px solid #d9e1ea;
+    border-radius: 6px;
+    background: #fff;
+    padding: 12px;
+  }
+
+  .signature-canvas {
+    width: 100%;
+    height: 160px;
+    border: 1px dashed #c8d2dd;
+    border-radius: 6px;
+    background: #fff;
   }
 </style>
 
-<div class="container mt-4">
+<div class="container-fluid mt-4">
 
-  <div class="d-flex justify-content-between align-items-center mb-4">
-    <h2 class="fw-semibold mb-0 titulo-pagina-transferencia">
-      <i class="bi bi-tools me-2"></i>
-      Transferência - Ferramentas & EPIs
-    </h2>
-    
+  <div class="tools-page-header">
+    <div>
+      <p class="tools-kicker">Ferramentas & EPIs</p>
+      <h1 class="tools-title">Transferência</h1>
+    </div>
+
+    <div class="d-flex gap-2">
+      <a href="{{ url_for('ferramentas_epis.saldo_tecnico') }}"
+         class="btn btn-outline-primary">
+        <i class="bi bi-person-workspace me-1"></i>
+        Saldo Técnico
+      </a>
+
+      <a href="{{ url_for('ferramentas_epis.historico') }}"
+         class="btn btn-outline-primary">
+        <i class="bi bi-clock-history me-1"></i>
+        Histórico
+      </a>
+    </div>
   </div>
 
-  <div class="card shadow-sm border-0">
-    <div class="card-header header-transferencia text-white">
-      <strong>
-        <i class="bi bi-arrow-left-right me-2"></i>
+  <div class="tools-card">
+    <div class="tools-card-header">
+      <h2 class="tools-card-title">
         Dados da Transferência
-      </strong>
+      </h2>
     </div>
 
     <div class="card-body">
@@ -129,13 +178,13 @@
         </div>
 
         <!-- ITENS -->
-        <div class="card border mb-4">
+        <div class="tools-card mb-4">
 
-          <div class="card-header bg-light">
-            <strong>
+          <div class="tools-card-header">
+            <h2 class="tools-card-title">
               <i class="bi bi-box-seam me-2"></i>
               Itens da Transferência
-            </strong>
+            </h2>
           </div>
 
           <div class="card-body">
@@ -203,13 +252,12 @@
           </div>
         </div>
 
-        <!-- OBSERVAÇÃO -->
         <div class="mb-3">
           <label class="form-label fw-semibold">Observação</label>
           <textarea name="observacao"
                     rows="3"
                     class="form-control shadow-sm"
-                    placeholder="Observações da transferência..."></textarea>
+                    placeholder=""></textarea>
         </div>
 
         <!-- ASSINATURAS -->
@@ -218,9 +266,9 @@
           <div class="col-md-6">
             <label class="form-label fw-semibold">Assinatura do Técnico</label>
 
-            <div class="border rounded bg-white p-2 shadow-sm">
+            <div class="signature-panel">
               <canvas id="signature-pad-tecnico"
-                      style="width:100%; height:180px; border:1px dashed #ccc; border-radius:6px;"></canvas>
+                      class="signature-canvas"></canvas>
             </div>
 
             <input type="hidden"
@@ -232,7 +280,7 @@
                       class="btn btn-outline-secondary btn-sm"
                       id="clear-signature-tecnico">
                 <i class="bi bi-eraser me-1"></i>
-                Limpar Assinatura
+                Limpar
               </button>
             </div>
           </div>
@@ -242,9 +290,9 @@
               Assinatura Almoxarifado / Logística
             </label>
 
-            <div class="border rounded bg-white p-2 shadow-sm">
+            <div class="signature-panel">
               <canvas id="signature-pad-logistica"
-                      style="width:100%; height:180px; border:1px dashed #ccc; border-radius:6px;"></canvas>
+                      class="signature-canvas"></canvas>
             </div>
 
             <input type="hidden"
@@ -256,7 +304,7 @@
                       class="btn btn-outline-secondary btn-sm"
                       id="clear-signature-logistica">
                 <i class="bi bi-eraser me-1"></i>
-                Limpar Assinatura
+                Limpar
               </button>
             </div>
           </div>
@@ -264,18 +312,12 @@
         </div>
 
         <!-- BOTÕES -->
-        <div class="d-flex gap-2">
+        <div class="d-flex justify-content-end gap-2">
           <button type="submit"
                   class="btn btn-primary shadow-sm">
             <i class="bi bi-save me-1"></i>
             Registrar Transferência
           </button>
-
-          <a href="{{ url_for('ferramentas_epis.saldo_tecnico') }}"
-             class="btn btn-outline-dark shadow-sm">
-            <i class="bi bi-person-workspace me-1"></i>
-            Saldo Técnico
-          </a>
         </div>
 
       </form>
@@ -488,9 +530,6 @@ categoriaSelect.addEventListener("change", () => {
   quantidadeInput.value = "";
   carregarItens();
 });
-
-atualizarTipoTransferencia();
-
 
 atualizarTipoTransferencia();
 
