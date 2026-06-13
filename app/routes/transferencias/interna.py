@@ -182,6 +182,7 @@ def nova_movimentacao():
                 if saldo_destino:
 
                     saldo_destino.quantidade += quantidade
+                    saldo_destino.valor_unitario = valor_unitario
 
                 else:
 
@@ -190,6 +191,7 @@ def nova_movimentacao():
                         item_id=item.id,
                         tipo_servico_id=tipo_servico_id,
                         quantidade=quantidade,
+                        valor_unitario=valor_unitario,
                         endereco='',
                         bairro='',
                         codigo_imovel='',
@@ -305,7 +307,7 @@ def api_itens():
                 'codigo': item.codigo,
                 'descricao': item.descricao,
                 'unidade': item.unidade,
-                'valor': item.valor,
+                'valor': float(estoque.valor_unitario or item.valor or 0),
                 'saldo': estoque.quantidade
             })
 
@@ -331,7 +333,7 @@ def api_itens():
                 'codigo': item.codigo,
                 'descricao': item.descricao,
                 'unidade': item.unidade,
-                'valor': item.valor,
+                'valor': float(saldo.valor_unitario or item.valor or 0),
                 'saldo': saldo.quantidade
             })
 

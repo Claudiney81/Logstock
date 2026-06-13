@@ -232,11 +232,12 @@ def nova_nota():
                 db.session.flush()
 
             else:
-    
+
                 if descricao_item and descricao_item != item.descricao:
                     item.descricao = descricao_item
 
-                item.valor = valor_convertido
+                if tipo_estoque == 'empresa':
+                    item.valor = valor_convertido
 
                 item.categoria = categoria_entrada
 
@@ -266,6 +267,7 @@ def nova_nota():
 
             if estoque:
                 estoque.quantidade += quantidade_int
+                estoque.valor_unitario = valor_convertido
 
                 if endereco and endereco.strip():
                     estoque.endereco = endereco.strip()
@@ -276,6 +278,7 @@ def nova_nota():
                     quantidade=quantidade_int,
                     quantidade_minima=0,
                     endereco=endereco.strip() if endereco else '',
+                    valor_unitario=valor_convertido,
                     tipo_servico_id=tipo_servico_saldo_id,
                     tipo_estoque=tipo_estoque,
                     cliente_id=(

@@ -128,6 +128,31 @@ def saldo_disponivel(
     return sum(int(s.quantidade or 0) for s in saldos)
 
 
+def valor_saldo_tecnico(
+    tecnico_id,
+    item_id,
+    tipo_servico_id,
+    tipo_estoque,
+    cliente_id=None,
+    ordem_servico_id=None
+):
+    saldos = buscar_saldo_tecnico(
+        tecnico_id=tecnico_id,
+        item_id=item_id,
+        tipo_servico_id=tipo_servico_id,
+        tipo_estoque=tipo_estoque,
+        cliente_id=cliente_id,
+        ordem_servico_id=ordem_servico_id
+    )
+
+    for saldo in saldos:
+        if saldo.valor_unitario is not None:
+            return float(saldo.valor_unitario or 0)
+
+    item = Item.query.get(item_id)
+    return float(item.valor or 0) if item else 0
+
+
 def debitar_saldo_tecnico(
     tecnico_id,
     item_id,
@@ -411,8 +436,18 @@ def nova_baixa():
             mensagem_sucesso = "Baixa registrada. Aguarde aprovação do engenheiro/supervisor."
 
         for linha in itens_compilados:
-            item = Item.query.get(linha["item_id"])
-            valor_unitario = float(item.valor or 0) if item else 0
+            valor_unitario = valor_saldo_tecnico(
+                tecnico_id=tecnico_id,
+                item_id=linha["item_id"],
+                tipo_servico_id=tipo_servico_id,
+                tipo_estoque=linha["tipo_estoque"],
+                cliente_id=linha["cliente_estoque_id"],
+                ordem_servico_id=(
+                    ordem_servico_id
+                    if linha["tipo_estoque"] == "cliente"
+                    else None
+                )
+            )
             valor_total = linha["quantidade"] * valor_unitario
 
             db.session.add(BaixaTecnicaItem(

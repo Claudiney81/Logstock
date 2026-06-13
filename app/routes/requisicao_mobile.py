@@ -213,16 +213,22 @@ def nova():
                     )
                     return redirect(url_for("requisicao_mobile.nova"))
 
-                quantidade_estoque = (
-                    db.session.query(db.func.sum(Estoque.quantidade))
-                    .filter(
-                        Estoque.item_id == item.id,
-                        Estoque.tipo_servico_id == 1,
-                        Estoque.tipo_estoque == tipo_estoque,
-                        Estoque.cliente_id.is_(None)
-                    )
-                    .scalar()
-                    or 0
+                estoque_query = Estoque.query.filter(
+                    Estoque.item_id == item.id,
+                    Estoque.tipo_servico_id == 1,
+                    Estoque.tipo_estoque == tipo_estoque,
+                    Estoque.cliente_id.is_(None)
+                )
+
+                estoques_item = estoque_query.all()
+                quantidade_estoque = sum(e.quantidade or 0 for e in estoques_item)
+                valor_estoque = next(
+                    (
+                        float(e.valor_unitario)
+                        for e in estoques_item
+                        if e.valor_unitario is not None
+                    ),
+                    float(item.valor or 0)
                 )
 
                 if quantidade_estoque <= 0:
@@ -248,7 +254,7 @@ def nova():
                     descricao=item.descricao,
                     unidade=item.unidade,
                     quantidade=quantidade,
-                    valor=item.valor or 0,
+                    valor=valor_estoque,
                     quantidade_estoque=quantidade_estoque
                 )
 
@@ -315,13 +321,18 @@ def buscar_itens_por_estoque(tipo_servico_id, tipo_estoque):
     # Manutenção e Reparo usam o saldo de Instalação.
     tipo_servico_saldo_id = 1
 
+    valor_estoque = db.func.coalesce(
+        db.func.max(Estoque.valor_unitario),
+        Item.valor
+    ).label("valor")
+
     query = (
         db.session.query(
             Item.id.label("id"),
             Item.codigo.label("codigo"),
             Item.descricao.label("descricao"),
             Item.unidade.label("unidade"),
-            Item.valor.label("valor"),
+            valor_estoque,
             Item.categoria.label("categoria"),
             Item.eh_equipamento.label("eh_equipamento"),
             db.func.sum(Estoque.quantidade).label("saldo")

@@ -79,6 +79,41 @@ def get_tecnico_mobile():
     return None
 
 
+def valor_saldo_tecnico(
+    tecnico_id,
+    item_id,
+    tipo_estoque,
+    cliente_id=None,
+    ordem_servico_id=None
+):
+    query = SaldoTecnico.query.filter(
+        SaldoTecnico.tecnico_id == tecnico_id,
+        SaldoTecnico.item_id == item_id,
+        SaldoTecnico.tipo_servico_id == 1,
+        SaldoTecnico.tipo_estoque == tipo_estoque,
+        SaldoTecnico.quantidade > 0
+    )
+
+    if tipo_estoque == "cliente":
+        query = query.filter(
+            SaldoTecnico.cliente_id == cliente_id,
+            SaldoTecnico.ordem_servico_id == ordem_servico_id
+        )
+    else:
+        query = query.filter(
+            SaldoTecnico.cliente_id.is_(None),
+            SaldoTecnico.ordem_servico_id.is_(None)
+        )
+
+    saldo = query.order_by(SaldoTecnico.id.asc()).first()
+
+    if saldo and saldo.valor_unitario is not None:
+        return float(saldo.valor_unitario or 0)
+
+    item = Item.query.get(item_id)
+    return float(item.valor or 0) if item else 0
+
+
 # ==========================================================
 # BAIXA - LINK ANTIGO / PORTAL
 # ==========================================================
@@ -318,13 +353,21 @@ def api_itens():
         item = Item.query.get(item_id)
 
         if item and int(saldo or 0) > 0:
+            valor = valor_saldo_tecnico(
+                tecnico_id=tecnico_id,
+                item_id=item.id,
+                tipo_estoque=tipo_estoque,
+                cliente_id=cliente_id,
+                ordem_servico_id=ordem_servico_id
+            )
+
             resultado.append({
                 "item_id": item.id,
                 "codigo": item.codigo,
                 "descricao": item.descricao,
                 "unidade": item.unidade,
                 "saldo": int(saldo or 0),
-                "valor": float(item.valor or 0)
+                "valor": valor
             })
 
     return jsonify({"itens": resultado})
@@ -514,7 +557,17 @@ def registrar():
             )
 
         for dados in itens_validos:
-            item = Item.query.get(dados["item_id"])
+            valor_unitario = valor_saldo_tecnico(
+                tecnico_id=tecnico_id,
+                item_id=dados["item_id"],
+                tipo_estoque=dados["tipo_estoque"],
+                cliente_id=dados["cliente_estoque_id"],
+                ordem_servico_id=(
+                    ordem_servico_id
+                    if dados["tipo_estoque"] == "cliente"
+                    else None
+                )
+            )
 
             existente = (
                 BaixaTecnicaItem.query
@@ -529,6 +582,8 @@ def registrar():
 
             if existente and existente.status in ["pendente", "pendente_ajuste"]:
                 existente.quantidade = dados["quantidade"]
+                existente.valor_unitario = valor_unitario
+                existente.valor_total = float(dados["quantidade"] or 0) * valor_unitario
                 existente.status = "pendente"
 
             else:
@@ -540,10 +595,10 @@ def registrar():
                         cliente_estoque_id=dados["cliente_estoque_id"],
                         quantidade=dados["quantidade"],
                         quantidade_aprovada=0,
-                        valor_unitario=float(item.valor or 0),
+                        valor_unitario=valor_unitario,
                         valor_total=(
                             float(dados["quantidade"] or 0)
-                            * float(item.valor or 0)
+                            * valor_unitario
                         ),
                         status="pendente"
                     )

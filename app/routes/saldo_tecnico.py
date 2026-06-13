@@ -54,6 +54,10 @@ def saldo_detalhado(id_tecnico):
         Empresa.razao_social.label('cliente_nome'),
         SaldoTecnico.ordem_servico_id.label('ordem_servico_id'),
         SaldoTecnico.endereco.label('endereco'),
+        func.coalesce(
+            func.max(SaldoTecnico.valor_unitario),
+            Item.valor
+        ).label('valor_unitario'),
         func.sum(SaldoTecnico.quantidade).label('quantidade'),
         func.max(SaldoTecnico.quantidade_minima).label('quantidade_minima')
     ]
@@ -117,7 +121,8 @@ def saldo_detalhado(id_tecnico):
             Item.id,
             Item.codigo,
             Item.descricao,
-            Item.unidade
+            Item.unidade,
+            Item.valor
         ]
     else:
         group_by_campos = [
@@ -128,7 +133,8 @@ def saldo_detalhado(id_tecnico):
             SaldoTecnico.cliente_id,
             Empresa.razao_social,
             SaldoTecnico.ordem_servico_id,
-            SaldoTecnico.endereco
+            SaldoTecnico.endereco,
+            Item.valor
         ]
 
         if OrdemServico:
@@ -207,6 +213,10 @@ def exportar_saldo_tecnico(id_tecnico):
         Empresa.razao_social.label('Cliente'),
         SaldoTecnico.ordem_servico_id.label('ordem_servico_id'),
         SaldoTecnico.endereco.label('Endereço'),
+        func.coalesce(
+            func.max(SaldoTecnico.valor_unitario),
+            Item.valor
+        ).label('Valor Unitário'),
         func.sum(SaldoTecnico.quantidade).label('Saldo Atual'),
         func.max(SaldoTecnico.quantidade_minima).label('Quantidade Mínima')
     ]
@@ -265,7 +275,8 @@ def exportar_saldo_tecnico(id_tecnico):
             Item.id,
             Item.codigo,
             Item.descricao,
-            Item.unidade
+            Item.unidade,
+            Item.valor
         ]
     else:
         group_by_campos = [
@@ -275,7 +286,8 @@ def exportar_saldo_tecnico(id_tecnico):
             Item.unidade,
             Empresa.razao_social,
             SaldoTecnico.ordem_servico_id,
-            SaldoTecnico.endereco
+            SaldoTecnico.endereco,
+            Item.valor
         ]
 
         if OrdemServico:
@@ -308,6 +320,7 @@ def exportar_saldo_tecnico(id_tecnico):
             'Código': row_dict.get('Código'),
             'Descrição': row_dict.get('Descrição'),
             'Unidade': row_dict.get('Unidade'),
+            'Valor Unitário': float(row_dict.get('Valor Unitário') or 0),
             'Saldo Atual': saldo,
             'Quantidade Mínima': minimo,
             'Necessidade Reposição': necessidade
@@ -329,6 +342,7 @@ def exportar_saldo_tecnico(id_tecnico):
                     'Código',
                     'Descrição',
                     'Unidade',
+                    'Valor Unitário',
                     'Saldo Atual',
                     'Quantidade Mínima',
                     'Necessidade Reposição'
@@ -338,6 +352,7 @@ def exportar_saldo_tecnico(id_tecnico):
                     'Código',
                     'Descrição',
                     'Unidade',
+                    'Valor Unitário',
                     'Saldo Atual',
                     'Quantidade Mínima',
                     'Necessidade Reposição'
@@ -446,7 +461,14 @@ def exportar_saldo_tecnico(id_tecnico):
             for col_num, coluna in enumerate(df.columns):
                 valor = item.get(coluna, '')
 
-                if coluna in ['Saldo Atual', 'Quantidade Mínima', 'Necessidade Reposição']:
+                if coluna == 'Valor Unitário':
+                    worksheet.write(row_num, col_num, valor, workbook.add_format({
+                        'border': 1,
+                        'align': 'right',
+                        'valign': 'vcenter',
+                        'num_format': 'R$ #,##0.00'
+                    }))
+                elif coluna in ['Saldo Atual', 'Quantidade Mínima', 'Necessidade Reposição']:
                     if coluna == 'Necessidade Reposição' and valor > 0:
                         worksheet.write(row_num, col_num, valor, qtd_alerta)
                     else:

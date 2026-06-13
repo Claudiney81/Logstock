@@ -274,6 +274,7 @@ def movimentar_para_saldo_tecnico(requisicao):
             saldo.quantidade += item_req.quantidade
             saldo.tipo_estoque = tipo_estoque
             saldo.cliente_id = cliente_id
+            saldo.valor_unitario = float(estoque.valor_unitario or item_db.valor or 0)
             saldo.endereco = requisicao.endereco
             saldo.bairro = requisicao.bairro
             saldo.codigo_imovel = requisicao.codigo_imovel
@@ -283,6 +284,7 @@ def movimentar_para_saldo_tecnico(requisicao):
                 item_id=item_db.id,
                 tipo_servico_id=tipo_servico_saldo_id,
                 quantidade=item_req.quantidade,
+                valor_unitario=float(estoque.valor_unitario or item_db.valor or 0),
                 tipo_estoque=tipo_estoque,
                 cliente_id=cliente_id,
                 endereco=requisicao.endereco,
@@ -633,7 +635,7 @@ def api_itens_disponiveis():
             "codigo": item.codigo,
             "descricao": item.descricao,
             "unidade": item.unidade,
-            "valor": item.valor,
+            "valor": float(estoque.valor_unitario or item.valor or 0),
             "quantidade_estoque": estoque.quantidade
         }
         for item, estoque in itens

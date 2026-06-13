@@ -647,6 +647,7 @@ def nova_movimentacao():
 
                 if saldo_destino:
                     saldo_destino.quantidade += quantidade
+                    saldo_destino.valor_unitario = valor_unitario
                     saldo_destino.quantidade_minima = (
                         quantidade_minima
                         if origem_tipo == 'empresa'
@@ -663,6 +664,7 @@ def nova_movimentacao():
                         tipo_servico_id=tipo_servico_destino,
                         quantidade=quantidade,
                         quantidade_minima=quantidade_minima if origem_tipo == 'empresa' else 0,
+                        valor_unitario=valor_unitario,
                         tipo_estoque=tipo_estoque_destino,
                         cliente_id=cliente_destino_id,
                         ordem_servico_id=ordem_servico_destino_id,
@@ -689,6 +691,7 @@ def nova_movimentacao():
                     )
 
                     estoque_destino.quantidade = int(estoque_destino.quantidade or 0) + int(quantidade or 0)
+                    estoque_destino.valor_unitario = valor_unitario
 
             sucesso = True
 
@@ -1023,6 +1026,10 @@ def api_itens_movimentacao():
     # ESTOQUE EMPRESA
     # ==================================================
     if origem_tipo == 'empresa':
+        valor_estoque = func.coalesce(
+            func.max(Estoque.valor_unitario),
+            Item.valor
+        ).label('valor')
 
         query = (
             db.session.query(
@@ -1030,7 +1037,7 @@ def api_itens_movimentacao():
                 Item.descricao,
                 Item.categoria,
                 Item.unidade,
-                Item.valor,
+                valor_estoque,
                 func.sum(Estoque.quantidade).label('saldo')
             )
             .join(Item, Estoque.item_id == Item.id)
@@ -1097,13 +1104,18 @@ def api_itens_movimentacao():
         if not cliente_id:
             return jsonify([])
 
+        valor_estoque = func.coalesce(
+            func.max(Estoque.valor_unitario),
+            Item.valor
+        ).label('valor')
+
         query = (
             db.session.query(
                 Item.codigo,
                 Item.descricao,
                 Item.categoria,
                 Item.unidade,
-                Item.valor,
+                valor_estoque,
                 func.sum(Estoque.quantidade).label('saldo')
             )
             .join(Item, Estoque.item_id == Item.id)
@@ -1149,13 +1161,18 @@ def api_itens_movimentacao():
         if not tecnico_id:
             return jsonify([])
 
+        valor_saldo = func.coalesce(
+            func.max(SaldoTecnico.valor_unitario),
+            Item.valor
+        ).label('valor')
+
         query = (
             db.session.query(
                 Item.codigo,
                 Item.descricao,
                 Item.categoria,
                 Item.unidade,
-                Item.valor,
+                valor_saldo,
                 func.sum(SaldoTecnico.quantidade).label('saldo')
             )
             .join(Item, SaldoTecnico.item_id == Item.id)

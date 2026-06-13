@@ -149,7 +149,7 @@ def api_itens_disponiveis():
             'codigo': item.codigo,
             'descricao': item.descricao,
             'unidade': item.unidade,
-            'valor': item.valor,
+            'valor': float(estoque.valor_unitario or item.valor or 0),
             'saldo': estoque.quantidade
         }
         for item, estoque in itens

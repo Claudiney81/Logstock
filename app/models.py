@@ -94,6 +94,11 @@ class Estoque(db.Model):
         db.String(100)
     )
 
+    valor_unitario = db.Column(
+        db.Float,
+        nullable=True
+    )
+
     # empresa | cliente
     tipo_estoque = db.Column(
         db.String(20),
@@ -950,6 +955,11 @@ class SaldoTecnico(db.Model):
 
     codigo_imovel = db.Column(
         db.String(100)
+    )
+
+    valor_unitario = db.Column(
+        db.Float,
+        nullable=True
     )
 
     tecnico = db.relationship(

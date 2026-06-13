@@ -188,6 +188,7 @@
             <th>Código</th>
             <th>Descrição</th>
             <th>Unidade</th>
+            <th class="text-end">Valor Unit.</th>
             <th class="text-center">Saldo Atual</th>
             <th class="text-center">Mínimo</th>
             <th class="text-center">Reposição</th>
@@ -208,6 +209,7 @@
             <td class="fw-semibold">{{ saldo.codigo }}</td>
             <td>{{ saldo.descricao }}</td>
             <td>{{ saldo.unidade }}</td>
+            <td class="text-end">{{ (saldo.valor_unitario or 0)|brl }}</td>
             <td class="text-center fw-bold">
               {% if minimo > 0 and atual < minimo %}
                 <span class="badge bg-danger">{{ atual }}</span>
@@ -228,7 +230,7 @@
           </tr>
           {% else %}
           <tr>
-            <td colspan="{% if tipo_estoque == 'cliente' %}9{% else %}6{% endif %}" class="text-center text-muted py-4">
+            <td colspan="{% if tipo_estoque == 'cliente' %}10{% else %}7{% endif %}" class="text-center text-muted py-4">
               Nenhum item encontrado.
             </td>
           </tr>

@@ -408,13 +408,18 @@ def saldo_estoque():
 
     total = func.sum(Estoque.quantidade).label("total")
 
+    valor_estoque = func.coalesce(
+        func.max(Estoque.valor_unitario),
+        Item.valor
+    ).label("valor")
+
     query = (
         db.session.query(
             Item.codigo,
             Item.descricao,
             Item.unidade,
             Item.categoria,
-            Item.valor,
+            valor_estoque,
             disponivel,
             usado_bom,
             novo_defeito,
@@ -1139,11 +1144,16 @@ def exportar_saldo_excel():
 
     total = func.sum(Estoque.quantidade).label("total")
 
+    valor_estoque = func.coalesce(
+        func.max(Estoque.valor_unitario),
+        Item.valor
+    ).label("valor")
+
     query = db.session.query(
         Item.codigo,
         Item.descricao,
         Item.unidade,
-        Item.valor,
+        valor_estoque,
         disponivel,
         usado_bom,
         novo_defeito,
