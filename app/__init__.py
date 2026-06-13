@@ -2,6 +2,8 @@
 
 import os
 
+from sqlalchemy import inspect, text
+
 from flask import (
     Flask,
     redirect,
@@ -58,6 +60,41 @@ def _bootstrap_admin_user():
     db.session.commit()
 
 
+def _ensure_runtime_schema_columns():
+    inspector = inspect(db.engine)
+
+    required_columns = {
+        "estoque": {
+            "valor_unitario": "FLOAT",
+        },
+        "saldo_tecnico": {
+            "valor_unitario": "FLOAT",
+        },
+    }
+
+    for table_name, columns in required_columns.items():
+        if not inspector.has_table(table_name):
+            continue
+
+        existing_columns = {
+            column["name"]
+            for column in inspector.get_columns(table_name)
+        }
+
+        for column_name, column_type in columns.items():
+            if column_name in existing_columns:
+                continue
+
+            db.session.execute(
+                text(
+                    f"ALTER TABLE {table_name} "
+                    f"ADD COLUMN {column_name} {column_type}"
+                )
+            )
+
+    db.session.commit()
+
+
 def _import_bp(
     module_path,
     candidates=("bp", "bp_estoque", "estoque_bp", "bp_routes", "blueprint"),
@@ -100,6 +137,7 @@ def create_app():
 
     with app.app_context():
         db.create_all()
+        _ensure_runtime_schema_columns()
         _bootstrap_admin_user()
 
     Migrate(app, db)
