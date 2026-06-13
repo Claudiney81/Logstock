@@ -263,6 +263,8 @@ def _build_requisition_pdf(requisicao) -> bytes:
     # ASSINATURA
     # ======================================================
 
+    assinatura_img = None
+
     if getattr(requisicao, "assinatura_path", None):
 
         assinatura_abs = os.path.join(
@@ -272,52 +274,67 @@ def _build_requisition_pdf(requisicao) -> bytes:
         ).replace("\\", "/")
 
         if os.path.exists(assinatura_abs):
-
-            titulo_ass = Table(
-                [["ASSINATURA DO TÉCNICO"]],
-                colWidths=[17.5 * cm]
-            )
-
-            titulo_ass.setStyle(TableStyle([
-                ("BACKGROUND", (0, 0), (-1, -1), azul),
-                ("TEXTCOLOR", (0, 0), (-1, -1), colors.white),
-                ("FONTNAME", (0, 0), (-1, -1), "Helvetica-Bold"),
-                ("FONTSIZE", (0, 0), (-1, -1), 10),
-                ("LEFTPADDING", (0, 0), (-1, -1), 10),
-                ("TOPPADDING", (0, 0), (-1, -1), 7),
-                ("BOTTOMPADDING", (0, 0), (-1, -1), 7),
-            ]))
-
-            elems.append(titulo_ass)
-            elems.append(Spacer(1, 10))
-
-            img = Image(
+            assinatura_img = Image(
                 assinatura_abs,
                 width=6.2 * cm,
                 height=2.2 * cm
             )
 
-            img.hAlign = "CENTER"
+    if not assinatura_img and getattr(requisicao, "assinatura_base64", None):
+        assinatura_base64 = requisicao.assinatura_base64
+        if "," in assinatura_base64:
+            assinatura_base64 = assinatura_base64.split(",", 1)[1]
 
-            elems.append(img)
-            elems.append(Spacer(1, 6))
-
-            linha = Table(
-                [[
-                    Paragraph(
-                        f'<para align="center"><b>{requisicao.solicitante_tecnico or "Técnico"}</b><br/>Assinatura de recebimento</para>',
-                        styles["Normal"]
-                    )
-                ]],
-                colWidths=[17.5 * cm]
+        try:
+            assinatura_bytes = base64.b64decode(assinatura_base64)
+            assinatura_img = Image(
+                BytesIO(assinatura_bytes),
+                width=6.2 * cm,
+                height=2.2 * cm
             )
+        except Exception:
+            assinatura_img = None
 
-            linha.setStyle(TableStyle([
-                ("LINEABOVE", (0, 0), (-1, 0), 0.8, colors.HexColor("#374151")),
-                ("TOPPADDING", (0, 0), (-1, -1), 6),
-            ]))
+    if assinatura_img:
+        titulo_ass = Table(
+            [["ASSINATURA DO TÉCNICO"]],
+            colWidths=[17.5 * cm]
+        )
 
-            elems.append(linha)
+        titulo_ass.setStyle(TableStyle([
+            ("BACKGROUND", (0, 0), (-1, -1), azul),
+            ("TEXTCOLOR", (0, 0), (-1, -1), colors.white),
+            ("FONTNAME", (0, 0), (-1, -1), "Helvetica-Bold"),
+            ("FONTSIZE", (0, 0), (-1, -1), 10),
+            ("LEFTPADDING", (0, 0), (-1, -1), 10),
+            ("TOPPADDING", (0, 0), (-1, -1), 7),
+            ("BOTTOMPADDING", (0, 0), (-1, -1), 7),
+        ]))
+
+        elems.append(titulo_ass)
+        elems.append(Spacer(1, 10))
+
+        assinatura_img.hAlign = "CENTER"
+
+        elems.append(assinatura_img)
+        elems.append(Spacer(1, 6))
+
+        linha = Table(
+            [[
+                Paragraph(
+                    f'<para align="center"><b>{requisicao.solicitante_tecnico or "Técnico"}</b><br/>Assinatura de recebimento</para>',
+                    styles["Normal"]
+                )
+            ]],
+            colWidths=[17.5 * cm]
+        )
+
+        linha.setStyle(TableStyle([
+            ("LINEABOVE", (0, 0), (-1, 0), 0.8, colors.HexColor("#374151")),
+            ("TOPPADDING", (0, 0), (-1, -1), 6),
+        ]))
+
+        elems.append(linha)
 
     elems.append(Spacer(1, 14))
 
