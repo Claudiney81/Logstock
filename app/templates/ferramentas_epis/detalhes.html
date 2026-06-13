@@ -2,44 +2,7 @@
 {% block content %}
 
 <style>
-  .tools-shell {
-    width: 100%;
-    margin: 0;
-    padding: 0 1.5rem;
-  }
-
-  .tools-page-header {
-    display: flex;
-    justify-content: space-between;
-    align-items: flex-end;
-    gap: 16px;
-    margin-bottom: 18px;
-  }
-
-  .tools-kicker {
-    color: #5b6b82;
-    font-size: .78rem;
-    font-weight: 700;
-    letter-spacing: .04em;
-    margin: 0 0 4px;
-    text-transform: uppercase;
-  }
-
-  .tools-title {
-    color: #07152b;
-    font-size: 1.75rem;
-    font-weight: 800;
-    margin: 0;
-  }
-
-  .tools-card {
-    background: #fff;
-    border: 1px solid #d9e1ea;
-    border-radius: 6px;
-    box-shadow: 0 10px 24px rgba(15, 23, 42, .05);
-  }
-
-  .tools-section-title {
+  .transfer-section-title {
     color: #07152b;
     font-size: 1rem;
     font-weight: 800;
@@ -79,28 +42,28 @@
     }
 
     #main-content,
-    .tools-shell {
+    .container-fluid {
       padding: 0 !important;
       margin: 0 !important;
       width: 100% !important;
     }
 
-    .tools-card {
+    .app-panel {
       box-shadow: none !important;
       border-color: #999 !important;
     }
   }
 </style>
 
-<div class="tools-shell mt-4">
+<div class="container-fluid mt-4">
 
-  <div class="tools-page-header no-print">
+  <div class="app-page-header no-print">
     <div>
-      <p class="tools-kicker">Ferramentas & EPIs</p>
-      <h1 class="tools-title">Detalhes da Transferência</h1>
+      <p class="app-page-kicker">Ferramentas & EPIs</p>
+      <h1>Detalhes da Transferência</h1>
     </div>
 
-    <div class="d-flex gap-2">
+    <div class="app-page-actions">
       <a href="{{ url_for('ferramentas_epis.historico') }}"
          class="btn btn-outline-secondary">
         <i class="bi bi-arrow-left me-1"></i>
@@ -123,11 +86,11 @@
     </div>
   </div>
 
-  <div class="tools-card">
+  <div class="app-panel">
 
     <div class="card-body">
 
-      <h2 class="tools-title mb-4 d-none d-print-block">Detalhes da Transferência</h2>
+      <h2 class="mb-4 d-none d-print-block">Detalhes da Transferência</h2>
 
       <!-- DADOS GERAIS -->
       <div class="row g-3 mb-4">
@@ -169,16 +132,16 @@
       <hr>
 
       <!-- ITENS -->
-      <h3 class="tools-section-title">
+      <h3 class="transfer-section-title">
         <i class="bi bi-box-seam me-2"></i>
         Itens da Transferência
       </h3>
 
       <div class="table-responsive mb-4">
 
-        <table class="table table-sm table-bordered align-middle">
+        <table class="table table-hover align-middle mb-0 app-table">
 
-          <thead class="table-light">
+          <thead>
             <tr>
               <th>Código</th>
               <th>Descrição</th>
@@ -257,7 +220,7 @@
       <hr>
 
       <!-- ASSINATURAS -->
-      <h3 class="tools-section-title">
+      <h3 class="transfer-section-title">
         <i class="bi bi-pen me-2"></i>
         Assinaturas
       </h3>
