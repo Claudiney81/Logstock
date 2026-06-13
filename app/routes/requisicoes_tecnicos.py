@@ -574,6 +574,7 @@ def historico_detalhes(requisicao_id):
     )
 
 
+@bp_requisicoes_tecnicos.route("/mobile/detalhes/<int:requisicao_id>/pdf")
 @bp_requisicoes_tecnicos.route("/historico/detalhes/<int:requisicao_id>/pdf")
 @login_required
 def historico_detalhes_pdf(requisicao_id):

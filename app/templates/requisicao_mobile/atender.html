@@ -36,15 +36,104 @@
     .btn-finalizar {
         min-width: 260px;
     }
+
+    .page-actions {
+        gap: 8px;
+    }
+
+    @media print {
+        @page {
+            size: A4;
+            margin: 12mm;
+        }
+
+        body {
+            background: #fff !important;
+            padding: 0 !important;
+        }
+
+        .navbar,
+        footer,
+        .footer,
+        .footer-center-fix,
+        .no-print {
+            display: none !important;
+        }
+
+        #main-content {
+            padding: 0 !important;
+        }
+
+        .container-fluid {
+            width: 100% !important;
+            max-width: none !important;
+            margin: 0 !important;
+            padding: 0 !important;
+        }
+
+        .page-title {
+            font-size: 1.35rem;
+            margin-bottom: 12px !important;
+        }
+
+        .card-clean {
+            border: 1px solid #999 !important;
+            box-shadow: none !important;
+            break-inside: avoid;
+            margin-bottom: 10px !important;
+        }
+
+        .section-title {
+            font-size: 0.95rem;
+            margin-bottom: 8px;
+        }
+
+        .scroll-body {
+            max-height: none !important;
+            overflow: visible !important;
+        }
+
+        .table th,
+        .table td {
+            padding: 6px 8px !important;
+            font-size: 0.82rem;
+        }
+
+        input.form-control,
+        textarea.form-control,
+        select.form-select {
+            border: 0 !important;
+            padding: 0 !important;
+            background: transparent !important;
+            box-shadow: none !important;
+            font-size: inherit !important;
+        }
+    }
 </style>
 
 <div class="container-fluid px-4 mt-3 mb-5">
 
-    <a href="{{ url_for('requisicoes_tecnicos.mobile_recebidas') }}" class="text-decoration-none mb-2 d-inline-block">
-        ← Voltar
-    </a>
+    <div class="d-flex justify-content-between align-items-start flex-wrap mb-3 no-print">
+        <a href="{{ url_for('requisicoes_tecnicos.mobile_recebidas') }}" class="text-decoration-none d-inline-block">
+            ← Voltar
+        </a>
 
-    <h2 class="text-center page-title mb-3">Atender Requisição</h2>
+        <div class="d-flex page-actions">
+            <button type="button" class="btn btn-outline-secondary btn-sm" onclick="window.print()">
+                <i class="bi bi-printer"></i> Imprimir
+            </button>
+
+            <a
+                href="{{ url_for('requisicoes_tecnicos.historico_detalhes_pdf', requisicao_id=requisicao.id) }}"
+                class="btn btn-outline-primary btn-sm"
+                target="_blank"
+            >
+                <i class="bi bi-file-earmark-pdf"></i> PDF
+            </a>
+        </div>
+    </div>
+
+    <h2 class="text-center page-title mb-3">Comprovante de Requisição</h2>
 
     <form method="post">
 
@@ -170,7 +259,7 @@
         {% endif %}
 
         <!-- STATUS -->
-        <div class="card-clean p-3 mb-3">
+        <div class="card-clean p-3 mb-3 no-print">
 
             <div class="section-title">Atualizar Status</div>
 
@@ -205,7 +294,7 @@
         </div>
 
         <!-- BOTÕES -->
-        <div class="d-flex justify-content-between align-items-center mb-5">
+        <div class="d-flex justify-content-between align-items-center mb-5 no-print">
 
             <a href="{{ url_for('requisicoes_tecnicos.mobile_recebidas') }}" class="btn btn-light border px-4">
                 ← Voltar
