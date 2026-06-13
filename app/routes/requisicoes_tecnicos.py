@@ -446,10 +446,6 @@ def mobile_detalhes(requisicao_id):
         )
 
         if novo_status == "material_entregue":
-            if not assinatura_base64 and not requisicao.assinatura_path:
-                flash("Assinatura obrigatória para finalizar a entrega.", "warning")
-                return redirect(url_for("requisicoes_tecnicos.mobile_detalhes", requisicao_id=requisicao.id))
-
             if assinatura_base64:
                 caminho = salvar_assinatura(
                     assinatura_base64,

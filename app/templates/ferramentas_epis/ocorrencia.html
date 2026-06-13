@@ -314,6 +314,7 @@ const ctx = canvas.getContext("2d");
 const assinaturaInput = document.getElementById("assinaturaInput");
 
 let desenhando = false;
+let hasSignature = false;
 
 function ajustarCanvas() {
     canvas.width = canvas.offsetWidth;
@@ -358,13 +359,14 @@ function desenhar(e) {
     ctx.lineCap = "round";
     ctx.lineTo(pos.x, pos.y);
     ctx.stroke();
+    hasSignature = true;
 
     assinaturaInput.value = canvas.toDataURL();
 }
 
 function parar() {
     desenhando = false;
-    assinaturaInput.value = canvas.toDataURL();
+    assinaturaInput.value = hasSignature ? canvas.toDataURL() : "";
 }
 
 function limparAssinatura() {
@@ -372,6 +374,7 @@ function limparAssinatura() {
 
     ctx.clearRect(0, 0, canvas.width, canvas.height);
     assinaturaInput.value = "";
+    hasSignature = false;
 }
 
 canvas.addEventListener("mousedown", iniciar);

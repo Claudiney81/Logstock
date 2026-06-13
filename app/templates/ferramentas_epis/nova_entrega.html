@@ -324,20 +324,11 @@ function limparCanvas(tipo) {
 }
 
 document.getElementById("formTransferencia").addEventListener("submit", function(e) {
-  if (padTecnico.isEmpty()) {
-    e.preventDefault();
-    alert("A assinatura do técnico é obrigatória.");
-    return;
-  }
+  document.getElementById("assinatura_tecnico").value =
+    padTecnico.isEmpty() ? "" : padTecnico.toDataURL();
 
-  if (padLogistica.isEmpty()) {
-    e.preventDefault();
-    alert("A assinatura do almoxarifado/logística é obrigatória.");
-    return;
-  }
-
-  document.getElementById("assinatura_tecnico").value = padTecnico.toDataURL();
-  document.getElementById("assinatura_logistica").value = padLogistica.toDataURL();
+  document.getElementById("assinatura_logistica").value =
+    padLogistica.isEmpty() ? "" : padLogistica.toDataURL();
 });
 </script>
 

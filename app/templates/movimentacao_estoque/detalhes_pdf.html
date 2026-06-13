@@ -348,6 +348,10 @@
   <div class="assinatura-box">
     {% if movimentacao.assinatura %}
       <img src="{{ movimentacao.assinatura }}">
+    {% else %}
+      <div style="text-align:center; font-weight:bold; font-size:14px; padding:28px 0 18px;">
+        Assinatura física
+      </div>
     {% endif %}
 
     <div class="linha-assinatura"></div>

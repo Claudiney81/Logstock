@@ -407,10 +407,6 @@ def nova_movimentacao():
                     flash('Motivo de retorno inválido.', 'danger')
                     return redirect(url_for('movimentacao_estoque.nova_movimentacao'))
 
-            if not assinatura:
-                flash('A assinatura é obrigatória para movimentação de Ferramentas/EPIs.', 'danger')
-                return redirect(url_for('movimentacao_estoque.nova_movimentacao'))
-
         # ==================================================
         # DEFINIR ORIGEM / DESTINO
         # ==================================================

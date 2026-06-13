@@ -386,6 +386,7 @@ def pdf_historico_vistorias():
 @login_required
 def pdf_detalhe_vistoria(vistoria_id):
 
+    import base64
     from io import BytesIO
     from reportlab.lib import colors
     from reportlab.lib.pagesizes import A4
@@ -506,6 +507,52 @@ def pdf_detalhe_vistoria(vistoria_id):
                 img = Image(caminho_foto)
                 img._restrictSize(420, 260)
                 elementos.append(img)
+
+    def assinatura_cell(assinatura, nome, legenda):
+        conteudo = []
+
+        if assinatura:
+            try:
+                assinatura_data = assinatura.split(",", 1)[1] if "," in assinatura else assinatura
+                img = Image(BytesIO(base64.b64decode(assinatura_data)), width=150, height=52)
+                conteudo.append(img)
+            except Exception:
+                conteudo.append(Paragraph("<b>Assinatura física</b>", styles["Normal"]))
+        else:
+            conteudo.append(Paragraph("<b>Assinatura física</b>", styles["Normal"]))
+
+        conteudo.append(Spacer(1, 8))
+        conteudo.append(Paragraph(f"<b>{nome}</b><br/>{legenda}", styles["Normal"]))
+        return conteudo
+
+    elementos.append(Spacer(1, 18))
+    elementos.append(Paragraph("<b>ASSINATURAS</b>", styles["Heading2"]))
+
+    tabela_assinaturas = Table(
+        [[
+            assinatura_cell(
+                vistoria.assinatura_tecnico,
+                vistoria.tecnico.nome if vistoria.tecnico else "Técnico",
+                "Assinatura do técnico"
+            ),
+            assinatura_cell(
+                vistoria.assinatura_responsavel,
+                vistoria.responsavel or "Responsável",
+                "Assinatura do responsável"
+            )
+        ]],
+        colWidths=[250, 250]
+    )
+
+    tabela_assinaturas.setStyle(TableStyle([
+        ("GRID", (0, 0), (-1, -1), 0.5, colors.grey),
+        ("VALIGN", (0, 0), (-1, -1), "MIDDLE"),
+        ("ALIGN", (0, 0), (-1, -1), "CENTER"),
+        ("TOPPADDING", (0, 0), (-1, -1), 12),
+        ("BOTTOMPADDING", (0, 0), (-1, -1), 12),
+    ]))
+
+    elementos.append(tabela_assinaturas)
 
     doc.build(elementos)
 

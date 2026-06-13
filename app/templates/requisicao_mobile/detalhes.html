@@ -227,7 +227,6 @@
             </div>
         </div>
 
-        {% if requisicao.assinatura_base64 or requisicao.assinatura_path %}
         <div class="card-clean p-3 mb-3">
             <div class="section-title">Assinatura do Técnico</div>
 
@@ -236,10 +235,11 @@
                     <img src="{{ requisicao.assinatura_base64 }}" class="img-fluid" style="max-height: 150px;">
                 {% elif requisicao.assinatura_path %}
                     <img src="{{ url_for('static', filename=requisicao.assinatura_path) }}" class="img-fluid" style="max-height: 150px;">
+                {% else %}
+                    <span class="text-muted fw-semibold">Assinatura física</span>
                 {% endif %}
             </div>
         </div>
-        {% endif %}
 
         {% if requisicao.status == "pendente" and not status_bloqueado %}
         <div class="card-clean p-3 mb-3">
@@ -327,6 +327,7 @@ if (canvas) {
     resizeCanvas();
 
     let drawing = false;
+    let hasSignature = false;
 
     canvas.addEventListener("mousedown", function () {
         drawing = true;
@@ -347,6 +348,7 @@ if (canvas) {
 
     function draw(e) {
         if (!drawing) return;
+        hasSignature = true;
 
         const rect = canvas.getBoundingClientRect();
         const x = (e.clientX - rect.left) * (canvas.width / rect.width);
@@ -361,12 +363,13 @@ if (canvas) {
     window.clearSignature = function () {
         ctx.clearRect(0, 0, canvas.width, canvas.height);
         ctx.beginPath();
+        hasSignature = false;
     };
 
     document.querySelector("form").addEventListener("submit", function () {
         const input = document.getElementById("assinatura_base64");
         if (input) {
-            input.value = canvas.toDataURL("image/png");
+            input.value = hasSignature ? canvas.toDataURL("image/png") : "";
         }
     });
 }

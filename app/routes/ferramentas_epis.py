@@ -194,10 +194,6 @@ def transferencia():
             flash("Adicione pelo menos um item.", "warning")
             return redirect(url_for("ferramentas_epis.transferencia"))
 
-        if not assinatura_tecnico or not assinatura_logistica:
-            flash("As assinaturas do técnico e da logística são obrigatórias.", "warning")
-            return redirect(url_for("ferramentas_epis.transferencia"))
-
         if tipo_transferencia == "retorno" and motivo_retorno not in MOTIVOS_RETORNO:
             flash("Selecione um motivo válido para o retorno.", "warning")
             return redirect(url_for("ferramentas_epis.transferencia"))
@@ -1471,6 +1467,14 @@ def gerar_termo(id):
                 preserveAspectRatio=True,
                 mask="auto"
             )
+        else:
+            c.setFillColor(preto)
+            c.setFont("Helvetica-Bold", 11)
+            c.drawCentredString(
+                x1 + (box_largura / 2),
+                y + 45,
+                "Assinatura física"
+            )
 
         if assinatura_logistica:
             if "," in assinatura_logistica:
@@ -1486,6 +1490,14 @@ def gerar_termo(id):
                 height=42,
                 preserveAspectRatio=True,
                 mask="auto"
+            )
+        else:
+            c.setFillColor(preto)
+            c.setFont("Helvetica-Bold", 11)
+            c.drawCentredString(
+                x2 + (box_largura / 2),
+                y + 45,
+                "Assinatura física"
             )
 
     except Exception as e:
@@ -1549,4 +1561,4 @@ def gerar_termo(id):
     return send_file(
         caminho_completo,
         as_attachment=False
-    )   
+    )

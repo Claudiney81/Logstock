@@ -56,7 +56,7 @@
       <div class="app-kpi-card">
         <span class="app-kpi-icon app-kpi-purple"><i class="bi bi-pen"></i></span>
         <span class="app-kpi-label">Assinatura</span>
-        <strong style="font-size:1.05rem;">{{ 'Assinado' if movimentacao.assinatura else 'Pendente' }}</strong>
+        <strong style="font-size:1.05rem;">{{ 'Assinado' if movimentacao.assinatura else 'Assinatura física' }}</strong>
       </div>
     </div>
   </div>
@@ -117,7 +117,7 @@
 
         <div class="col-md-3">
           <label class="form-label fw-semibold">Assinatura</label>
-          <input class="form-control" readonly value="{% if movimentacao.assinatura %}Assinado{% else %}Sem assinatura{% endif %}">
+          <input class="form-control" readonly value="{% if movimentacao.assinatura %}Assinado{% else %}Assinatura física{% endif %}">
         </div>
 
         <div class="col-12">
@@ -171,25 +171,29 @@
     </div>
   </div>
 
-  {% if movimentacao.assinatura %}
   <div class="app-panel">
     <div class="app-panel-header">
       <div>
         <h2>Assinatura do técnico</h2>
-        <p>Registro capturado no momento da movimentação.</p>
+        <p>Registro capturado no momento da movimentação ou assinatura em documento físico.</p>
       </div>
     </div>
 
     <div class="p-4 text-center">
+      {% if movimentacao.assinatura %}
       <img
         src="{{ movimentacao.assinatura }}"
         alt="Assinatura"
         class="img-fluid border rounded p-2 bg-white"
         style="max-height:160px;"
       >
+      {% else %}
+      <div class="border rounded p-4 bg-white fw-semibold text-muted">
+        Assinatura física
+      </div>
+      {% endif %}
     </div>
   </div>
-  {% endif %}
 </div>
 
 {% endblock %}

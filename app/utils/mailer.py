@@ -295,46 +295,54 @@ def _build_requisition_pdf(requisicao) -> bytes:
         except Exception:
             assinatura_img = None
 
+    titulo_ass = Table(
+        [["ASSINATURA DO TÉCNICO"]],
+        colWidths=[17.5 * cm]
+    )
+
+    titulo_ass.setStyle(TableStyle([
+        ("BACKGROUND", (0, 0), (-1, -1), azul),
+        ("TEXTCOLOR", (0, 0), (-1, -1), colors.white),
+        ("FONTNAME", (0, 0), (-1, -1), "Helvetica-Bold"),
+        ("FONTSIZE", (0, 0), (-1, -1), 10),
+        ("LEFTPADDING", (0, 0), (-1, -1), 10),
+        ("TOPPADDING", (0, 0), (-1, -1), 7),
+        ("BOTTOMPADDING", (0, 0), (-1, -1), 7),
+    ]))
+
+    elems.append(titulo_ass)
+    elems.append(Spacer(1, 10))
+
     if assinatura_img:
-        titulo_ass = Table(
-            [["ASSINATURA DO TÉCNICO"]],
-            colWidths=[17.5 * cm]
-        )
-
-        titulo_ass.setStyle(TableStyle([
-            ("BACKGROUND", (0, 0), (-1, -1), azul),
-            ("TEXTCOLOR", (0, 0), (-1, -1), colors.white),
-            ("FONTNAME", (0, 0), (-1, -1), "Helvetica-Bold"),
-            ("FONTSIZE", (0, 0), (-1, -1), 10),
-            ("LEFTPADDING", (0, 0), (-1, -1), 10),
-            ("TOPPADDING", (0, 0), (-1, -1), 7),
-            ("BOTTOMPADDING", (0, 0), (-1, -1), 7),
-        ]))
-
-        elems.append(titulo_ass)
-        elems.append(Spacer(1, 10))
-
         assinatura_img.hAlign = "CENTER"
 
         elems.append(assinatura_img)
         elems.append(Spacer(1, 6))
-
-        linha = Table(
-            [[
-                Paragraph(
-                    f'<para align="center"><b>{requisicao.solicitante_tecnico or "Técnico"}</b><br/>Assinatura de recebimento</para>',
-                    styles["Normal"]
-                )
-            ]],
-            colWidths=[17.5 * cm]
+    else:
+        elems.append(
+            Paragraph(
+                '<para align="center"><font size="12"><b>Assinatura física</b></font></para>',
+                styles["Normal"]
+            )
         )
+        elems.append(Spacer(1, 22))
 
-        linha.setStyle(TableStyle([
-            ("LINEABOVE", (0, 0), (-1, 0), 0.8, colors.HexColor("#374151")),
-            ("TOPPADDING", (0, 0), (-1, -1), 6),
-        ]))
+    linha = Table(
+        [[
+            Paragraph(
+                f'<para align="center"><b>{requisicao.solicitante_tecnico or "Técnico"}</b><br/>Assinatura de recebimento</para>',
+                styles["Normal"]
+            )
+        ]],
+        colWidths=[17.5 * cm]
+    )
 
-        elems.append(linha)
+    linha.setStyle(TableStyle([
+        ("LINEABOVE", (0, 0), (-1, 0), 0.8, colors.HexColor("#374151")),
+        ("TOPPADDING", (0, 0), (-1, -1), 6),
+    ]))
+
+    elems.append(linha)
 
     elems.append(Spacer(1, 14))
 
@@ -1102,6 +1110,25 @@ def _build_movimentacao_pdf(movimentacao) -> bytes:
     elems.append(total_tbl)
     elems.append(Spacer(1, 14))
 
+    titulo_ass = Table(
+        [["ASSINATURA DO TÉCNICO"]],
+        colWidths=[17.5 * cm]
+    )
+
+    titulo_ass.setStyle(TableStyle([
+        ("BACKGROUND", (0, 0), (-1, -1), azul),
+        ("TEXTCOLOR", (0, 0), (-1, -1), colors.white),
+        ("FONTNAME", (0, 0), (-1, -1), "Helvetica-Bold"),
+        ("LEFTPADDING", (0, 0), (-1, -1), 10),
+        ("TOPPADDING", (0, 0), (-1, -1), 7),
+        ("BOTTOMPADDING", (0, 0), (-1, -1), 7),
+    ]))
+
+    elems.append(titulo_ass)
+    elems.append(Spacer(1, 10))
+
+    assinatura_renderizada = False
+
     if movimentacao.assinatura:
 
         try:
@@ -1116,23 +1143,6 @@ def _build_movimentacao_pdf(movimentacao) -> bytes:
                 assinatura_data
             )
 
-            titulo_ass = Table(
-                [["ASSINATURA DO TÉCNICO"]],
-                colWidths=[17.5 * cm]
-            )
-
-            titulo_ass.setStyle(TableStyle([
-                ("BACKGROUND", (0, 0), (-1, -1), azul),
-                ("TEXTCOLOR", (0, 0), (-1, -1), colors.white),
-                ("FONTNAME", (0, 0), (-1, -1), "Helvetica-Bold"),
-                ("LEFTPADDING", (0, 0), (-1, -1), 10),
-                ("TOPPADDING", (0, 0), (-1, -1), 7),
-                ("BOTTOMPADDING", (0, 0), (-1, -1), 7),
-            ]))
-
-            elems.append(titulo_ass)
-            elems.append(Spacer(1, 10))
-
             assinatura_img = Image(
                 BytesIO(assinatura_bytes),
                 width=6.2 * cm,
@@ -1143,30 +1153,40 @@ def _build_movimentacao_pdf(movimentacao) -> bytes:
 
             elems.append(assinatura_img)
             elems.append(Spacer(1, 6))
-
-            linha_nome = Table(
-                [[tecnico_nome]],
-                colWidths=[17.5 * cm]
-            )
-
-            linha_nome.setStyle(TableStyle([
-                ("LINEABOVE", (0, 0), (-1, 0), 0.8, colors.black),
-                ("ALIGN", (0, 0), (-1, -1), "CENTER"),
-                ("FONTNAME", (0, 0), (-1, -1), "Helvetica-Bold"),
-                ("TOPPADDING", (0, 0), (-1, -1), 8),
-            ]))
-
-            elems.append(linha_nome)
-
-            elems.append(
-                Paragraph(
-                    '<para align="center">Assinatura de recebimento</para>',
-                    styles["Normal"]
-                )
-            )
+            assinatura_renderizada = True
 
         except Exception:
             pass
+
+    if not assinatura_renderizada:
+        elems.append(
+            Paragraph(
+                '<para align="center"><font size="12"><b>Assinatura física</b></font></para>',
+                styles["Normal"]
+            )
+        )
+        elems.append(Spacer(1, 22))
+
+    linha_nome = Table(
+        [[tecnico_nome]],
+        colWidths=[17.5 * cm]
+    )
+
+    linha_nome.setStyle(TableStyle([
+        ("LINEABOVE", (0, 0), (-1, 0), 0.8, colors.black),
+        ("ALIGN", (0, 0), (-1, -1), "CENTER"),
+        ("FONTNAME", (0, 0), (-1, -1), "Helvetica-Bold"),
+        ("TOPPADDING", (0, 0), (-1, -1), 8),
+    ]))
+
+    elems.append(linha_nome)
+
+    elems.append(
+        Paragraph(
+            '<para align="center">Assinatura de recebimento</para>',
+            styles["Normal"]
+        )
+    )
 
     elems.append(Spacer(1, 16))
 

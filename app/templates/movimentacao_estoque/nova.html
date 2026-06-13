@@ -1380,6 +1380,7 @@ if (canvas) {
   resizeCanvas();
 
   let drawing = false;
+  let hasSignature = false;
 
   canvas.addEventListener("mousedown", function () {
     drawing = true;
@@ -1391,7 +1392,7 @@ if (canvas) {
     ctx.beginPath();
 
     document.getElementById("assinatura").value =
-      canvas.toDataURL("image/png");
+      hasSignature ? canvas.toDataURL("image/png") : "";
   });
 
   canvas.addEventListener("mouseout", function () {
@@ -1403,6 +1404,7 @@ if (canvas) {
 
   function draw(e) {
     if (!drawing) return;
+    hasSignature = true;
 
     const rect = canvas.getBoundingClientRect();
 
@@ -1424,12 +1426,13 @@ if (canvas) {
   window.limparAssinatura = function () {
     ctx.clearRect(0, 0, canvas.width, canvas.height);
     ctx.beginPath();
+    hasSignature = false;
     document.getElementById("assinatura").value = "";
   };
 
   document.querySelector("form").addEventListener("submit", function () {
     document.getElementById("assinatura").value =
-      canvas.toDataURL("image/png");
+      hasSignature ? canvas.toDataURL("image/png") : "";
   });
 }
 </script>

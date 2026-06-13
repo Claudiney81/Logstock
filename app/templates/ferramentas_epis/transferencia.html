@@ -542,23 +542,11 @@ document.querySelector("form")
     return;
   }
 
-  if (signaturePadTecnico.isEmpty()) {
-    e.preventDefault();
-    alert("A assinatura do técnico é obrigatória.");
-    return;
-  }
-
-  if (signaturePadLogistica.isEmpty()) {
-    e.preventDefault();
-    alert("A assinatura da logística é obrigatória.");
-    return;
-  }
-
   document.getElementById("assinatura_tecnico").value =
-    signaturePadTecnico.toDataURL();
+    signaturePadTecnico.isEmpty() ? "" : signaturePadTecnico.toDataURL();
 
   document.getElementById("assinatura_logistica").value =
-    signaturePadLogistica.toDataURL();
+    signaturePadLogistica.isEmpty() ? "" : signaturePadLogistica.toDataURL();
 
 });
 </script>
