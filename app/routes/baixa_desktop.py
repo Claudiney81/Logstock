@@ -1469,17 +1469,21 @@ def exportar_baixa_pdf(baixa_id):
         styles["Normal"]
     )
     assinatura_nome = baixa.responsavel or "Responsável / Operador"
-    tabela_assinatura = Table([[assinatura_nome]], colWidths=[360])
+    tabela_assinatura = Table(
+        [[assinatura_fisica], [assinatura_nome]],
+        colWidths=[360],
+        rowHeights=[60, None]
+    )
     tabela_assinatura.setStyle(TableStyle([
+        ("BOX", (0, 0), (-1, -1), 0.8, colors.HexColor("#d1d5db")),
         ("ALIGN", (0, 0), (-1, -1), "CENTER"),
+        ("VALIGN", (0, 0), (-1, 0), "MIDDLE"),
         ("FONTNAME", (0, 0), (-1, -1), "Helvetica-Bold"),
-        ("LINEABOVE", (0, 0), (-1, 0), 0.8, colors.HexColor("#374151")),
+        ("LINEABOVE", (0, 1), (-1, 1), 0.8, colors.HexColor("#374151")),
         ("TOPPADDING", (0, 0), (-1, -1), 8),
     ]))
 
     elementos.append(assinatura_titulo)
-    elementos.append(Spacer(1, 12))
-    elementos.append(assinatura_fisica)
     elementos.append(Spacer(1, 12))
     elementos.append(tabela_assinatura)
 

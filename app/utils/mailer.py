@@ -315,30 +315,31 @@ def _build_requisition_pdf(requisicao) -> bytes:
 
     if assinatura_img:
         assinatura_img.hAlign = "CENTER"
-
-        elems.append(assinatura_img)
-        elems.append(Spacer(1, 6))
+        assinatura_conteudo = assinatura_img
     else:
-        elems.append(
-            Paragraph(
-                '<para align="center"><font size="12"><b>Assinatura física</b></font></para>',
-                styles["Normal"]
-            )
+        assinatura_conteudo = Paragraph(
+            '<para align="center"><font size="12"><b>Assinatura física</b></font></para>',
+            styles["Normal"]
         )
-        elems.append(Spacer(1, 22))
 
     linha = Table(
         [[
+            assinatura_conteudo
+        ], [
             Paragraph(
                 f'<para align="center"><b>{requisicao.solicitante_tecnico or "Técnico"}</b><br/>Assinatura de recebimento</para>',
                 styles["Normal"]
             )
         ]],
-        colWidths=[17.5 * cm]
+        colWidths=[17.5 * cm],
+        rowHeights=[2.6 * cm, None]
     )
 
     linha.setStyle(TableStyle([
-        ("LINEABOVE", (0, 0), (-1, 0), 0.8, colors.HexColor("#374151")),
+        ("BOX", (0, 0), (-1, -1), 0.8, colors.HexColor("#c9c9c9")),
+        ("LINEABOVE", (0, 1), (-1, 1), 0.8, colors.HexColor("#374151")),
+        ("ALIGN", (0, 0), (-1, -1), "CENTER"),
+        ("VALIGN", (0, 0), (-1, 0), "MIDDLE"),
         ("TOPPADDING", (0, 0), (-1, -1), 6),
     ]))
 
@@ -1170,30 +1171,29 @@ def _build_movimentacao_pdf(movimentacao) -> bytes:
 
             assinatura_img.hAlign = "CENTER"
 
-            elems.append(assinatura_img)
-            elems.append(Spacer(1, 6))
+            assinatura_conteudo = assinatura_img
             assinatura_renderizada = True
 
         except Exception:
             pass
 
     if not assinatura_renderizada:
-        elems.append(
-            Paragraph(
-                '<para align="center"><font size="12"><b>Assinatura física</b></font></para>',
-                styles["Normal"]
-            )
+        assinatura_conteudo = Paragraph(
+            '<para align="center"><font size="12"><b>Assinatura física</b></font></para>',
+            styles["Normal"]
         )
-        elems.append(Spacer(1, 22))
 
     linha_nome = Table(
-        [[assinatura_nome]],
-        colWidths=[17.5 * cm]
+        [[assinatura_conteudo], [assinatura_nome]],
+        colWidths=[17.5 * cm],
+        rowHeights=[2.6 * cm, None]
     )
 
     linha_nome.setStyle(TableStyle([
-        ("LINEABOVE", (0, 0), (-1, 0), 0.8, colors.black),
+        ("BOX", (0, 0), (-1, -1), 0.8, colors.HexColor("#c9c9c9")),
+        ("LINEABOVE", (0, 1), (-1, 1), 0.8, colors.black),
         ("ALIGN", (0, 0), (-1, -1), "CENTER"),
+        ("VALIGN", (0, 0), (-1, 0), "MIDDLE"),
         ("FONTNAME", (0, 0), (-1, -1), "Helvetica-Bold"),
         ("TOPPADDING", (0, 0), (-1, -1), 8),
     ]))

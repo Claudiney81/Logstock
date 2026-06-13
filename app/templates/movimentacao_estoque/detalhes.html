@@ -14,7 +14,7 @@
       <p class="app-page-kicker">Movimentação de Estoque</p>
       <h1>Documento da Movimentação</h1>
       <p class="app-page-subtitle">
-        Movimentação #{{ movimentacao.id }} registrada em {{ movimentacao.data_hora.strftime('%d/%m/%Y %H:%M') if movimentacao.data_hora else '-' }}.
+        Movimentação {{ movimentacao.id }} registrada em {{ movimentacao.data_hora.strftime('%d/%m/%Y %H:%M') if movimentacao.data_hora else '-' }}.
       </p>
     </div>
 
@@ -33,9 +33,9 @@
   <div class="row g-3 mb-4">
     <div class="col-sm-6 col-xl-3">
       <div class="app-kpi-card">
-        <span class="app-kpi-icon app-kpi-blue"><i class="bi bi-hash"></i></span>
-        <span class="app-kpi-label">Movimentação</span>
-        <strong style="font-size:1.05rem;">#{{ movimentacao.id }}</strong>
+        <span class="app-kpi-icon app-kpi-blue"><i class="bi bi-list-ol"></i></span>
+        <span class="app-kpi-label">Número</span>
+        <strong style="font-size:1.05rem;">{{ movimentacao.id }}</strong>
       </div>
     </div>
     <div class="col-sm-6 col-xl-3">
@@ -56,7 +56,7 @@
       <div class="app-kpi-card">
         <span class="app-kpi-icon app-kpi-purple"><i class="bi bi-pen"></i></span>
         <span class="app-kpi-label">Assinatura</span>
-        <strong style="font-size:1.05rem;">{{ 'Assinado' if movimentacao.assinatura else 'Assinatura física' }}</strong>
+        <strong style="font-size:1.05rem;">{{ 'Assinado' if movimentacao.assinatura else 'Documento físico' }}</strong>
       </div>
     </div>
   </div>
@@ -117,7 +117,7 @@
 
         <div class="col-md-3">
           <label class="form-label fw-semibold">Assinatura</label>
-          <input class="form-control" readonly value="{% if movimentacao.assinatura %}Assinado{% else %}Assinatura física{% endif %}">
+          <input class="form-control" readonly value="{% if movimentacao.assinatura %}Assinado{% else %}Documento físico{% endif %}">
         </div>
 
         <div class="col-12">
@@ -194,7 +194,7 @@
         style="max-height:160px;"
       >
       {% else %}
-      <div class="border rounded p-4 bg-white fw-semibold text-muted">
+      <div class="border rounded bg-white fw-semibold text-muted d-flex align-items-center justify-content-center" style="min-height:120px;">
         Assinatura física
       </div>
       {% endif %}

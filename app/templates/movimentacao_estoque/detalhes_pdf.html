@@ -150,7 +150,10 @@
     }
 
     .assinatura-box {
-      margin-top: 30px;
+      border: 1px solid #cfcfcf;
+      min-height: 120px;
+      margin-top: 10px;
+      padding: 18px 18px 12px;
       text-align: center;
     }
 
@@ -355,7 +358,7 @@
     {% if movimentacao.assinatura %}
       <img src="{{ movimentacao.assinatura }}">
     {% else %}
-      <div style="text-align:center; font-weight:bold; font-size:14px; padding:28px 0 18px;">
+      <div style="text-align:center; font-weight:bold; font-size:14px; padding:24px 0 18px;">
         Assinatura física
       </div>
     {% endif %}

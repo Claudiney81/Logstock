@@ -92,7 +92,7 @@
         <tbody>
           {% for m in movimentacoes %}
           <tr>
-            <td class="fw-semibold text-nowrap">#{{ m.id }}</td>
+            <td class="fw-semibold text-nowrap">{{ m.id }}</td>
 
             <td>
               {% if m.origem_tipo == 'empresa' %}
@@ -175,7 +175,7 @@
               {% if m.assinatura %}
                 <span class="badge bg-success">Assinado</span>
               {% else %}
-                <span class="badge bg-secondary">Assinatura física</span>
+                <span class="badge bg-secondary">Documento físico</span>
               {% endif %}
             </td>
 
