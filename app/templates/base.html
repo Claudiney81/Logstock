@@ -744,12 +744,13 @@
       style="z-index:11000; margin-top:75px;"
     >
       {% for category, message in messages %}
-        {% if category != 'info' %}
+        {% set toast_category = category if category in ['success', 'danger', 'warning', 'info', 'primary', 'secondary'] else 'primary' %}
         <div
-          class="toast flash-toast text-bg-{{ category }} border-0 shadow"
+          class="toast flash-toast text-bg-{{ toast_category }} border-0 shadow"
           role="alert"
           aria-live="assertive"
           aria-atomic="true"
+          data-bs-delay="4000"
         >
           <div class="d-flex align-items-center">
             <div class="toast-body">
@@ -763,7 +764,6 @@
             ></button>
           </div>
         </div>
-        {% endif %}
       {% endfor %}
     </div>
   {% endif %}
@@ -783,12 +783,30 @@
     document.addEventListener("DOMContentLoaded", function () {
       document.querySelectorAll(".flash-toast").forEach(function(toastEl) {
         const toast = new bootstrap.Toast(toastEl, {
-          delay: 2500,
+          delay: Number(toastEl.dataset.bsDelay || 4000),
           autohide: true
         });
 
         toast.show();
       });
+
+      document
+        .querySelectorAll(".flash-message, .flash-alert, .alert-dismissible[role='alert']")
+        .forEach(function(alertEl) {
+          window.setTimeout(function() {
+            if (!document.body.contains(alertEl)) return;
+
+            if (window.bootstrap && bootstrap.Alert) {
+              bootstrap.Alert.getOrCreateInstance(alertEl).close();
+              return;
+            }
+
+            alertEl.classList.remove("show");
+            window.setTimeout(function() {
+              alertEl.remove();
+            }, 250);
+          }, 4000);
+        });
     });
     </script>
 
