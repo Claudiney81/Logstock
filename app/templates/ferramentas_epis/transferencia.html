@@ -49,6 +49,26 @@
     border-radius: 6px;
     background: #fff;
   }
+
+  .lote-box {
+    border: 1px solid #d9e1ea;
+    border-radius: 6px;
+    background: #f8fafc;
+    padding: 12px;
+  }
+
+  .lote-table-wrap {
+    max-height: 260px;
+    overflow: auto;
+    border: 1px solid #d9e1ea;
+    border-radius: 6px;
+    background: #fff;
+  }
+
+  .lote-qtd {
+    width: 80px;
+    margin-left: auto;
+  }
 </style>
 
 <div class="container-fluid mt-4 ferramentas-page">
@@ -193,6 +213,70 @@
 
             </div>
 
+            <div class="lote-box mt-3">
+              <div class="row g-2 align-items-end">
+                <div class="col-md-5">
+                  <label class="form-label fw-semibold">Pesquisar na lista</label>
+                  <input type="text"
+                         id="busca_lote"
+                         class="form-control shadow-sm"
+                         placeholder="Digite código ou descrição">
+                </div>
+
+                <div class="col-md-2 d-grid">
+                  <button type="button"
+                          id="btnMarcarTodos"
+                          class="btn btn-outline-primary">
+                    Marcar todos
+                  </button>
+                </div>
+
+                <div class="col-md-2 d-grid">
+                  <button type="button"
+                          id="btnDesmarcarTodos"
+                          class="btn btn-outline-secondary">
+                    Desmarcar
+                  </button>
+                </div>
+
+                <div class="col-md-3 d-grid">
+                  <button type="button"
+                          id="btnInserirSelecionados"
+                          class="btn btn-primary">
+                    <i class="bi bi-plus-circle me-1"></i>
+                    Inserir Selecionados
+                  </button>
+                </div>
+              </div>
+
+              <div class="lote-table-wrap mt-3">
+                <table class="table table-sm table-hover align-middle mb-0 app-table">
+                  <thead>
+                    <tr>
+                      <th width="42">
+                        <input type="checkbox"
+                               class="form-check-input"
+                               id="lote_check_todos"
+                               title="Selecionar todos">
+                      </th>
+                      <th>Código</th>
+                      <th>Descrição</th>
+                      <th>Categoria</th>
+                      <th class="text-end">Saldo</th>
+                      <th class="text-end" width="120">Qtd</th>
+                    </tr>
+                  </thead>
+                  <tbody id="tabelaLote">
+                    <tr>
+                      <td colspan="6" class="text-center text-muted py-4">
+                        Selecione o tipo de transferência para carregar os itens.
+                      </td>
+                    </tr>
+                  </tbody>
+                </table>
+              </div>
+            </div>
+
             <div class="table-responsive mt-4">
               <table class="table table-hover align-middle mb-0 app-table">
                 <thead>
@@ -298,8 +382,156 @@ const motivoSelect = document.getElementById("motivo_retorno");
 const saldoInput = document.getElementById("saldo_item");
 const quantidadeInput = document.getElementById("quantidade");
 const tabelaItens = document.getElementById("tabelaItens");
+const buscaLoteInput = document.getElementById("busca_lote");
+const tabelaLote = document.getElementById("tabelaLote");
+const loteCheckTodos = document.getElementById("lote_check_todos");
 
 let itensCache = [];
+
+function escaparHtml(valor) {
+  return String(valor ?? "")
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;")
+    .replace(/"/g, "&quot;")
+    .replace(/'/g, "&#039;");
+}
+
+function normalizarTexto(valor) {
+  return String(valor || "")
+    .toLowerCase()
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "");
+}
+
+function itemJaAdicionado(itemId) {
+  return Boolean(
+    tabelaItens.querySelector(`input[name="item_id[]"][value="${itemId}"]`)
+  );
+}
+
+function itensFiltrados() {
+  const categoriaSelecionada = categoriaSelect.value;
+  const busca = normalizarTexto(buscaLoteInput.value);
+
+  return itensCache.filter(item => {
+    const categoriaOk = !categoriaSelecionada ||
+      (item.categoria || "").toUpperCase() === categoriaSelecionada;
+    const texto = normalizarTexto(`${item.codigo || ""} ${item.descricao || ""}`);
+    return categoriaOk && (!busca || texto.includes(busca));
+  });
+}
+
+function itensFiltradosPorCategoria() {
+  const categoriaSelecionada = categoriaSelect.value;
+
+  return itensCache.filter(item => {
+    if (!categoriaSelecionada) return true;
+    return (item.categoria || "").toUpperCase() === categoriaSelecionada;
+  });
+}
+
+function renderizarListaLote() {
+  if (!itensCache.length) {
+    tabelaLote.innerHTML = `
+      <tr>
+        <td colspan="6" class="text-center text-muted py-4">
+          Nenhum item disponível para os filtros selecionados.
+        </td>
+      </tr>
+    `;
+    loteCheckTodos.checked = false;
+    return;
+  }
+
+  const itens = itensFiltrados();
+
+  if (!itens.length) {
+    tabelaLote.innerHTML = `
+      <tr>
+        <td colspan="6" class="text-center text-muted py-4">
+          Nenhum item encontrado para a busca informada.
+        </td>
+      </tr>
+    `;
+    loteCheckTodos.checked = false;
+    return;
+  }
+
+  tabelaLote.innerHTML = itens.map(item => {
+    const saldo = parseInt(item.quantidade || 0);
+    const desabilitado = saldo <= 0 || itemJaAdicionado(item.item_id);
+    const qtdInicial = saldo > 0 ? 1 : 0;
+
+    return `
+      <tr data-item-id="${escaparHtml(item.item_id)}">
+        <td>
+          <input type="checkbox"
+                 class="form-check-input lote-check"
+                 ${desabilitado ? "disabled" : ""}>
+        </td>
+        <td class="fw-semibold">${escaparHtml(item.codigo)}</td>
+        <td>${escaparHtml(item.descricao)}</td>
+        <td>${escaparHtml(item.categoria || "")}</td>
+        <td class="text-end">${saldo}</td>
+        <td class="text-end">
+          <input type="number"
+                 class="form-control form-control-sm lote-qtd"
+                 min="1"
+                 max="${saldo}"
+                 value="${qtdInicial}"
+                 ${desabilitado ? "disabled" : ""}>
+        </td>
+      </tr>
+    `;
+  }).join("");
+
+  loteCheckTodos.checked = false;
+}
+
+function adicionarItemNaTabela(item, quantidade) {
+  if (!item || quantidade <= 0) {
+    return false;
+  }
+
+  const saldo = parseInt(item.quantidade || 0);
+
+  if (quantidade > saldo) {
+    alert(`Quantidade maior que o saldo disponível para ${item.descricao}.`);
+    return false;
+  }
+
+  if (itemJaAdicionado(item.item_id)) {
+    return false;
+  }
+
+  const tr = document.createElement("tr");
+
+  tr.innerHTML = `
+    <td>
+      ${escaparHtml(item.codigo)}
+      <input type="hidden" name="item_id[]" value="${escaparHtml(item.item_id)}">
+    </td>
+
+    <td>${escaparHtml(item.descricao)}</td>
+
+    <td>${escaparHtml(item.categoria || "")}</td>
+
+    <td>
+      ${quantidade}
+      <input type="hidden" name="quantidade[]" value="${quantidade}">
+    </td>
+
+    <td class="text-center">
+      <button type="button" class="btn btn-sm btn-danger btnRemover">
+        <i class="bi bi-trash"></i>
+      </button>
+    </td>
+  `;
+
+  tabelaItens.appendChild(tr);
+  return true;
+}
 
 // ======================================
 // TIPO TRANSFERÊNCIA
@@ -308,6 +540,7 @@ function atualizarTipoTransferencia() {
   const tipo = tipoTransferencia.value;
 
   tabelaItens.innerHTML = "";
+  tabelaLote.innerHTML = "";
   saldoInput.value = "";
   quantidadeInput.value = "";
 
@@ -334,6 +567,7 @@ async function carregarItens() {
   saldoInput.value = "";
   quantidadeInput.value = "";
   itensCache = [];
+  renderizarListaLote();
 
   let url = "";
 
@@ -356,22 +590,18 @@ async function carregarItens() {
 
     itemSelect.innerHTML = '<option value="">Selecione o item</option>';
 
-    const categoriaSelecionada = categoriaSelect.value;
+    itensFiltradosPorCategoria().forEach(item => {
+      const option = document.createElement("option");
+      option.value = item.item_id;
+      option.textContent = `${item.codigo} - ${item.descricao}`;
+      itemSelect.appendChild(option);
+    });
 
-  itensCache
-  .filter(item => {
-    if (!categoriaSelecionada) return true;
-    return (item.categoria || "").toUpperCase() === categoriaSelecionada;
-  })
-  .forEach(item => {
-    const option = document.createElement("option");
-    option.value = item.item_id;
-    option.textContent = `${item.codigo} - ${item.descricao}`;
-    itemSelect.appendChild(option);
-  });
+    renderizarListaLote();
 
   } catch (e) {
     itemSelect.innerHTML = '<option value="">Erro ao carregar</option>';
+    renderizarListaLote();
   }
 }
 
@@ -415,51 +645,75 @@ document.getElementById("btnAdicionar")
     return;
   }
 
-  const saldo = parseInt(item.quantidade || 0);
-
-  if (quantidade > saldo) {
-    alert("Quantidade maior que o saldo disponível.");
-    return;
-  }
-
-  const itemJaAdicionado = tabelaItens.querySelector(
-    `input[name="item_id[]"][value="${item.item_id}"]`
-  );
-
-  if (itemJaAdicionado) {
+  if (itemJaAdicionado(item.item_id)) {
     alert("Este item já foi adicionado.");
     return;
   }
 
-  const tr = document.createElement("tr");
-
-  tr.innerHTML = `
-    <td>
-      ${item.codigo}
-      <input type="hidden" name="item_id[]" value="${item.item_id}">
-    </td>
-
-    <td>${item.descricao}</td>
-
-    <td>${item.categoria || ""}</td>
-
-    <td>
-      ${quantidade}
-      <input type="hidden" name="quantidade[]" value="${quantidade}">
-    </td>
-
-    <td class="text-center">
-      <button type="button" class="btn btn-sm btn-danger btnRemover">
-        <i class="bi bi-trash"></i>
-      </button>
-    </td>
-  `;
-
-  tabelaItens.appendChild(tr);
+  if (!adicionarItemNaTabela(item, quantidade)) return;
 
   itemSelect.value = "";
   saldoInput.value = "";
   quantidadeInput.value = "";
+  renderizarListaLote();
+});
+
+document.getElementById("btnMarcarTodos")
+.addEventListener("click", () => {
+  tabelaLote.querySelectorAll(".lote-check:not(:disabled)").forEach(check => {
+    check.checked = true;
+  });
+  loteCheckTodos.checked = true;
+});
+
+document.getElementById("btnDesmarcarTodos")
+.addEventListener("click", () => {
+  tabelaLote.querySelectorAll(".lote-check").forEach(check => {
+    check.checked = false;
+  });
+  loteCheckTodos.checked = false;
+});
+
+document.getElementById("btnInserirSelecionados")
+.addEventListener("click", () => {
+  const linhas = Array.from(tabelaLote.querySelectorAll("tr"))
+    .filter(tr => tr.querySelector(".lote-check")?.checked);
+
+  if (!linhas.length) {
+    alert("Marque pelo menos um item na lista.");
+    return;
+  }
+
+  let inseridos = 0;
+  let ignorados = 0;
+
+  linhas.forEach(tr => {
+    const itemId = tr.dataset.itemId;
+    const item = itensCache.find(i => String(i.item_id) === String(itemId));
+    const qtdInput = tr.querySelector(".lote-qtd");
+    const quantidade = parseInt(qtdInput?.value || 0);
+
+    if (!item || quantidade <= 0 || itemJaAdicionado(item.item_id)) {
+      ignorados++;
+      return;
+    }
+
+    if (adicionarItemNaTabela(item, quantidade)) {
+      inseridos++;
+    } else {
+      ignorados++;
+    }
+  });
+
+  renderizarListaLote();
+
+  if (inseridos > 0) {
+    alert(`${inseridos} item(ns) inserido(s) na transferência.`);
+  }
+
+  if (ignorados > 0) {
+    alert(`${ignorados} item(ns) já estavam na transferência ou tinham quantidade inválida.`);
+  }
 });
 
 // ======================================
@@ -468,6 +722,7 @@ document.getElementById("btnAdicionar")
 document.addEventListener("click", function(e) {
   if (e.target.closest(".btnRemover")) {
     e.target.closest("tr").remove();
+    renderizarListaLote();
   }
 });
 
@@ -488,6 +743,14 @@ categoriaSelect.addEventListener("change", () => {
   saldoInput.value = "";
   quantidadeInput.value = "";
   carregarItens();
+});
+
+buscaLoteInput.addEventListener("input", renderizarListaLote);
+
+loteCheckTodos.addEventListener("change", () => {
+  tabelaLote.querySelectorAll(".lote-check:not(:disabled)").forEach(check => {
+    check.checked = loteCheckTodos.checked;
+  });
 });
 
 atualizarTipoTransferencia();
