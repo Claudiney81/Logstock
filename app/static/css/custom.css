@@ -250,6 +250,71 @@ footer.footer {
   padding-right: 18px;
 }
 
+.baixa-page {
+  padding-left: 24px;
+  padding-right: 24px;
+}
+
+.baixa-page .app-panel-header {
+  padding-left: 24px;
+  padding-right: 24px;
+}
+
+.baixa-page .app-panel > .card-body {
+  padding: 22px 24px;
+}
+
+.baixa-page .table-responsive {
+  border: 1px solid #e2e8f0;
+  border-radius: 8px;
+  background: #fff;
+}
+
+.baixa-page .app-table thead th:first-child,
+.baixa-page .app-table tbody td:first-child {
+  padding-left: 18px;
+}
+
+.baixa-page .app-table thead th:last-child,
+.baixa-page .app-table tbody td:last-child {
+  padding-right: 18px;
+}
+
+.baixa-page .btn-icon-text {
+  min-height: 32px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  border-radius: 6px;
+  font-size: .78rem;
+  font-weight: 600;
+}
+
+.baixa-page .badge-tipo-estoque,
+.baixa-page .badge-confirmado {
+  display: inline-block;
+  min-width: 110px;
+  padding: 6px 10px;
+  border-radius: 6px;
+  font-size: .76rem;
+  font-weight: 700;
+  text-align: center;
+}
+
+.baixa-page .badge-empresa {
+  background: #e8f1fb;
+  color: #24527a;
+  border: 1px solid #c8ddf2;
+}
+
+.baixa-page .badge-cliente,
+.baixa-page .badge-confirmado {
+  background: #eaf7ee;
+  color: #2f6b43;
+  border: 1px solid #cfe8d6;
+}
+
 .app-kpi-card {
   display: flex;
   min-height: 118px;

@@ -7,45 +7,42 @@
   vertical-align: middle !important;
 }
 
-.table-baixas td:nth-child(9),
-.table-baixas th:nth-child(9) {
+.table-baixas .col-itens,
+.table-baixas td.col-itens-cell {
   width: 70px;
   min-width: 70px;
   text-align: center !important;
 }
 
-.table-baixas td:nth-child(10),
-.table-baixas th:nth-child(10) {
+.table-baixas .col-status,
+.table-baixas td.col-status-cell {
   width: 130px;
   min-width: 130px;
   text-align: center !important;
 }
 
-.table-baixas td:nth-child(11),
-.table-baixas th:nth-child(11) {
+.table-baixas .col-acoes,
+.table-baixas td.col-acoes-cell {
   width: 140px;
   min-width: 140px;
   text-align: center !important;
 }
-
-.table-baixas td:nth-child(12),
-.table-baixas th:nth-child(12) {
-  width: 110px;
-  min-width: 110px;
-  text-align: center !important;
-}
 </style>
 
-<div class="container-fluid mt-4">
+<div class="container-fluid mt-4 baixa-page">
 
-  <div class="card shadow-sm border-0">
+  <div class="app-page-header">
+    <div>
+      <p class="app-page-kicker">Validação de Baixas</p>
+      <h1>Baixas Realizadas</h1>
+    </div>
+  </div>
 
-    <div class="card-header text-white d-flex justify-content-between align-items-center"
-         style="background:#002b55;">
-      <h5 class="mb-0 fw-semibold">
-        <i class="bi bi-check2-circle me-2"></i>
-        Baixas Realizadas
-      </h5>
+  <div class="app-panel">
+    <div class="app-panel-header">
+      <div>
+        <h2>Filtros</h2>
+      </div>
     </div>
 
     <div class="card-body">
@@ -94,11 +91,10 @@
 
       <div class="tabela-container table-responsive">
 
-        <table class="table table-hover align-middle table-baixas">
+        <table class="table table-hover align-middle table-baixas mb-0 app-table">
 
-          <thead class="table-light">
+          <thead>
             <tr>
-              <th class="col-id">ID</th>
               <th class="col-data">Data</th>
               <th class="col-tecnico">Técnico</th>
               <th class="col-cliente">Cliente</th>
@@ -125,10 +121,6 @@
             {% endfor %}
 
             <tr>
-
-              <td class="fw-semibold">
-                {{ baixa.id }}
-              </td>
 
               <td>
                 {{ baixa.data_hora.strftime('%d/%m/%Y %H:%M') if baixa.data_hora else '-' }}
@@ -178,7 +170,7 @@
                 {{ baixa.responsavel or '-' }}
               </td>
 
-              <td class="fw-semibold">
+              <td class="fw-semibold col-itens-cell">
                 {{ baixa.itens|length if baixa.itens is not none else 0 }}
               </td>
 
@@ -192,13 +184,13 @@
                 {% endif %}
               </td>
 
-              <td>
+              <td class="col-status-cell">
                 <span class="badge-confirmado">
                   Confirmado
                 </span>
               </td>
 
-              <td>
+              <td class="col-acoes-cell">
                 <a href="{{ url_for('baixa_desktop.detalhe_baixa', baixa_id=baixa.id) }}"
                    class="btn btn-outline-primary btn-sm btn-icon-text"
                    target="_blank">
@@ -212,7 +204,7 @@
             {% else %}
 
             <tr>
-              <td colspan="12" class="text-center text-muted py-4">
+              <td colspan="11" class="text-center text-muted py-4">
                 Nenhuma baixa realizada.
               </td>
             </tr>

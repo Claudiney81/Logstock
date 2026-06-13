@@ -1,15 +1,31 @@
 {% extends 'base.html' %}
 {% block content %}
 
-<div class="container-fluid mt-4">
+<div class="container-fluid mt-4 baixa-page">
 
-  <div class="card shadow-sm border-0 mb-4">
+  <div class="app-page-header">
+    <div>
+      <p class="app-page-kicker">Validação de Baixas</p>
+      <h1>Detalhes da Baixa</h1>
+    </div>
 
-    <div class="card-header text-white" style="background:#002b55;">
-      <h5 class="mb-0 fw-semibold">
-        <i class="bi bi-clipboard-check me-2"></i>
-        Detalhes da Baixa
-      </h5>
+    <div class="app-page-actions">
+      <a
+        href="{{ url_for('baixa_desktop.baixas_realizadas') }}"
+        class="btn btn-outline-secondary"
+      >
+        <i class="bi bi-arrow-left me-1"></i>
+        Voltar
+      </a>
+    </div>
+  </div>
+
+  <div class="app-panel mb-4">
+
+    <div class="app-panel-header">
+      <div>
+        <h2>Dados da Baixa</h2>
+      </div>
     </div>
 
     <div class="card-body">
@@ -121,17 +137,16 @@
 
 {% if baixa.fotos %}
 
-<div class="card shadow-sm border-0 mb-4">
+<div class="app-panel mb-4">
 
-  <div class="card-header text-white d-flex justify-content-between align-items-center"
-       style="background:#002b55;">
+  <div class="app-panel-header">
 
-    <h6 class="mb-0 fw-semibold">
-      📸 Fotos do Serviço
-    </h6>
+    <div>
+      <h2>Fotos do Serviço</h2>
+    </div>
 
     <button
-      class="btn btn-sm btn-light"
+      class="btn btn-sm btn-outline-primary"
       type="button"
       data-bs-toggle="collapse"
       data-bs-target="#collapseFotosServico"
@@ -208,8 +223,8 @@
       }
 
       .tabela-container thead th {
-        background: #002b55;
-        color: #fff;
+        background: #f8fafc;
+        color: #334155;
         text-align: center;
         font-size: 0.92rem;
         font-weight: 600;
@@ -278,7 +293,7 @@
 
     <div class="tabela-container shadow-sm mb-3">
 
-      <table class="table table-hover align-middle mb-0">
+      <table class="table table-hover align-middle mb-0 app-table">
 
         <thead>
           <tr>
@@ -469,9 +484,9 @@
     </a>
 
     <a href="{{ url_for('baixa_desktop.exportar_baixa_pdf', baixa_id=baixa.id) }}"
-      class="btn btn-danger">
+      class="btn btn-outline-danger btn-acao">
       <i class="bi bi-file-earmark-pdf"></i>
-      Exportar PDF
+      PDF
     </a>
 
   </div>

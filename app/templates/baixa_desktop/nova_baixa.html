@@ -1,14 +1,27 @@
 {% extends 'base.html' %}
 
 {% block content %}
-<div class="container mt-4">
+<div class="container-fluid mt-4 baixa-page">
 
-  <div class="card shadow-sm border-0">
-    <div class="card-header text-white" style="background:#002b55;">
-      <strong>
-        <i class="bi bi-tools me-2"></i>
-        Nova Baixa Técnica Manual
-      </strong>
+  <div class="app-page-header">
+    <div>
+      <p class="app-page-kicker">Validação de Baixas</p>
+      <h1>Nova Baixa</h1>
+    </div>
+
+    <div class="app-page-actions">
+      <a href="{{ url_for('baixa_desktop.baixas_pendentes') }}" class="btn btn-outline-primary">
+        <i class="bi bi-hourglass-split me-1"></i>
+        Pendentes
+      </a>
+    </div>
+  </div>
+
+  <div class="app-panel">
+    <div class="app-panel-header">
+      <div>
+        <h2>Dados da Baixa</h2>
+      </div>
     </div>
 
     <div class="card-body">
@@ -155,13 +168,6 @@
           </div>
         </div>
 
-        <div class="alert alert-info py-2 mb-3">
-          <strong>Fluxo:</strong>
-          selecione a origem do saldo, carregue os itens, adicione ao resumo e depois pode trocar de
-          <strong>Empresa</strong> para <strong>Cliente</strong> sem perder os itens já adicionados.
-          A baixa será enviada para aprovação.
-        </div>
-
         <div class="mb-3 d-flex flex-wrap gap-2">
           <button type="button" class="btn btn-outline-primary" onclick="carregarSaldo()">
             <i class="bi bi-search"></i>
@@ -171,13 +177,13 @@
 
         <hr>
 
-        <h5 class="fw-bold text-primary mb-3">
+        <h5 class="fw-bold mb-3">
           Itens disponíveis para baixa
         </h5>
 
         <div class="table-responsive mb-4">
-          <table class="table table-bordered table-sm align-middle">
-            <thead class="table-light text-center">
+          <table class="table table-hover table-sm align-middle mb-0 app-table">
+            <thead>
               <tr>
                 <th style="width:120px;">Código</th>
                 <th>Descrição</th>
@@ -205,13 +211,13 @@
           </button>
         </div>
 
-        <h5 class="fw-bold text-success mb-3">
+        <h5 class="fw-bold mb-3">
           Resumo da Baixa
         </h5>
 
         <div class="table-responsive">
-          <table class="table table-bordered table-sm align-middle">
-            <thead class="table-light text-center">
+          <table class="table table-hover table-sm align-middle mb-0 app-table">
+            <thead>
               <tr>
                 <th style="width:110px;">Origem</th>
                 <th style="width:120px;">Código</th>
@@ -246,10 +252,6 @@
             Registrar Baixa para Aprovação
           </button>
 
-          <a href="{{ url_for('baixa_desktop.baixas_pendentes') }}" class="btn btn-outline-secondary">
-            <i class="bi bi-hourglass-split"></i>
-            Baixas Pendentes
-          </a>
         </div>
 
       </form>

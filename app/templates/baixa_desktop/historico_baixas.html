@@ -81,18 +81,20 @@
     }
   </style>
 
-  <div class="container-fluid mt-4">
+  <div class="container-fluid mt-4 baixa-page">
 
-    <div class="card shadow-sm border-0">
+    <div class="app-page-header">
+      <div>
+        <p class="app-page-kicker">Validação de Baixas</p>
+        <h1>Histórico de Baixas</h1>
+      </div>
+    </div>
 
-      <div
-        class="card-header text-white"
-        style="background:#002b55;"
-      >
-        <h5 class="mb-0 fw-semibold">
-          <i class="bi bi-clock-history me-2"></i>
-          Histórico de Baixas
-        </h5>
+    <div class="app-panel">
+      <div class="app-panel-header">
+        <div>
+          <h2>Filtros</h2>
+        </div>
       </div>
 
       <div class="card-body">
@@ -179,11 +181,10 @@
 
         <div class="tabela-container table-responsive">
 
-          <table class="table table-hover table-baixas align-middle">
+          <table class="table table-hover table-baixas align-middle mb-0 app-table">
 
             <thead>
               <tr>
-                <th>ID</th>
                 <th>Data</th>
                 <th>Técnico</th>
                 <th>Cliente</th>
@@ -201,8 +202,6 @@
 
               {% for baixa in historico %}
               <tr>
-
-                <td>{{ baixa.id }}</td>
 
                 <td>
                   {{ baixa.data_hora.strftime('%d/%m/%Y %H:%M') if baixa.data_hora else '-' }}
@@ -281,7 +280,7 @@
               {% else %}
 
               <tr>
-                <td colspan="11" class="text-center text-muted py-4">
+                <td colspan="10" class="text-center text-muted py-4">
                   Nenhuma baixa encontrada.
                 </td>
               </tr>

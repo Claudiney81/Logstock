@@ -1,11 +1,14 @@
 {% extends 'base.html' %}
 
 {% block content %}
-<div class="container mt-4">
+<div class="container-fluid mt-4 baixa-page">
 
-  <h3 class="mb-4">
-    📋 Aceite de Baixa Técnica
-  </h3>
+  <div class="app-page-header">
+    <div>
+      <p class="app-page-kicker">Validação de Baixas</p>
+      <h1>Aceite de Baixa Técnica</h1>
+    </div>
+  </div>
 
   {% for baixa in baixas %}
   <div class="card mb-4 shadow-sm">
@@ -119,9 +122,7 @@
       <form method="POST" class="modal-content">
 
         <div class="modal-header">
-          <h5 class="modal-title">
-            Motivo da Recusa — Baixa #{{ baixa.id }}
-          </h5>
+          <h5 class="modal-title">Motivo da Recusa</h5>
 
           <button
             type="button"

@@ -72,19 +72,15 @@
   }
 </style>
 
-<div class="container-fluid mt-4">
+<div class="container-fluid mt-4 baixa-page">
 
-  <div class="card shadow-sm border-0">
+  <div class="app-page-header">
+    <div>
+      <p class="app-page-kicker">Validação de Baixas</p>
+      <h1>Baixas Pendentes</h1>
+    </div>
 
-    <div
-      class="card-header text-white d-flex justify-content-between align-items-center"
-      style="background:#002b55;"
-    >
-      <h5 class="mb-0 fw-semibold">
-        <i class="bi bi-hourglass-split me-2"></i>
-        Baixas Pendentes
-      </h5>
-
+    <div class="app-page-actions">
       <span
         class="badge bg-warning text-dark px-3 py-2"
         id="pendCount"
@@ -92,16 +88,18 @@
         {{ baixas|length }}
       </span>
     </div>
+  </div>
+
+  <div class="app-panel">
 
     <div class="card-body p-0">
 
       <div class="tabela-container table-responsive">
 
-        <table class="table table-hover table-baixas mb-0">
+        <table class="table table-hover table-baixas mb-0 app-table">
 
-          <thead class="table-light">
+          <thead>
             <tr>
-              <th style="width:70px;">ID</th>
               <th style="width:150px;">Data</th>
               <th style="width:150px;">Status</th>
               <th style="width:220px;">Técnico</th>
@@ -118,8 +116,6 @@
 
             {% for baixa in baixas %}
             <tr class="{% if baixa.status == 'pendente_ajuste' %}linha-ajuste{% endif %}">
-
-              <td>{{ baixa.id }}</td>
 
               <td>
                 {{ baixa.data_hora.strftime('%d/%m/%Y %H:%M') if baixa.data_hora else '-' }}
@@ -189,7 +185,7 @@
 
             {% else %}
             <tr>
-              <td colspan="10" class="text-center text-muted py-4">
+              <td colspan="9" class="text-center text-muted py-4">
                 Nenhuma baixa pendente.
               </td>
             </tr>
