@@ -341,8 +341,14 @@
     </tr>
   </table>
 
+  {% set assinatura_operador = movimentacao.assinado_por in ['logistica', 'operador', 'almoxarifado'] %}
+
   <div class="assinatura-titulo">
-    ASSINATURA DO TÉCNICO
+    {% if assinatura_operador %}
+      ASSINATURA DO OPERADOR / LOGÍSTICA
+    {% else %}
+      ASSINATURA DO TÉCNICO
+    {% endif %}
   </div>
 
   <div class="assinatura-box">
@@ -357,7 +363,9 @@
     <div class="linha-assinatura"></div>
 
     <div class="nome-assinatura">
-      {% if movimentacao.destino_tipo == 'tecnico' %}
+      {% if assinatura_operador %}
+        Operador / Logística
+      {% elif movimentacao.destino_tipo == 'tecnico' %}
         {{ tecnicos_dict.get(movimentacao.destino_id|int, '-') }}
       {% elif movimentacao.origem_tipo == 'tecnico' %}
         {{ tecnicos_dict.get(movimentacao.origem_id|int, '-') }}
@@ -367,7 +375,11 @@
     </div>
 
     <div class="texto-assinatura">
-      Assinatura de recebimento
+      {% if assinatura_operador %}
+        Assinatura de conferência
+      {% else %}
+        Assinatura de recebimento
+      {% endif %}
     </div>
   </div>
 

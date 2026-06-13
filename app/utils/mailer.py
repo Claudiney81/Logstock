@@ -939,6 +939,25 @@ def _build_movimentacao_pdf(movimentacao) -> bytes:
         tecnico = Tecnico.query.get(movimentacao.origem_id)
 
     tecnico_nome = tecnico.nome if tecnico else "Técnico"
+    assinatura_eh_operador = (
+        (movimentacao.assinado_por or "").lower()
+        in ["logistica", "operador", "almoxarifado"]
+    )
+    assinatura_titulo = (
+        "ASSINATURA DO OPERADOR / LOGÍSTICA"
+        if assinatura_eh_operador
+        else "ASSINATURA DO TÉCNICO"
+    )
+    assinatura_nome = (
+        "Operador / Logística"
+        if assinatura_eh_operador
+        else tecnico_nome
+    )
+    assinatura_legenda = (
+        "Assinatura de conferência"
+        if assinatura_eh_operador
+        else "Assinatura de recebimento"
+    )
 
     logo_path = os.path.join(
         current_app.root_path,
@@ -1111,7 +1130,7 @@ def _build_movimentacao_pdf(movimentacao) -> bytes:
     elems.append(Spacer(1, 14))
 
     titulo_ass = Table(
-        [["ASSINATURA DO TÉCNICO"]],
+        [[assinatura_titulo]],
         colWidths=[17.5 * cm]
     )
 
@@ -1168,7 +1187,7 @@ def _build_movimentacao_pdf(movimentacao) -> bytes:
         elems.append(Spacer(1, 22))
 
     linha_nome = Table(
-        [[tecnico_nome]],
+        [[assinatura_nome]],
         colWidths=[17.5 * cm]
     )
 
@@ -1183,7 +1202,7 @@ def _build_movimentacao_pdf(movimentacao) -> bytes:
 
     elems.append(
         Paragraph(
-            '<para align="center">Assinatura de recebimento</para>',
+            f'<para align="center">{assinatura_legenda}</para>',
             styles["Normal"]
         )
     )

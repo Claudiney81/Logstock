@@ -174,7 +174,13 @@
   <div class="app-panel">
     <div class="app-panel-header">
       <div>
-        <h2>Assinatura do técnico</h2>
+        <h2>
+          {% if movimentacao.assinado_por in ['logistica', 'operador', 'almoxarifado'] %}
+            Assinatura do operador / logística
+          {% else %}
+            Assinatura do técnico
+          {% endif %}
+        </h2>
         <p>Registro capturado no momento da movimentação ou assinatura em documento físico.</p>
       </div>
     </div>
