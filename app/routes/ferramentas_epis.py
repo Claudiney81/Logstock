@@ -690,9 +690,16 @@ def exportar_saldo_tecnico():
 
         total_row = 4 + len(df)
 
-        worksheet.write(total_row, 5, "TOTAL GERAL", header_fmt)
+        worksheet.merge_range(total_row, 0, total_row, 3, "TOTAL GERAL", header_fmt)
 
         if len(df) > 0:
+            worksheet.write_formula(
+                total_row,
+                4,
+                f"=SUM(E5:E{total_row})",
+                int_fmt
+            )
+            worksheet.write_blank(total_row, 5, None, money_fmt)
             worksheet.write_formula(
                 total_row,
                 6,
@@ -700,6 +707,8 @@ def exportar_saldo_tecnico():
                 money_fmt
             )
         else:
+            worksheet.write(total_row, 4, 0, int_fmt)
+            worksheet.write_blank(total_row, 5, None, money_fmt)
             worksheet.write(total_row, 6, 0, money_fmt)
 
     output.seek(0)
