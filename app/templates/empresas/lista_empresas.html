@@ -7,16 +7,7 @@
   <div class="app-page-header">
     <div>
       <p class="app-page-kicker">Empresas / Parceiros</p>
-      <h1>{{ titulo if titulo else 'Empresas / Parceiros' }}</h1>
-      <p class="app-page-subtitle">
-        {% if tipo_lista == 'cliente' %}
-          Consulta exclusiva de clientes, contatos e ordens de serviço.
-        {% elif tipo_lista == 'fornecedor' %}
-          Consulta exclusiva de fornecedores, contatos e dados comerciais.
-        {% else %}
-          Consulta de clientes, fornecedores, contatos e ordens de serviço.
-        {% endif %}
-      </p>
+      <h1>{{ titulo if titulo else 'Empresas / Parceiros' }}</h1>      
     </div>
 
     <div class="app-page-actions">
