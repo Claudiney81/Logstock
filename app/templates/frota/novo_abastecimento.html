@@ -82,25 +82,18 @@
   }
 </style>
 
-<div class="container-fluid mt-4">
+<div class="container-fluid mt-4 frota-page">
 
   <div class="page-header">
     <h4>
       <i class="bi bi-fuel-pump me-2"></i>
       Novo Abastecimento
     </h4>
-    <small>
-      Registre abastecimentos, controle quilometragem e acompanhe custos da frota.
-    </small>
+    <small>Gestão de Frota</small>
   </div>
 
   <div class="card form-card">
     <div class="card-body p-4">
-
-      <div class="info-box mb-4">
-        <strong>Observação:</strong>
-        ao informar uma quilometragem maior que a atual do veículo, o sistema atualiza automaticamente o KM cadastrado.
-      </div>
 
       <form method="POST" action="{{ url_for('frota.novo_abastecimento') }}">
 
@@ -142,9 +135,6 @@
               min="0"
               placeholder="Ex: 15200"
             >
-            <div class="text-help">
-              Use o KM exibido no painel do veículo.
-            </div>
           </div>
 
           <div class="col-md-3">
@@ -196,13 +186,6 @@
               class="form-control"
               placeholder="Motorista/responsável"
             >
-          </div>
-
-          <div class="col-md-6">
-            <label class="form-label">Resumo do Lançamento</label>
-            <div class="summary-box">
-              O abastecimento ficará vinculado ao veículo selecionado e aparecerá no histórico da frota.
-            </div>
           </div>
 
           <div class="col-12">

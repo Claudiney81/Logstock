@@ -68,26 +68,18 @@
   }
 </style>
 
-<div class="container-fluid mt-4">
+<div class="container-fluid mt-4 frota-page">
 
   <div class="page-header">
     <h4>
       <i class="bi bi-tools me-2"></i>
       Nova Manutenção
     </h4>
-    <small>
-      Registre manutenções preventivas, corretivas, revisões e serviços realizados nos veículos.
-    </small>
+    <small>Gestão de Frota</small>
   </div>
 
   <div class="card form-card">
     <div class="card-body p-4">
-
-      <div class="info-box mb-4">
-        <strong>Orientação:</strong>
-        informe o veículo, o tipo de manutenção, a data e descreva na observação o que foi executado.
-        Exemplo: troca de óleo, filtro, pneus, freios, revisão elétrica ou serviço corretivo.
-      </div>
 
       <form method="POST" action="{{ url_for('frota.nova_manutencao') }}">
 
@@ -145,9 +137,6 @@
               min="0"
               placeholder="Ex: 15200"
             >
-            <div class="text-help">
-              Atualiza o KM do veículo se for maior que o atual.
-            </div>
           </div>
 
           <div class="col-md-3">
@@ -188,9 +177,6 @@
               class="form-control"
               placeholder="Ex: Troca de óleo 10W40, filtro de óleo, revisão dos freios, alinhamento e balanceamento..."
             ></textarea>
-            <div class="text-help">
-              Esse campo é importante porque aparece no histórico e no PDF.
-            </div>
           </div>
 
         </div>

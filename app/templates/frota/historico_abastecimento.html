@@ -114,7 +114,7 @@
   }
 </style>
 
-<div class="container-fluid mt-4">
+<div class="container-fluid mt-4 frota-page">
 
   {% set total_abastecimentos = abastecimentos|length %}
   {% set total_valor = namespace(valor=0) %}
@@ -136,9 +136,7 @@
         <i class="bi bi-fuel-pump me-2"></i>
         Histórico de Abastecimentos
       </h4>
-      <small>
-        Consulta gerencial de abastecimentos por veículo, período, custo e consumo registrado.
-      </small>
+      <small>Gestão de Frota</small>
     </div>
 
     <div class="d-flex gap-2 flex-wrap">
@@ -291,7 +289,7 @@
       {% if abastecimentos %}
 
         <div class="d-flex justify-content-between align-items-center flex-wrap gap-2 mb-3">
-          <h6 class="mb-0 fw-bold text-primary">
+          <h6 class="mb-0 fw-bold">
             <i class="bi bi-list-ul me-1"></i>
             Registros de Abastecimento
           </h6>
@@ -387,9 +385,6 @@
         <div class="empty-box">
           <i class="bi bi-info-circle fs-3 d-block mb-2"></i>
           <h6 class="fw-bold">Nenhum abastecimento encontrado</h6>
-          <p class="mb-0">
-            Não há registros para os filtros informados.
-          </p>
         </div>
 
       {% endif %}

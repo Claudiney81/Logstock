@@ -120,7 +120,7 @@
   }
 </style>
 
-<div class="container-fluid mt-4">
+<div class="container-fluid mt-4 frota-page">
 
   {% set total_documentos = documentos|length %}
   {% set total_validade = namespace(qtd=0) %}
@@ -139,9 +139,7 @@
         Documentos da Frota
       </h4>
 
-      <small>
-        Arquivos vinculados aos veículos: CNH, CRLV, IPVA, seguros, multas, fotos e comprovantes.
-      </small>
+      <small>Gestão de Frota</small>
     </div>
 
     <a
@@ -200,7 +198,7 @@
       {% if documentos %}
 
         <div class="d-flex justify-content-between align-items-center flex-wrap gap-2 mb-3">
-          <h6 class="mb-0 fw-bold text-primary">
+          <h6 class="mb-0 fw-bold">
             <i class="bi bi-list-ul me-1"></i>
             Relação de Documentos
           </h6>
@@ -318,10 +316,6 @@
         <div class="empty-box">
           <i class="bi bi-folder fs-1 d-block mb-3"></i>
           <h6 class="fw-bold">Nenhum documento cadastrado</h6>
-          <p class="mb-3">
-            Envie documentos da frota para manter o histórico organizado.
-          </p>
-
           <a
             href="{{ url_for('frota.novo_documento') }}"
             class="btn btn-elegant"

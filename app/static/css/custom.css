@@ -315,6 +315,131 @@ footer.footer {
   border: 1px solid #cfe8d6;
 }
 
+.frota-page {
+  padding-left: 24px;
+  padding-right: 24px;
+}
+
+.frota-page .page-header {
+  display: flex;
+  justify-content: space-between;
+  gap: 16px;
+  align-items: flex-start;
+  margin-bottom: 18px;
+  padding: 0;
+  background: transparent !important;
+  color: #0f172a !important;
+  border-radius: 0;
+  box-shadow: none;
+}
+
+.frota-page .page-header h4 {
+  margin: 0;
+  color: #0f172a;
+  font-size: 1.75rem;
+  font-weight: 800;
+}
+
+.frota-page .page-header small {
+  display: block;
+  margin: 0 0 4px;
+  color: #64748b !important;
+  font-size: 0;
+  font-weight: 700;
+  text-transform: uppercase;
+}
+
+.frota-page .page-header small::before {
+  content: "Gestão de Frota";
+  font-size: .78rem;
+}
+
+.frota-page .filter-card,
+.frota-page .table-card,
+.frota-page .form-card,
+.frota-page .card-custom {
+  background: #fff;
+  border: 1px solid #e2e8f0;
+  border-radius: 8px;
+  box-shadow: 0 8px 22px rgba(15, 23, 42, 0.06);
+  overflow: hidden;
+}
+
+.frota-page .app-panel-header h5 {
+  margin: 0;
+  color: #0f172a;
+  font-size: 1rem;
+  font-weight: 800;
+}
+
+.frota-page .summary-card {
+  min-height: 118px;
+  padding: 16px;
+  background: #fff;
+  border: 1px solid #e2e8f0;
+  border-radius: 8px;
+  box-shadow: 0 8px 22px rgba(15, 23, 42, 0.06);
+}
+
+.frota-page .summary-icon {
+  width: 36px;
+  height: 36px;
+  border-radius: 8px;
+}
+
+.frota-page .summary-title {
+  color: #64748b;
+  font-size: .8rem;
+  font-weight: 700;
+}
+
+.frota-page .summary-value {
+  color: #0f172a;
+  font-size: 1.5rem;
+  font-weight: 800;
+}
+
+.frota-page .section-title {
+  margin: -22px -24px 18px;
+  padding: 16px 24px;
+  border-bottom: 1px solid #e2e8f0;
+  color: #0f172a;
+  font-size: 1rem;
+  font-weight: 800;
+  text-transform: none;
+}
+
+.frota-page .table-responsive {
+  border: 1px solid #e2e8f0;
+  border-radius: 8px;
+  background: #fff;
+}
+
+.frota-page .table thead th {
+  background: #f8fafc !important;
+  color: #334155 !important;
+  border-color: #e2e8f0 !important;
+  font-size: .74rem;
+  font-weight: 800;
+  text-transform: uppercase;
+}
+
+.frota-page .table tbody td {
+  border-color: #e2e8f0;
+}
+
+.frota-page .btn-elegant {
+  background: #0b2e59;
+  color: #fff;
+  border: 1px solid #0b2e59;
+}
+
+.frota-page .btn-elegant:hover {
+  background: #14447f;
+  color: #fff;
+  border-color: #14447f;
+}
+
 .app-kpi-card {
   display: flex;
   min-height: 118px;
