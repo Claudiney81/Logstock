@@ -221,6 +221,35 @@ footer.footer {
   color: #1f2937;
 }
 
+.ferramentas-page {
+  padding-left: 24px;
+  padding-right: 24px;
+}
+
+.ferramentas-page .app-panel-header {
+  padding-left: 24px;
+  padding-right: 24px;
+}
+
+.ferramentas-page .app-panel > .card-body {
+  padding: 22px 24px;
+}
+
+.ferramentas-page .app-panel .app-panel {
+  margin-left: 0;
+  margin-right: 0;
+}
+
+.ferramentas-page .app-table thead th:first-child,
+.ferramentas-page .app-table tbody td:first-child {
+  padding-left: 18px;
+}
+
+.ferramentas-page .app-table thead th:last-child,
+.ferramentas-page .app-table tbody td:last-child {
+  padding-right: 18px;
+}
+
 .app-kpi-card {
   display: flex;
   min-height: 118px;
