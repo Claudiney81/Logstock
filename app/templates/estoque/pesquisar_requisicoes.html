@@ -20,7 +20,6 @@
 <table class="table table-striped">
   <thead class="table-dark">
     <tr>
-      <th>ID</th>
       <th>Técnico</th>
       <th>Data/Hora</th>
       <th>Status</th>
@@ -31,7 +30,6 @@
   <tbody>
     {% for req in requisicoes %}
     <tr>
-      <td>{{ req.id }}</td>
       <td>{{ req.tecnico }}</td>
       <td>{{ req.data_hora.strftime('%Y-%m-%d %H:%M') }}</td>
       <td>{{ req.status }}</td>
@@ -42,7 +40,7 @@
       </td>
     </tr>
     {% else %}
-    <tr><td colspan="6">Nenhuma requisição atendida encontrada.</td></tr>
+    <tr><td colspan="5">Nenhuma requisição atendida encontrada.</td></tr>
     {% endfor %}
   </tbody>
 </table>

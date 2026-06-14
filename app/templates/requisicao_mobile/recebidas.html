@@ -73,7 +73,6 @@
       <table class="table table-hover align-middle table-mobile-req mb-0">
         <thead class="table-light">
           <tr>
-            <th style="width:90px;">ID</th>
             <th>Técnico</th>
             <th>Tipo de Serviço</th>
             <th>Itens</th>
@@ -85,7 +84,6 @@
         <tbody>
           {% for req in requisicoes %}
           <tr>
-            <td class="fw-semibold">#{{ req.id }}</td>
             <td>{{ req.solicitante_tecnico or '-' }}</td>
             <td>{{ req.tipo_servico or '-' }}</td>
             <td>{{ req.itens|length if req.itens is defined and req.itens else 0 }}</td>
@@ -102,7 +100,7 @@
           </tr>
           {% else %}
           <tr>
-            <td colspan="6" class="text-center text-muted py-4">
+            <td colspan="5" class="text-center text-muted py-4">
               Nenhuma requisição pendente.
             </td>
           </tr>

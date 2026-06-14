@@ -17,7 +17,6 @@
   <table class="table table-bordered table-hover">
     <thead class="table-dark">
       <tr>
-        <th>ID</th>
         <th>Técnico</th>
         <th>Data/Hora</th>
         <th>Status</th>
@@ -28,7 +27,6 @@
     <tbody>
       {% for req in requisicoes %}
       <tr class="{% if req.status == 'pendente' %}table-warning{% elif req.status == 'separada' %}table-info{% elif req.status == 'atendida' %}table-success{% endif %}">
-        <td>{{ req.id }}</td>
         <td>{{ req.tecnico }}</td>
         <td>{{ req.data_hora.strftime('%d/%m/%Y %H:%M') }}</td>
         <td>{{ req.status|capitalize }}</td>
@@ -44,7 +42,7 @@
       </tr>
       {% else %}
       <tr>
-        <td colspan="6" class="text-center">Nenhuma requisição encontrada.</td>
+        <td colspan="5" class="text-center">Nenhuma requisição encontrada.</td>
       </tr>
       {% endfor %}
     </tbody>

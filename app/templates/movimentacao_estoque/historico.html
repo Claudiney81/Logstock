@@ -74,7 +74,6 @@
       <table class="table table-hover align-middle mb-0 app-table">
         <thead style="position:sticky; top:0; z-index:10;">
           <tr>
-            <th>ID</th>
             <th>Origem</th>
             <th>Destino</th>
             <th>Técnico</th>
@@ -92,8 +91,6 @@
         <tbody>
           {% for m in movimentacoes %}
           <tr>
-            <td class="fw-semibold text-nowrap">{{ m.id }}</td>
-
             <td>
               {% if m.origem_tipo == 'empresa' %}
                 <span class="app-status-pill">Empresa</span>
@@ -203,7 +200,7 @@
           </tr>
           {% else %}
           <tr>
-            <td colspan="12" class="text-center text-muted py-5">
+            <td colspan="11" class="text-center text-muted py-5">
               Nenhuma movimentação encontrada.
             </td>
           </tr>
