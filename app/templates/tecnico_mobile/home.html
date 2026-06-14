@@ -166,8 +166,9 @@
 
 <main class="container-cards">
   {% if sucesso == "requisicao_enviada" %}
-  <div class="alert alert-success shadow-sm mb-3 text-center">
+  <div class="alert alert-success alert-dismissible fade show shadow-sm mb-3 text-center flash-alert" role="alert">
     Requisição enviada com sucesso. Aguarde a análise do setor responsável.
+    <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Fechar"></button>
   </div>
   {% endif %}
 
@@ -213,6 +214,18 @@
 <footer class="footer-mobile">
   START Energia e Inovação • Powered by <strong>LogiStock</strong>
 </footer>
+
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
+<script>
+  document.addEventListener("DOMContentLoaded", function () {
+    document.querySelectorAll(".flash-alert").forEach(function(alertEl) {
+      window.setTimeout(function() {
+        if (!document.body.contains(alertEl)) return;
+        bootstrap.Alert.getOrCreateInstance(alertEl).close();
+      }, 4000);
+    });
+  });
+</script>
 
 </body>
 </html>
