@@ -9,15 +9,25 @@
   }
 
   .nf-workspace {
-    display: grid;
-    grid-template-columns: minmax(360px, 0.92fr) minmax(680px, 1.6fr);
+    display: flex;
+    flex-direction: column;
     gap: 16px;
-    align-items: start;
   }
 
   .nf-sticky-column {
-    position: sticky;
-    top: 84px;
+    display: contents;
+  }
+
+  .nf-dados-card {
+    order: 1;
+  }
+
+  .nf-add-section {
+    order: 2;
+  }
+
+  .nf-itens-card {
+    order: 3;
   }
 
   .nf-card {
@@ -189,14 +199,6 @@
   }
 
   @media (max-width: 1200px) {
-    .nf-workspace {
-      display: block;
-    }
-
-    .nf-sticky-column {
-      position: static;
-    }
-
     .nf-quick-grid,
     .nf-lote-toolbar-grid {
       display: grid;
@@ -267,7 +269,7 @@
 
       <div class="nf-workspace">
         <div class="nf-sticky-column">
-          <div class="nf-card">
+          <div class="nf-card nf-dados-card">
             <div class="nf-card-header">
               <i class="bi bi-receipt"></i>
               Dados da Nota Fiscal
@@ -391,7 +393,7 @@
             </div>
           </div>
 
-          <div class="nf-card">
+          <div class="nf-card nf-itens-card">
             <div class="nf-card-header">
               <i class="bi bi-box-seam"></i>
               Itens da Nota Fiscal
@@ -434,7 +436,7 @@
           </div>
         </div>
 
-        <div>
+        <div class="nf-add-section">
           <div class="nf-card">
             <div class="nf-card-header">
               <i class="bi bi-plus-circle"></i>
@@ -573,7 +575,7 @@
                   </div>
                 </div>
 
-                <div class="table-responsive" style="max-height:540px; overflow:auto;">
+                <div class="table-responsive" style="max-height:380px; overflow:auto;">
                   <table class="table table-bordered table-sm table-hover table-nf-lote mb-0" id="tabela-lote-nf">
                     <thead class="table-light" style="position:sticky; top:0; z-index:1;">
                       <tr>
