@@ -887,9 +887,6 @@ def portal_mobile():
 @bp_baixa_tecnico.route("/aprovador/login", methods=["GET", "POST"])
 def login_aprovador_mobile():
 
-    logout_user()
-    session.clear()
-
     if request.method == "POST":
 
         email = request.form.get("login", "").strip()
@@ -917,6 +914,8 @@ def login_aprovador_mobile():
             flash("Usuário sem permissão para aprovar baixas.", "danger")
             return redirect(url_for("baixa_tecnico.login_aprovador_mobile"))
 
+        logout_user()
+        session.clear()
         login_user(usuario)
 
         session["portal_mobile_aprovador"] = True

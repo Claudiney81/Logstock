@@ -1,7 +1,7 @@
 from datetime import datetime, timedelta
 
-from flask import Blueprint, render_template
-from flask_login import login_required
+from flask import Blueprint, flash, redirect, render_template, session, url_for
+from flask_login import current_user, login_required, logout_user
 from sqlalchemy import func, or_
 
 from app.extensions import db
@@ -24,6 +24,15 @@ def db_count(column):
 @home_bp.route('/')
 @login_required
 def home():
+    if getattr(current_user, "perfil", None) == "tecnico":
+        logout_user()
+        session.clear()
+        flash(
+            "Acesso técnico encerrado. Entre com o perfil administrativo.",
+            "info",
+        )
+        return redirect(url_for("auth.login"))
+
     hoje = datetime.utcnow()
     inicio_30_dias = hoje - timedelta(days=30)
 

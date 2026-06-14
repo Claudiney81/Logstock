@@ -15,7 +15,7 @@ from flask import (
     flash,
 )
 from flask_migrate import Migrate
-from flask_login import current_user
+from flask_login import current_user, logout_user
 from werkzeug.middleware.proxy_fix import ProxyFix
 from werkzeug.security import check_password_hash, generate_password_hash
 
@@ -342,7 +342,16 @@ def create_app():
     @app.route("/")
     def raiz():
         if current_user.is_authenticated:
-            return redirect(url_for("home.index"))
+            if getattr(current_user, "perfil", None) == "tecnico":
+                logout_user()
+                session.clear()
+                flash(
+                    "Acesso técnico encerrado. Entre com o perfil administrativo.",
+                    "info",
+                )
+                return redirect(url_for("auth.login"))
+
+            return redirect(url_for("home.home"))
         return redirect(url_for("auth.login"))
 
     @app.route("/login-tecnico", methods=["GET", "POST"])

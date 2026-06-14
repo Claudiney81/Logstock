@@ -115,7 +115,15 @@ def login_direto(token):
 def login():
 
     if current_user.is_authenticated:
-        return redirect(url_for('home.home'))
+        if getattr(current_user, "perfil", None) == "tecnico":
+            logout_user()
+            session.clear()
+            flash(
+                "Acesso técnico encerrado. Entre com o perfil administrativo.",
+                "info"
+            )
+        else:
+            return redirect(url_for('home.home'))
 
     if request.method == 'POST':
 
