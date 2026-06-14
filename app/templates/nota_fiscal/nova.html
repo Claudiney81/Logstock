@@ -385,7 +385,7 @@
                     class="form-control"
                     rows="3"
                     placeholder="Informe observações relevantes para esta entrada, se houver."
-                  ></textarea>
+                  >N/D</textarea>
                 </div>
               </div>
             </div>
@@ -1578,7 +1578,7 @@ document.addEventListener("DOMContentLoaded", function () {
       numeroNF.value = "INV0001";
       numeroNF.readOnly = true;
 
-      if (!observacao.value.trim()) {
+      if (!observacao.value.trim() || observacao.value.trim() === "N/D") {
         observacao.value = "Regularização de inventário técnico.";
       }
     } else {
@@ -1589,7 +1589,7 @@ document.addEventListener("DOMContentLoaded", function () {
       }
 
       if (observacao.value.trim() === "Regularização de inventário técnico.") {
-        observacao.value = "";
+        observacao.value = "N/D";
       }
     }
   }

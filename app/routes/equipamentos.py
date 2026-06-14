@@ -17,7 +17,7 @@ def nova_movimentacao():
         tipo_servico_id = request.form.get('tipo_servico_id')
         tipo_servico_saldo_id = 1 if tipo_servico_id else None
         local = request.form.get('local')
-        observacao = request.form.get('observacao')
+        observacao = (request.form.get('observacao') or '').strip() or 'N/D'
 
         codigos = request.form.getlist('codigo[]')
         quantidades = request.form.getlist('quantidade[]')

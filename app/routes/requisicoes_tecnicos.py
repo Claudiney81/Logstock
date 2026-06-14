@@ -314,7 +314,7 @@ def nova_requisicao_mobile():
         tipo_servico_id = request.form.get("tipo_servico", type=int)
         cliente_id = request.form.get("cliente_id", type=int)
         endereco = request.form.get("endereco", "").strip()
-        observacao = request.form.get("observacao", "").strip()
+        observacao = request.form.get("observacao", "").strip() or "N/D"
 
         tipo_servico = TipoServico.query.get(tipo_servico_id)
         cliente = Empresa.query.get(cliente_id) if cliente_id else None
@@ -415,7 +415,7 @@ def mobile_detalhes(requisicao_id):
 
         tipo_estoque = request.form.get("tipo_estoque") or requisicao.tipo_estoque or "empresa"
         cliente_id = request.form.get("cliente_id", type=int)
-        observacao_estoque = request.form.get("observacao_estoque", "").strip()
+        observacao_estoque = request.form.get("observacao_estoque", "").strip() or "N/D"
         novo_status = request.form.get("status") or "pendente"
 
         if tipo_estoque not in ["empresa", "cliente"]:

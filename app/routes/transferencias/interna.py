@@ -42,7 +42,7 @@ def nova_movimentacao():
         destino_id = request.form.get('destino_id')
 
         tipo_servico_id = request.form.get('tipo_servico_id')
-        observacao = request.form.get('observacao')
+        observacao = (request.form.get('observacao') or '').strip() or 'N/D'
 
         codigos = request.form.getlist('codigo[]')
         quantidades = request.form.getlist('quantidade[]')

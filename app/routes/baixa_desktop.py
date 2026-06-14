@@ -309,7 +309,7 @@ def nova_baixa():
         tipo_servico_id = request.form.get("tipo_servico_id", type=int)
         cliente_id = request.form.get("cliente_id", type=int)
         ordem_servico_id = request.form.get("ordem_servico_id", type=int)
-        observacao = request.form.get("observacao", "").strip()
+        observacao = request.form.get("observacao", "").strip() or "N/D"
 
         if not tecnico_id or not tipo_servico_id or not cliente_id or not ordem_servico_id:
             flash("Preencha Técnico, Tipo de Serviço, Cliente e O.S.", "warning")

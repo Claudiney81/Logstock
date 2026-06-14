@@ -284,7 +284,7 @@ def nova_movimentacao():
         if tipo_servico_saldo and tipo_servico_saldo != 1:
             tipo_servico_saldo = 1
 
-        observacao = request.form.get('observacao')
+        observacao = (request.form.get('observacao') or '').strip() or 'N/D'
 
         ordem_servico_id = request.form.get(
             'ordem_servico_id',

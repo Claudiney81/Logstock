@@ -79,7 +79,7 @@ def nova_nota():
             else None
         )
 
-        observacao = request.form.get('observacao', '').strip()
+        observacao = request.form.get('observacao', '').strip() or 'N/D'
 
         if not numero_nf:
             flash('Informe o número da nota fiscal.', 'warning')

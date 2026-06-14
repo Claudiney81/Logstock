@@ -75,6 +75,26 @@
               bootstrap.Alert.getOrCreateInstance(alertEl).close();
             }, 4000);
           });
+
+        function aplicarObservacaoPadrao(form) {
+          const campos = form
+            ? form.querySelectorAll("input[name], textarea[name]")
+            : document.querySelectorAll("input[name], textarea[name]");
+
+          campos.forEach(function(campo) {
+            const nome = (campo.getAttribute("name") || "").toLowerCase();
+            if (!nome.includes("observacao") && !nome.includes("observacoes")) return;
+            if (!campo.value.trim()) campo.value = "N/D";
+          });
+        }
+
+        aplicarObservacaoPadrao();
+
+        document.querySelectorAll("form").forEach(function(form) {
+          form.addEventListener("submit", function() {
+            aplicarObservacaoPadrao(form);
+          });
+        });
       });
     </script>
   </body>

@@ -104,8 +104,8 @@ def nova_vistoria():
                 "local_vistoria"
             ),
 
-            observacao_geral=request.form.get(
-                "observacao_geral"
+            observacao_geral=(
+                request.form.get("observacao_geral", "").strip() or "N/D"
             ),
 
             data_hora=datetime.utcnow()
@@ -173,8 +173,8 @@ def nova_vistoria():
                 f"status_{item_nome}"
             )
 
-            observacao = request.form.get(
-                f"obs_{item_nome}"
+            observacao = (
+                request.form.get(f"obs_{item_nome}", "").strip() or "N/D"
             )
 
             item = VistoriaVeiculoItem(

@@ -175,7 +175,7 @@ def transferencia():
         tipo_transferencia = request.form.get("tipo_transferencia")
         tecnico_id = request.form.get("tecnico_id")
         motivo_retorno = request.form.get("motivo_retorno")
-        observacao = request.form.get("observacao")
+        observacao = (request.form.get("observacao") or "").strip() or "N/D"
         assinatura_tecnico = request.form.get("assinatura_tecnico")
         assinatura_logistica = request.form.get("assinatura_logistica")
 

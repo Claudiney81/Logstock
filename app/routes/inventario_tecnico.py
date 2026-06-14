@@ -594,7 +594,7 @@ def devolver_estoque(id):
     if request.method == 'POST':
 
         motivo = request.form.get('motivo', '').strip()
-        observacao = request.form.get('observacao', '').strip()
+        observacao = request.form.get('observacao', '').strip() or 'N/D'
 
         if not motivo:
             flash('Informe o motivo da devolução.', 'warning')

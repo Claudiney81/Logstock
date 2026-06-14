@@ -138,7 +138,7 @@ def nova():
         # Técnico solicita apenas MATERIAL do estoque EMPRESA.
         tipo_estoque = "empresa"
         tipo_servico_id = request.form.get("tipo_servico_id", type=int)
-        observacao = request.form.get("observacao", "").strip()
+        observacao = request.form.get("observacao", "").strip() or "N/D"
 
         cliente_id = None
         endereco = ""

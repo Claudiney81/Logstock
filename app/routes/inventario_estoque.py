@@ -118,7 +118,7 @@ def finalizar_inventario():
 
     try:
 
-        observacao = request.form.get('observacao', '').strip()
+        observacao = request.form.get('observacao', '').strip() or 'N/D'
         tipo_servico_id = request.form.get('tipo_servico')
 
         tipo_estoque = request.form.get('tipo_estoque', 'empresa')

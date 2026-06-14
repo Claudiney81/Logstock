@@ -120,7 +120,7 @@ def cadastrar_veiculo():
         ).strip()
         responsavel = request.form.get("responsavel", "").strip()
         status = request.form.get("status", "ativo").strip()
-        observacao = request.form.get("observacao", "").strip()
+        observacao = request.form.get("observacao", "").strip() or "N/D"
 
         if not placa or not marca or not modelo:
             flash("Placa, marca e modelo são obrigatórios.", "warning")
@@ -254,7 +254,7 @@ def editar_veiculo(veiculo_id):
         veiculo.tipo = request.form.get("tipo", "").strip()
         veiculo.responsavel = request.form.get("responsavel", "").strip()
         veiculo.status = request.form.get("status", "ativo").strip()
-        veiculo.observacao = request.form.get("observacao", "").strip()
+        veiculo.observacao = request.form.get("observacao", "").strip() or "N/D"
 
         try:
             veiculo.ano = (
@@ -323,7 +323,7 @@ def nova_manutencao():
         valor = converter_decimal(request.form.get("valor"))
         oficina = request.form.get("oficina", "").strip()
         responsavel = request.form.get("responsavel", "").strip()
-        observacao = request.form.get("observacao", "").strip()
+        observacao = request.form.get("observacao", "").strip() or "N/D"
 
         if not veiculo_id or not tipo_manutencao or not data_manutencao:
             flash(
@@ -446,7 +446,7 @@ def novo_abastecimento():
         valor_total = converter_decimal(request.form.get("valor_total"))
         posto = request.form.get("posto", "").strip()
         responsavel = request.form.get("responsavel", "").strip()
-        observacao = request.form.get("observacao", "").strip()
+        observacao = request.form.get("observacao", "").strip() or "N/D"
 
         if not veiculo_id or not data_abastecimento:
             flash(
@@ -556,7 +556,7 @@ def novo_documento():
         descricao = request.form.get("descricao", "").strip()
         data_emissao = converter_data(request.form.get("data_emissao"))
         data_validade = converter_data(request.form.get("data_validade"))
-        observacao = request.form.get("observacao", "").strip()
+        observacao = request.form.get("observacao", "").strip() or "N/D"
 
         arquivos = request.files.getlist("arquivos")
 

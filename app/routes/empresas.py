@@ -252,7 +252,7 @@ def cadastrar_empresa():
             contato=request.form.get('contato'),
             email=request.form.get('email'),
             tipo_empresa=tipo_empresa,
-            observacoes=request.form.get('observacoes')
+            observacoes=request.form.get('observacoes', '').strip() or 'N/D'
         )
 
         try:
@@ -301,7 +301,7 @@ def cadastrar_cliente():
             contato=request.form.get('contato'),
             email=request.form.get('email'),
             tipo_empresa='cliente',
-            observacoes=request.form.get('observacoes')
+            observacoes=request.form.get('observacoes', '').strip() or 'N/D'
         )
 
         try:
@@ -355,7 +355,7 @@ def nova_os(cliente_id):
             tipo_servico_id=request.form.get('tipo_servico_id') or None,
             endereco=request.form.get('endereco') or cliente.endereco,
             responsavel=request.form.get('responsavel'),
-            observacao=request.form.get('observacao'),
+            observacao=request.form.get('observacao', '').strip() or 'N/D',
             status='aberta'
         )
 
@@ -494,7 +494,7 @@ def cadastrar_fornecedor():
             contato=request.form.get('contato'),
             email=request.form.get('email'),
             tipo_empresa='fornecedor',
-            observacoes=request.form.get('observacoes')
+            observacoes=request.form.get('observacoes', '').strip() or 'N/D'
         )
 
         try:
@@ -548,7 +548,7 @@ def editar_empresa(id):
         if tipo_form:
             empresa.tipo_empresa = tipo_form
 
-        empresa.observacoes = request.form.get('observacoes')
+        empresa.observacoes = request.form.get('observacoes', '').strip() or 'N/D'
 
         try:
             db.session.commit()
@@ -694,8 +694,9 @@ def editar_os(os_id):
         ) or 'aberta'
 
         os.observacao = request.form.get(
-            'observacao'
-        )
+            'observacao',
+            ''
+        ).strip() or 'N/D'
 
         db.session.commit()
 

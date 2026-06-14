@@ -384,7 +384,7 @@ def registrar():
     ordem_servico_id = request.form.get("ordem_servico_id", type=int)
 
     endereco = request.form.get("endereco", "").strip()
-    observacao = request.form.get("observacao", "").strip()
+    observacao = request.form.get("observacao", "").strip() or "N/D"
     ordem_servico = request.form.get("ordem_servico", "").strip()
 
     tecnico = Tecnico.query.get(tecnico_id)
