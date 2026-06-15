@@ -218,8 +218,9 @@
           <tr>
             <td>
               <div class="fw-semibold">{{ empresa.razao_social }}</div>
-              {% if empresa.observacoes %}
-                <small class="text-muted">{{ empresa.observacoes }}</small>
+              {% set observacoes = empresa.observacoes|trim if empresa.observacoes else '' %}
+              {% if observacoes and observacoes|lower != 'n/d' %}
+                <small class="text-muted">{{ observacoes }}</small>
               {% endif %}
             </td>
 

@@ -33,6 +33,15 @@ def _empresas_query(tipo_lista, termo):
     return query.order_by(Empresa.razao_social.asc())
 
 
+def _normalizar_observacoes_cadastro(valor):
+    observacoes = (valor or '').strip()
+
+    if observacoes.lower() == 'n/d':
+        return ''
+
+    return observacoes
+
+
 def _contadores_empresas():
     total = db.session.query(func.count(Empresa.id)).scalar() or 0
     clientes = (
@@ -185,7 +194,9 @@ def exportar_empresas_excel():
             'Email': empresa.email or '-',
             'O.S Total': len(ordens),
             'O.S Abertas': len(ordens_abertas),
-            'Observações': empresa.observacoes or '-'
+            'Observações': _normalizar_observacoes_cadastro(
+                empresa.observacoes
+            ) or '-'
         })
 
     output = BytesIO()
@@ -252,7 +263,9 @@ def cadastrar_empresa():
             contato=request.form.get('contato'),
             email=request.form.get('email'),
             tipo_empresa=tipo_empresa,
-            observacoes=request.form.get('observacoes', '').strip() or 'N/D'
+            observacoes=_normalizar_observacoes_cadastro(
+                request.form.get('observacoes')
+            )
         )
 
         try:
@@ -301,7 +314,9 @@ def cadastrar_cliente():
             contato=request.form.get('contato'),
             email=request.form.get('email'),
             tipo_empresa='cliente',
-            observacoes=request.form.get('observacoes', '').strip() or 'N/D'
+            observacoes=_normalizar_observacoes_cadastro(
+                request.form.get('observacoes')
+            )
         )
 
         try:
@@ -494,7 +509,9 @@ def cadastrar_fornecedor():
             contato=request.form.get('contato'),
             email=request.form.get('email'),
             tipo_empresa='fornecedor',
-            observacoes=request.form.get('observacoes', '').strip() or 'N/D'
+            observacoes=_normalizar_observacoes_cadastro(
+                request.form.get('observacoes')
+            )
         )
 
         try:
@@ -548,7 +565,9 @@ def editar_empresa(id):
         if tipo_form:
             empresa.tipo_empresa = tipo_form
 
-        empresa.observacoes = request.form.get('observacoes', '').strip() or 'N/D'
+        empresa.observacoes = _normalizar_observacoes_cadastro(
+            request.form.get('observacoes')
+        )
 
         try:
             db.session.commit()

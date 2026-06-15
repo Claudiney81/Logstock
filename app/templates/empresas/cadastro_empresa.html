@@ -163,7 +163,7 @@
                   name="observacoes"
                   class="form-control shadow-sm"
                   rows="4"
-                >{{ empresa.observacoes if empresa else 'N/D' }}</textarea>
+                >{% if empresa and empresa.observacoes and empresa.observacoes|trim|lower != 'n/d' %}{{ empresa.observacoes }}{% endif %}</textarea>
 
               </div>
 
