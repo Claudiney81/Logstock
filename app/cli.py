@@ -247,46 +247,57 @@ PRESERVED_TABLES = {
 }
 
 
-OPERATIONAL_TABLE_KEYWORDS = (
-    "abastecimento",
-    "baixa",
-    "documento",
-    "equipamento",
-    "estoque",
-    "historico",
-    "inventario",
-    "kit",
-    "manutencao",
-    "movimentacao",
-    "nota",
-    "ordem",
-    "requisicao",
-    "saldo",
-    "transferencia",
-    "veiculo",
-    "vistoria",
-)
-
-
 def _existing_tables():
     return set(inspect(db.engine).get_table_names())
 
 
 def _is_operational_table(table_name):
-    if table_name in PRESERVED_TABLES:
-        return False
-
-    table_normalized = table_name.lower()
-    return any(
-        keyword in table_normalized
-        for keyword in OPERATIONAL_TABLE_KEYWORDS
-    )
+    return table_name not in PRESERVED_TABLES
 
 
-def _table_delete_priority(table_name):
+def _table_delete_priority(table_name, dependency_depths=None):
     child_markers = ("_itens", "_item", "_fotos", "_foto", "_documentos")
     child_score = any(marker in table_name for marker in child_markers)
-    return (0 if child_score else 1, -len(table_name), table_name)
+    dependency_depth = (dependency_depths or {}).get(table_name, 0)
+    return (-dependency_depth, 0 if child_score else 1, -len(table_name), table_name)
+
+
+def _dependency_depths(table_names):
+    tables = set(table_names)
+    inspector = inspect(db.engine)
+    dependencies = {}
+
+    for table_name in tables:
+        dependencies[table_name] = {
+            fk["referred_table"]
+            for fk in inspector.get_foreign_keys(table_name)
+            if fk.get("referred_table") in tables
+        }
+
+    cache = {}
+
+    def depth(table_name, visiting=None):
+        if table_name in cache:
+            return cache[table_name]
+
+        visiting = visiting or set()
+        if table_name in visiting:
+            return 0
+
+        visiting.add(table_name)
+        value = 0
+
+        for parent_table in dependencies.get(table_name, set()):
+            value = max(value, 1 + depth(parent_table, visiting))
+
+        visiting.remove(table_name)
+        cache[table_name] = value
+        return value
+
+    return {
+        table_name: depth(table_name)
+        for table_name in tables
+    }
 
 
 def _operational_tables_to_clean():
@@ -297,14 +308,20 @@ def _operational_tables_to_clean():
         if table_name in tables
     ]
 
+    dynamic_table_names = {
+        table_name
+        for table_name in tables
+        if _is_operational_table(table_name)
+        and table_name not in ordered_tables
+    }
+
+    dependency_depths = _dependency_depths(dynamic_table_names)
     dynamic_tables = sorted(
-        {
-            table_name
-            for table_name in tables
-            if _is_operational_table(table_name)
-            and table_name not in ordered_tables
-        },
-        key=_table_delete_priority,
+        dynamic_table_names,
+        key=lambda table_name: _table_delete_priority(
+            table_name,
+            dependency_depths,
+        ),
     )
 
     return ordered_tables + dynamic_tables
