@@ -236,8 +236,78 @@ OPERATIONAL_TABLES = [
 ]
 
 
+PRESERVED_TABLES = {
+    "alembic_version",
+    "empresas",
+    "itens",
+    "tecnicos",
+    "tipo_servico",
+    "token_acesso_tecnico",
+    "usuarios",
+}
+
+
+OPERATIONAL_TABLE_KEYWORDS = (
+    "abastecimento",
+    "baixa",
+    "documento",
+    "equipamento",
+    "estoque",
+    "historico",
+    "inventario",
+    "kit",
+    "manutencao",
+    "movimentacao",
+    "nota",
+    "ordem",
+    "requisicao",
+    "saldo",
+    "transferencia",
+    "veiculo",
+    "vistoria",
+)
+
+
 def _existing_tables():
     return set(inspect(db.engine).get_table_names())
+
+
+def _is_operational_table(table_name):
+    if table_name in PRESERVED_TABLES:
+        return False
+
+    table_normalized = table_name.lower()
+    return any(
+        keyword in table_normalized
+        for keyword in OPERATIONAL_TABLE_KEYWORDS
+    )
+
+
+def _table_delete_priority(table_name):
+    child_markers = ("_itens", "_item", "_fotos", "_foto", "_documentos")
+    child_score = any(marker in table_name for marker in child_markers)
+    return (0 if child_score else 1, -len(table_name), table_name)
+
+
+def _operational_tables_to_clean():
+    tables = _existing_tables()
+    ordered_tables = [
+        table_name
+        for table_name in OPERATIONAL_TABLES
+        if table_name in tables
+    ]
+
+    dynamic_tables = sorted(
+        {
+            table_name
+            for table_name in tables
+            if _is_operational_table(table_name)
+            and table_name not in ordered_tables
+        },
+        key=_table_delete_priority,
+    )
+
+    return ordered_tables + dynamic_tables
 
 
 def _table_count(table_name):
@@ -264,13 +334,12 @@ def _count_empresas_por_tipo(tipo_empresa):
 
 
 def _auditoria_preparar_empresa():
-    tables = _existing_tables()
     counts = {}
 
-    for table_name in OPERATIONAL_TABLES:
-        if table_name in tables:
-            counts[table_name] = _table_count(table_name)
+    for table_name in _operational_tables_to_clean():
+        counts[table_name] = _table_count(table_name)
 
+    tables = _existing_tables()
     for table_name in ["usuarios", "tecnicos", "empresas", "itens", "tipo_servico"]:
         if table_name in tables:
             counts[table_name] = _table_count(table_name)
@@ -309,12 +378,7 @@ def preparar_empresa(confirm):
     deleted_counts = {}
 
     try:
-        tables = _existing_tables()
-
-        for table_name in OPERATIONAL_TABLES:
-            if table_name not in tables:
-                continue
-
+        for table_name in _operational_tables_to_clean():
             count = _table_count(table_name)
             if count:
                 _delete_table(table_name)
