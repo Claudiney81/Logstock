@@ -32,6 +32,7 @@ from app.cli import (
     editar_usuario,
     listar_usuarios,
     deletar_usuario,
+    preparar_empresa,
 )
 
 
@@ -75,6 +76,9 @@ def _ensure_runtime_schema_columns():
             "tipo_estoque": "VARCHAR(20)",
             "cliente_id": "INTEGER",
             "tipo_servico_id": "INTEGER",
+        },
+        "movimentacoes_estoque_itens": {
+            "condicao_material": "VARCHAR(30)",
         },
     }
 
@@ -321,6 +325,7 @@ def create_app():
     app.cli.add_command(editar_usuario)
     app.cli.add_command(listar_usuarios)
     app.cli.add_command(deletar_usuario)
+    app.cli.add_command(preparar_empresa)
 
     @app.context_processor
     def inject_requisicoes_tecnicos_pendentes():

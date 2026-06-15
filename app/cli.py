@@ -1,7 +1,48 @@
 import click
+import os
+import shutil
+from datetime import datetime
 from flask.cli import with_appcontext
+from sqlalchemy import text
 from app.extensions import db
-from app.models import Item, Empresa, TipoServico, Usuario
+from app.models import (
+    AbastecimentoVeiculo,
+    BaixaTecnica,
+    BaixaTecnicaFoto,
+    BaixaTecnicaItem,
+    DocumentoVeiculo,
+    Empresa,
+    EquipamentoTecnico,
+    Estoque,
+    HistoricoEquipamento,
+    HistoricoEquipamentoItem,
+    InventarioEstoque,
+    InventarioEstoqueItem,
+    InventarioTecnico,
+    InventarioTecnicoItem,
+    Item,
+    KitInicial,
+    KitInicialItem,
+    ManutencaoVeiculo,
+    MovimentacaoEstoque,
+    MovimentacaoEstoqueItem,
+    NotaFiscalEntrada,
+    NotaFiscalItem,
+    OrdemServico,
+    RequisicaoTecnico,
+    RequisicaoTecnicoItem,
+    SaldoTecnico,
+    Tecnico,
+    TipoServico,
+    TokenAcessoTecnico,
+    TransferenciaExterna,
+    TransferenciaExternaItem,
+    Usuario,
+    Veiculo,
+    VistoriaVeiculo,
+    VistoriaVeiculoFoto,
+    VistoriaVeiculoItem,
+)
 from werkzeug.security import generate_password_hash
 
 @click.command("init-db")
@@ -114,3 +155,176 @@ def deletar_usuario(email):
     db.session.delete(usuario)
     db.session.commit()
     click.echo(f"Usuário '{email}' excluído.")
+
+
+def _backup_sqlite_database():
+    database_path = db.engine.url.database
+
+    if not database_path:
+        return None
+
+    if not os.path.isabs(database_path):
+        database_path = os.path.abspath(database_path)
+
+    if not os.path.exists(database_path):
+        return None
+
+    timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
+    backup_dir = os.path.join(
+        os.getcwd(),
+        "backups",
+        f"producao_preparar_empresa_{timestamp}",
+    )
+    os.makedirs(backup_dir, exist_ok=True)
+
+    backup_path = os.path.join(
+        backup_dir,
+        os.path.basename(database_path),
+    )
+    shutil.copy2(database_path, backup_path)
+
+    return backup_path
+
+
+def _is_tecnico_preservado(tecnico):
+    texto = " ".join(
+        [
+            tecnico.nome or "",
+            tecnico.email or "",
+            tecnico.funcao or "",
+            tecnico.matricula or "",
+        ]
+    ).lower()
+
+    return "fernando" in texto or "instalador" in texto
+
+
+def _table_count(table_name):
+    return db.session.execute(
+        text(f'SELECT COUNT(*) FROM "{table_name}"')
+    ).scalar()
+
+
+def _delete_table(table_name):
+    db.session.execute(text(f'DELETE FROM "{table_name}"'))
+
+
+@click.command("preparar-empresa")
+@click.option(
+    "--confirm",
+    default="",
+    help="Use --confirm PREPARAR_EMPRESA para executar a limpeza.",
+)
+@with_appcontext
+def preparar_empresa(confirm):
+    if confirm != "PREPARAR_EMPRESA":
+        click.echo("Nada executado.")
+        click.echo("Para limpar, rode: flask preparar-empresa --confirm PREPARAR_EMPRESA")
+        return
+
+    backup_path = _backup_sqlite_database()
+
+    delete_order = [
+        VistoriaVeiculoFoto,
+        VistoriaVeiculoItem,
+        VistoriaVeiculo,
+        DocumentoVeiculo,
+        AbastecimentoVeiculo,
+        ManutencaoVeiculo,
+        Veiculo,
+        TransferenciaExternaItem,
+        TransferenciaExterna,
+        KitInicialItem,
+        KitInicial,
+        InventarioEstoqueItem,
+        InventarioEstoque,
+        InventarioTecnicoItem,
+        InventarioTecnico,
+        NotaFiscalItem,
+        NotaFiscalEntrada,
+        RequisicaoTecnicoItem,
+        RequisicaoTecnico,
+        BaixaTecnicaFoto,
+        BaixaTecnicaItem,
+        BaixaTecnica,
+        MovimentacaoEstoqueItem,
+        MovimentacaoEstoque,
+        HistoricoEquipamentoItem,
+        HistoricoEquipamento,
+        EquipamentoTecnico,
+        SaldoTecnico,
+        Estoque,
+        OrdemServico,
+    ]
+
+    deleted_counts = {}
+
+    try:
+        for model in delete_order:
+            table_name = model.__tablename__
+            count = _table_count(table_name)
+            if count:
+                _delete_table(table_name)
+            deleted_counts[table_name] = count
+
+        clientes = Empresa.query.filter(
+            db.func.lower(Empresa.tipo_empresa) == "cliente"
+        ).all()
+
+        deleted_counts["empresas_cliente"] = len(clientes)
+
+        for cliente in clientes:
+            db.session.delete(cliente)
+
+        tecnicos = Tecnico.query.all()
+        tecnicos_preservados = [
+            tecnico for tecnico in tecnicos if _is_tecnico_preservado(tecnico)
+        ]
+
+        preserve_tecnico_ids = {
+            tecnico.id for tecnico in tecnicos_preservados
+        }
+
+        usuarios_removidos = 0
+
+        for usuario in Usuario.query.all():
+            perfil = (usuario.perfil or "").lower()
+
+            if perfil == "admin":
+                continue
+
+            if perfil == "tecnico" and usuario.tecnico_id in preserve_tecnico_ids:
+                continue
+
+            db.session.delete(usuario)
+            usuarios_removidos += 1
+
+        tecnicos_removidos = 0
+
+        for tecnico in tecnicos:
+            if tecnico.id in preserve_tecnico_ids:
+                continue
+
+            TokenAcessoTecnico.query.filter_by(tecnico_id=tecnico.id).delete(
+                synchronize_session=False
+            )
+            db.session.delete(tecnico)
+            tecnicos_removidos += 1
+
+        db.session.commit()
+
+    except Exception:
+        db.session.rollback()
+        raise
+
+    click.echo("Limpeza concluída.")
+
+    if backup_path:
+        click.echo(f"Backup criado em: {backup_path}")
+
+    click.echo("Preservado: fornecedores, itens, tipos de serviço, admins e Fernando/Instalador.")
+    click.echo(f"Técnicos removidos: {tecnicos_removidos}")
+    click.echo(f"Usuários removidos: {usuarios_removidos}")
+
+    for table_name, count in deleted_counts.items():
+        click.echo(f"{table_name}: {count}")
