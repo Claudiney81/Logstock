@@ -94,6 +94,9 @@ def enviar_com_token_usuario(caminho_banco):
 
 
 def enviar_backup(caminho_banco):
+    if os.path.exists(ARQUIVO_TOKEN):
+        return enviar_com_token_usuario(caminho_banco)
+
     if (
         os.getenv("GOOGLE_DRIVE_CREDENTIALS_FILE")
         and os.getenv("GOOGLE_DRIVE_FOLDER_ID")
@@ -103,9 +106,6 @@ def enviar_backup(caminho_banco):
             "id": arquivo_id,
             "name": os.path.basename(caminho_banco)
         }
-
-    if os.path.exists(ARQUIVO_TOKEN):
-        return enviar_com_token_usuario(caminho_banco)
 
     raise RuntimeError(
         "Backup Google Drive não configurado. Configure "
