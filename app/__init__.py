@@ -66,9 +66,15 @@ def _ensure_runtime_schema_columns():
     required_columns = {
         "estoque": {
             "valor_unitario": "FLOAT",
+            "condicao_material": "VARCHAR(30)",
         },
         "saldo_tecnico": {
             "valor_unitario": "FLOAT",
+        },
+        "inventario_estoque": {
+            "tipo_estoque": "VARCHAR(20)",
+            "cliente_id": "INTEGER",
+            "tipo_servico_id": "INTEGER",
         },
     }
 
