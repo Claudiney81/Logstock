@@ -33,6 +33,7 @@ from app.cli import (
     listar_usuarios,
     deletar_usuario,
     preparar_empresa,
+    auditar_preparar_empresa,
 )
 
 
@@ -326,6 +327,7 @@ def create_app():
     app.cli.add_command(listar_usuarios)
     app.cli.add_command(deletar_usuario)
     app.cli.add_command(preparar_empresa)
+    app.cli.add_command(auditar_preparar_empresa)
 
     @app.context_processor
     def inject_requisicoes_tecnicos_pendentes():

@@ -3,7 +3,7 @@ import os
 import shutil
 from datetime import datetime
 from flask.cli import with_appcontext
-from sqlalchemy import text
+from sqlalchemy import inspect, text
 from app.extensions import db
 from app.models import (
     AbastecimentoVeiculo,
@@ -199,6 +199,47 @@ def _is_tecnico_preservado(tecnico):
     return "fernando" in texto or "instalador" in texto
 
 
+OPERATIONAL_TABLES = [
+    "vistorias_veiculos_fotos",
+    "vistorias_veiculos_itens",
+    "vistorias_veiculos",
+    "documentos_veiculos",
+    "abastecimentos_veiculos",
+    "manutencoes_veiculos",
+    "veiculos",
+    "transferencias_internas_itens",
+    "transferencias_internas",
+    "transferencias_externas_itens",
+    "transferencias_externas",
+    "kits_iniciais_itens",
+    "kits_iniciais",
+    "inventario_estoque_item",
+    "inventario_estoque",
+    "inventarios_tecnicos_itens",
+    "inventarios_tecnicos",
+    "notas_fiscais_itens",
+    "notas_fiscais_entrada",
+    "requisicoes_tecnicos_itens",
+    "requisicoes_tecnicos",
+    "baixas_tecnicas_fotos",
+    "baixas_tecnicas_itens",
+    "baixas_tecnicas",
+    "movimentacoes_estoque_itens",
+    "movimentacoes_estoque",
+    "historico_equipamento_itens",
+    "historico_equipamentos",
+    "equipamentos_tecnicos",
+    "saldo_tecnico",
+    "estoque",
+    "ordens_servico",
+    "cliente",
+]
+
+
+def _existing_tables():
+    return set(inspect(db.engine).get_table_names())
+
+
 def _table_count(table_name):
     return db.session.execute(
         text(f'SELECT COUNT(*) FROM "{table_name}"')
@@ -207,6 +248,47 @@ def _table_count(table_name):
 
 def _delete_table(table_name):
     db.session.execute(text(f'DELETE FROM "{table_name}"'))
+
+
+def _count_empresas_por_tipo(tipo_empresa):
+    if "empresas" not in _existing_tables():
+        return 0
+
+    return db.session.execute(
+        text(
+            "SELECT COUNT(*) FROM empresas "
+            "WHERE lower(coalesce(tipo_empresa, '')) = :tipo_empresa"
+        ),
+        {"tipo_empresa": tipo_empresa},
+    ).scalar()
+
+
+def _auditoria_preparar_empresa():
+    tables = _existing_tables()
+    counts = {}
+
+    for table_name in OPERATIONAL_TABLES:
+        if table_name in tables:
+            counts[table_name] = _table_count(table_name)
+
+    for table_name in ["usuarios", "tecnicos", "empresas", "itens", "tipo_servico"]:
+        if table_name in tables:
+            counts[table_name] = _table_count(table_name)
+
+    if "empresas" in tables:
+        counts["empresas_cliente"] = _count_empresas_por_tipo("cliente")
+        counts["empresas_fornecedor"] = _count_empresas_por_tipo("fornecedor")
+
+    return counts
+
+
+@click.command("auditar-preparar-empresa")
+@with_appcontext
+def auditar_preparar_empresa():
+    click.echo("Auditoria do banco para preparar uso da empresa:")
+
+    for table_name, count in _auditoria_preparar_empresa().items():
+        click.echo(f"{table_name}: {count}")
 
 
 @click.command("preparar-empresa")
@@ -223,45 +305,16 @@ def preparar_empresa(confirm):
         return
 
     backup_path = _backup_sqlite_database()
-
-    delete_order = [
-        VistoriaVeiculoFoto,
-        VistoriaVeiculoItem,
-        VistoriaVeiculo,
-        DocumentoVeiculo,
-        AbastecimentoVeiculo,
-        ManutencaoVeiculo,
-        Veiculo,
-        TransferenciaExternaItem,
-        TransferenciaExterna,
-        KitInicialItem,
-        KitInicial,
-        InventarioEstoqueItem,
-        InventarioEstoque,
-        InventarioTecnicoItem,
-        InventarioTecnico,
-        NotaFiscalItem,
-        NotaFiscalEntrada,
-        RequisicaoTecnicoItem,
-        RequisicaoTecnico,
-        BaixaTecnicaFoto,
-        BaixaTecnicaItem,
-        BaixaTecnica,
-        MovimentacaoEstoqueItem,
-        MovimentacaoEstoque,
-        HistoricoEquipamentoItem,
-        HistoricoEquipamento,
-        EquipamentoTecnico,
-        SaldoTecnico,
-        Estoque,
-        OrdemServico,
-    ]
-
+    before_counts = _auditoria_preparar_empresa()
     deleted_counts = {}
 
     try:
-        for model in delete_order:
-            table_name = model.__tablename__
+        tables = _existing_tables()
+
+        for table_name in OPERATIONAL_TABLES:
+            if table_name not in tables:
+                continue
+
             count = _table_count(table_name)
             if count:
                 _delete_table(table_name)
@@ -317,6 +370,8 @@ def preparar_empresa(confirm):
         db.session.rollback()
         raise
 
+    after_counts = _auditoria_preparar_empresa()
+
     click.echo("Limpeza concluída.")
 
     if backup_path:
@@ -326,5 +381,14 @@ def preparar_empresa(confirm):
     click.echo(f"Técnicos removidos: {tecnicos_removidos}")
     click.echo(f"Usuários removidos: {usuarios_removidos}")
 
+    click.echo("Antes:")
+    for table_name, count in before_counts.items():
+        click.echo(f"{table_name}: {count}")
+
+    click.echo("Depois:")
+    for table_name, count in after_counts.items():
+        click.echo(f"{table_name}: {count}")
+
+    click.echo("Removidos:")
     for table_name, count in deleted_counts.items():
         click.echo(f"{table_name}: {count}")
