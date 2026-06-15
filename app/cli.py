@@ -5,6 +5,7 @@ from datetime import datetime
 from flask.cli import with_appcontext
 from sqlalchemy import inspect, text
 from app.extensions import db
+from app.utils.backup_drive import enviar_backup_google_drive
 from app.models import (
     AbastecimentoVeiculo,
     BaixaTecnica,
@@ -184,6 +185,61 @@ def _backup_sqlite_database():
     shutil.copy2(database_path, backup_path)
 
     return backup_path
+
+
+def _database_path():
+    database_path = db.engine.url.database
+
+    if not database_path:
+        return None
+
+    return os.path.abspath(database_path)
+
+
+def _backup_drive_status():
+    database_path = _database_path()
+    credentials_file = os.getenv("GOOGLE_DRIVE_CREDENTIALS_FILE")
+    folder_id = os.getenv("GOOGLE_DRIVE_FOLDER_ID")
+
+    return {
+        "database_path": database_path,
+        "database_exists": bool(database_path and os.path.exists(database_path)),
+        "credentials_file": credentials_file,
+        "credentials_exists": bool(
+            credentials_file and os.path.exists(credentials_file)
+        ),
+        "folder_id_configured": bool(folder_id),
+    }
+
+
+@click.command("auditar-backup-drive")
+@with_appcontext
+def auditar_backup_drive():
+    status = _backup_drive_status()
+
+    click.echo("Auditoria do backup Google Drive:")
+    click.echo(f"Banco: {status['database_path']}")
+    click.echo(f"Banco existe: {status['database_exists']}")
+    click.echo(f"Credenciais: {status['credentials_file']}")
+    click.echo(f"Credenciais existem: {status['credentials_exists']}")
+    click.echo(f"Pasta do Drive configurada: {status['folder_id_configured']}")
+
+
+@click.command("backup-drive")
+@with_appcontext
+def backup_drive():
+    status = _backup_drive_status()
+
+    if not status["database_exists"]:
+        raise click.ClickException(
+            f"Banco não encontrado: {status['database_path']}"
+        )
+
+    arquivo_id = enviar_backup_google_drive(status["database_path"])
+
+    click.echo("Backup enviado para o Google Drive.")
+    click.echo(f"Banco: {status['database_path']}")
+    click.echo(f"Arquivo ID: {arquivo_id}")
 
 
 def _is_tecnico_preservado(tecnico):

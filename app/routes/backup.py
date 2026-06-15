@@ -3,6 +3,7 @@ import os
 from flask import Blueprint, jsonify, current_app
 from flask_login import login_required, current_user
 
+from app.extensions import db
 from app.utils.backup_drive import enviar_backup_google_drive
 
 bp_backup = Blueprint(
@@ -13,6 +14,14 @@ bp_backup = Blueprint(
 
 
 def localizar_banco_sqlite():
+    caminho_configurado = db.engine.url.database
+
+    if caminho_configurado:
+        caminho_configurado = os.path.abspath(caminho_configurado)
+
+        if os.path.exists(caminho_configurado):
+            return caminho_configurado
+
     candidatos = [
         os.path.join(os.getcwd(), "logistock.db"),
         os.path.join(os.getcwd(), "instance", "logistock.db"),
