@@ -1558,10 +1558,20 @@ document.addEventListener("DOMContentLoaded", function () {
 
   if (!tipoDocumento || !numeroNF || !observacao) return;
 
+  async function carregarProximoInventario() {
+    try {
+      const response = await fetch("{{ url_for('nota_fiscal.api_proximo_inventario') }}");
+      const data = await response.json();
+      numeroNF.value = data.numero_nf || "INV0001";
+    } catch (error) {
+      numeroNF.value = "INV0001";
+    }
+  }
+
   function atualizarOrigem() {
     if (tipoDocumento.value === "inventario") {
-      numeroNF.value = "INV0001";
       numeroNF.readOnly = true;
+      carregarProximoInventario();
 
       if (!observacao.value.trim() || observacao.value.trim() === "N/D") {
         observacao.value = "Regularização de inventário técnico.";
@@ -1569,7 +1579,7 @@ document.addEventListener("DOMContentLoaded", function () {
     } else {
       numeroNF.readOnly = false;
 
-      if (numeroNF.value === "INV0001") {
+      if (/^INV\d+$/i.test(numeroNF.value.trim())) {
         numeroNF.value = "";
       }
 

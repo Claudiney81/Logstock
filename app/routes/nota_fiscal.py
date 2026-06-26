@@ -13,7 +13,7 @@ from app.models import (
 
 from flask_login import current_user
 from datetime import datetime
-import os, pdfkit
+import os, pdfkit, re
 
 bp = Blueprint('nota_fiscal', __name__, url_prefix='/nota')
 
@@ -45,6 +45,26 @@ def parse_valor_br(valor_str):
     if ',' in valor_str:
         valor_str = valor_str.replace('.', '').replace(',', '.')
     return float(valor_str)
+
+
+def proximo_numero_inventario():
+    """Retorna o próximo número livre no padrão INV0001, INV0002..."""
+    maior_numero = 0
+
+    notas_inventario = (
+        NotaFiscalEntrada.query
+        .filter(NotaFiscalEntrada.numero_nf.ilike('INV%'))
+        .with_entities(NotaFiscalEntrada.numero_nf)
+        .all()
+    )
+
+    for (numero_nf,) in notas_inventario:
+        match = re.fullmatch(r'INV(\d+)', (numero_nf or '').strip().upper())
+
+        if match:
+            maior_numero = max(maior_numero, int(match.group(1)))
+
+    return f'INV{maior_numero + 1:04d}'
 
 # ------------------------
 # Nova Nota Fiscal
@@ -105,6 +125,9 @@ def nova_nota():
         else:
             cliente_id = None
             ordem_servico_id = None
+
+        if numero_nf.upper().startswith('INV') and NotaFiscalEntrada.query.filter_by(numero_nf=numero_nf).first():
+            numero_nf = proximo_numero_inventario()
 
         if NotaFiscalEntrada.query.filter_by(numero_nf=numero_nf).first():
             flash('Já existe uma nota fiscal com este número.', 'danger')
@@ -1251,6 +1274,13 @@ def api_buscar_item(codigo):
             'valor': item.valor
         })
     return jsonify({'success': False})
+
+
+@bp.route('/api/proximo-inventario')
+def api_proximo_inventario():
+    return jsonify({
+        'numero_nf': proximo_numero_inventario()
+    })
 
 # ------------------------
 # API: Buscar responsável do projeto
