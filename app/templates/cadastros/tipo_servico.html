@@ -100,6 +100,7 @@
               <tr>
                 <th>Nome</th>
                 <th>Tipo de Estoque</th>
+                {% if pode_gerenciar %}<th class="text-end">Ações</th>{% endif %}
               </tr>
             </thead>
             <tbody>
@@ -114,11 +115,34 @@
                       <span class="app-status-pill">Empresa</span>
                     {% endif %}
                   </td>
+                  {% if pode_gerenciar %}
+                  <td class="text-end text-nowrap">
+                    <a
+                      href="{{ url_for('tipo_servico.editar_tipo_servico', tipo_id=tipo.id) }}"
+                      class="btn btn-sm btn-outline-primary"
+                      title="Editar"
+                    >
+                      <i class="bi bi-pencil"></i>
+                      <span class="d-none d-md-inline ms-1">Editar</span>
+                    </a>
+                    <form
+                      method="POST"
+                      action="{{ url_for('tipo_servico.excluir_tipo_servico', tipo_id=tipo.id) }}"
+                      class="d-inline"
+                      onsubmit='return confirm({{ ("Excluir o tipo de serviço " ~ tipo.nome ~ "? Esta ação só será permitida se ele não possuir registros vinculados.")|tojson }});'
+                    >
+                      <button type="submit" class="btn btn-sm btn-outline-danger" title="Excluir">
+                        <i class="bi bi-trash"></i>
+                        <span class="d-none d-md-inline ms-1">Excluir</span>
+                      </button>
+                    </form>
+                  </td>
+                  {% endif %}
                 </tr>
                 {% endfor %}
               {% else %}
                 <tr>
-                  <td colspan="2" class="text-center text-muted py-5">
+                  <td colspan="{{ 3 if pode_gerenciar else 2 }}" class="text-center text-muted py-5">
                     Nenhum tipo de serviço cadastrado.
                   </td>
                 </tr>
