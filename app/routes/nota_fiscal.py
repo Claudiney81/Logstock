@@ -1,11 +1,12 @@
 from flask import Blueprint, render_template, request, redirect, url_for, flash, jsonify, make_response, current_app
 from app import db
-from sqlalchemy import func
+from sqlalchemy import func, or_
 from app.models import (
     NotaFiscalEntrada,
     NotaFiscalItem,
     Item,
     Estoque,
+    SaldoTecnico,
     TipoServico,
     Empresa,
     OrdemServico
@@ -16,6 +17,8 @@ from datetime import datetime
 import os, pdfkit, re
 
 bp = Blueprint('nota_fiscal', __name__, url_prefix='/nota')
+
+MARCADOR_NF_CANCELADA = '[NF_CANCELADA]'
 
 # ------------------------
 # Configuração do wkhtmltopdf (ajuste o caminho se necessário)
@@ -65,6 +68,141 @@ def proximo_numero_inventario():
             maior_numero = max(maior_numero, int(match.group(1)))
 
     return f'INV{maior_numero + 1:04d}'
+
+
+def _nota_cancelada(nota):
+    return MARCADOR_NF_CANCELADA in (nota.observacao or '')
+
+
+def _nota_ativa_com_numero(numero_nf):
+    return (
+        NotaFiscalEntrada.query
+        .filter(NotaFiscalEntrada.numero_nf == numero_nf)
+        .filter(or_(
+            NotaFiscalEntrada.observacao.is_(None),
+            ~NotaFiscalEntrada.observacao.contains(MARCADOR_NF_CANCELADA)
+        ))
+        .first()
+    )
+
+
+def _tipo_servico_saldo_nota(nota):
+    return 1 if nota.tipo_servico_id else None
+
+
+def _validar_cancelamento_nota(nota, itens):
+    bloqueios = []
+    tipo_servico_saldo_id = _tipo_servico_saldo_nota(nota)
+
+    for item_nf in itens:
+        quantidade_nf = int(item_nf.quantidade or 0)
+
+        estoque_disponivel = (
+            db.session.query(func.coalesce(func.sum(Estoque.quantidade), 0))
+            .filter(
+                Estoque.item_id == item_nf.item_id,
+                Estoque.tipo_servico_id == tipo_servico_saldo_id,
+                Estoque.tipo_estoque == nota.tipo_estoque,
+                Estoque.cliente_id == (
+                    nota.cliente_id
+                    if nota.tipo_estoque == 'cliente'
+                    else None
+                )
+            )
+            .scalar()
+            or 0
+        )
+
+        saldo_tecnico_disponivel = 0
+
+        if nota.tipo_estoque == 'cliente':
+            saldo_tecnico_disponivel = (
+                db.session.query(func.coalesce(func.sum(SaldoTecnico.quantidade), 0))
+                .filter(
+                    SaldoTecnico.item_id == item_nf.item_id,
+                    SaldoTecnico.tipo_servico_id == tipo_servico_saldo_id,
+                    SaldoTecnico.tipo_estoque == 'cliente',
+                    SaldoTecnico.cliente_id == nota.cliente_id
+                )
+                .scalar()
+                or 0
+            )
+
+        disponivel_total = int(estoque_disponivel or 0) + int(saldo_tecnico_disponivel or 0)
+
+        if disponivel_total < quantidade_nf:
+            codigo = item_nf.item.codigo if item_nf.item else item_nf.item_id
+            bloqueios.append(
+                f'Item {codigo}: disponível {disponivel_total}, necessário {quantidade_nf}.'
+            )
+
+    return bloqueios
+
+
+def _consumir_registros_quantidade(registros, quantidade):
+    restante = int(quantidade or 0)
+
+    for registro in registros:
+        if restante <= 0:
+            break
+
+        atual = int(registro.quantidade or 0)
+        baixa = min(atual, restante)
+        registro.quantidade = atual - baixa
+        restante -= baixa
+
+    return restante == 0
+
+
+def _aplicar_cancelamento_nota(nota, itens):
+    tipo_servico_saldo_id = _tipo_servico_saldo_nota(nota)
+
+    for item_nf in itens:
+        restante = int(item_nf.quantidade or 0)
+
+        estoques = (
+            Estoque.query
+            .filter(
+                Estoque.item_id == item_nf.item_id,
+                Estoque.tipo_servico_id == tipo_servico_saldo_id,
+                Estoque.tipo_estoque == nota.tipo_estoque,
+                Estoque.cliente_id == (
+                    nota.cliente_id
+                    if nota.tipo_estoque == 'cliente'
+                    else None
+                ),
+                Estoque.quantidade > 0
+            )
+            .order_by(Estoque.id.asc())
+            .all()
+        )
+
+        for estoque in estoques:
+            if restante <= 0:
+                break
+
+            atual = int(estoque.quantidade or 0)
+            baixa = min(atual, restante)
+            estoque.quantidade = atual - baixa
+            restante -= baixa
+
+        if restante > 0 and nota.tipo_estoque == 'cliente':
+            saldos_tecnico = (
+                SaldoTecnico.query
+                .filter(
+                    SaldoTecnico.item_id == item_nf.item_id,
+                    SaldoTecnico.tipo_servico_id == tipo_servico_saldo_id,
+                    SaldoTecnico.tipo_estoque == 'cliente',
+                    SaldoTecnico.cliente_id == nota.cliente_id,
+                    SaldoTecnico.quantidade > 0
+                )
+                .order_by(SaldoTecnico.id.asc())
+                .all()
+            )
+
+            if not _consumir_registros_quantidade(saldos_tecnico, restante):
+                codigo = item_nf.item.codigo if item_nf.item else item_nf.item_id
+                raise ValueError(f'Saldo insuficiente para cancelar o item {codigo}.')
 
 # ------------------------
 # Nova Nota Fiscal
@@ -126,10 +264,10 @@ def nova_nota():
             cliente_id = None
             ordem_servico_id = None
 
-        if numero_nf.upper().startswith('INV') and NotaFiscalEntrada.query.filter_by(numero_nf=numero_nf).first():
+        if numero_nf.upper().startswith('INV') and _nota_ativa_com_numero(numero_nf):
             numero_nf = proximo_numero_inventario()
 
-        if NotaFiscalEntrada.query.filter_by(numero_nf=numero_nf).first():
+        if _nota_ativa_com_numero(numero_nf):
             flash('Já existe uma nota fiscal com este número.', 'danger')
             return redirect(url_for('nota_fiscal.nova_nota'))
 
@@ -368,6 +506,10 @@ def historico():
         query = query.filter(NotaFiscalEntrada.tipo_servico_id == tipo_servico_id)
 
     notas = query.order_by(NotaFiscalEntrada.data_hora.desc()).all()
+
+    for nota in notas:
+        nota.cancelada = _nota_cancelada(nota)
+
     tipos_servico = TipoServico.query.order_by(TipoServico.nome).all()
 
     return render_template(
@@ -1291,20 +1433,61 @@ def api_responsavel(tipo_servico_id):
     return jsonify({'responsavel': tipo.responsavel if tipo and tipo.responsavel else ''})
 
 # ------------------------
-# Excluir Nota Fiscal
+# Cancelar Nota Fiscal
 # ------------------------
 @bp.route('/excluir/<int:id>', methods=['POST'])
 def excluir_nota(id):
     nota = NotaFiscalEntrada.query.get_or_404(id)
-
     itens = NotaFiscalItem.query.filter_by(nota_fiscal_id=nota.id).all()
-    for item in itens:
-        db.session.delete(item)
 
-    db.session.delete(nota)
-    db.session.commit()
+    if _nota_cancelada(nota):
+        flash('Esta nota fiscal já está cancelada.', 'warning')
+        return redirect(url_for('nota_fiscal.historico'))
 
-    flash('Nota fiscal excluída com sucesso!', 'success')
+    if not itens:
+        flash('Nota fiscal sem itens para cancelar.', 'warning')
+        return redirect(url_for('nota_fiscal.historico'))
+
+    bloqueios = _validar_cancelamento_nota(nota, itens)
+
+    if bloqueios:
+        flash(
+            'Nota não cancelada. Saldo insuficiente para desfazer a entrada: '
+            + ' | '.join(bloqueios),
+            'danger'
+        )
+        return redirect(url_for('nota_fiscal.historico'))
+
+    try:
+        _aplicar_cancelamento_nota(nota, itens)
+
+        usuario = (
+            current_user.nome
+            if current_user.is_authenticated and hasattr(current_user, 'nome')
+            else 'Usuário'
+        )
+        data_cancelamento = datetime.now().strftime('%d/%m/%Y %H:%M')
+        observacao_cancelamento = (
+            f'{MARCADOR_NF_CANCELADA} Cancelada em {data_cancelamento} '
+            f'por {usuario}. Entrada desfeita sem retorno ao estoque; '
+            'saldo removido do cliente/técnico quando aplicável.'
+        )
+
+        observacao_atual = (nota.observacao or '').strip()
+
+        if observacao_atual:
+            nota.observacao = f'{observacao_atual}\n{observacao_cancelamento}'
+        else:
+            nota.observacao = observacao_cancelamento
+
+        db.session.commit()
+
+    except Exception as e:
+        db.session.rollback()
+        flash(f'Nota não cancelada: {e}', 'danger')
+        return redirect(url_for('nota_fiscal.historico'))
+
+    flash('Nota fiscal cancelada e entrada desfeita com sucesso!', 'success')
     return redirect(url_for('nota_fiscal.historico'))
 
 @bp.route('/api/ordens_servico/<int:cliente_id>')

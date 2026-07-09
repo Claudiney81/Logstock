@@ -139,7 +139,12 @@
           {% endif %}
 
           <tr>
-            <td class="fw-semibold text-nowrap">{{ nota.numero_nf }}</td>
+            <td class="fw-semibold text-nowrap">
+              {{ nota.numero_nf }}
+              {% if nota.cancelada %}
+                <span class="badge bg-secondary ms-1">Cancelada</span>
+              {% endif %}
+            </td>
             <td class="text-nowrap">{{ nota.data_hora.strftime('%d/%m/%Y %H:%M') if nota.data_hora else '-' }}</td>
             <td>{{ nota.fornecedor or '-' }}</td>
             <td><span class="app-status-pill">{{ 'EPI' if categoria_nota == 'EPI' else categoria_nota.capitalize() }}</span></td>
@@ -173,10 +178,15 @@
                 <form
                   method="POST"
                   action="{{ url_for('nota_fiscal.excluir_nota', id=nota.id) }}"
-                  onsubmit="return confirm('Deseja excluir esta nota fiscal?')"
+                  onsubmit="return confirm('Deseja cancelar esta nota fiscal e desfazer a entrada dela dos saldos?')"
                 >
-                  <button type="submit" class="btn btn-sm btn-outline-secondary" title="Excluir">
-                    <i class="bi bi-trash"></i>
+                  <button
+                    type="submit"
+                    class="btn btn-sm btn-outline-secondary"
+                    title="Cancelar"
+                    {% if nota.cancelada %}disabled{% endif %}
+                  >
+                    <i class="bi bi-x-circle"></i>
                   </button>
                 </form>
               </div>
