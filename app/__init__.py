@@ -83,6 +83,9 @@ def _ensure_runtime_schema_columns():
         "movimentacoes_estoque_itens": {
             "condicao_material": "VARCHAR(30)",
         },
+        "movimentacoes_estoque": {
+            "nota_fiscal_id": "INTEGER",
+        },
     }
 
     for table_name, columns in required_columns.items():

@@ -531,9 +531,20 @@ class MovimentacaoEstoque(db.Model):
     nullable=True
     )
 
+    nota_fiscal_id = db.Column(
+        db.Integer,
+        db.ForeignKey('notas_fiscais_entrada.id'),
+        nullable=True
+    )
+
     ordem_servico = db.relationship(
         'OrdemServico',
         foreign_keys=[ordem_servico_id]
+    )
+
+    nota_fiscal = db.relationship(
+        'NotaFiscalEntrada',
+        foreign_keys=[nota_fiscal_id]
     )
 
     categoria_movimentacao = db.Column(db.String(30), nullable=True)

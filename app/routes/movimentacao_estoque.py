@@ -15,7 +15,8 @@ from app.models import (
     TipoServico,
     Item,
     Estoque,
-    SaldoTecnico
+    SaldoTecnico,
+    NotaFiscalEntrada
 )
 
 bp_movimentacao = Blueprint(
@@ -36,7 +37,11 @@ CONDICOES_MATERIAL = {
 
 MOVIMENTACOES_CORRECAO_LEGADO_PDFS = [2, 3, 4]
 MARCADOR_CORRECAO_LEGADO_PDFS = '[CORRECAO_LEGADO_PDFS_JULHO_2026]'
+MARCADOR_CORRECAO_MOV7 = '[CORRECAO_MOVIMENTACAO_7_NF_140958]'
+MARCADOR_NF_CANCELADA = '[NF_CANCELADA]'
 PERFIS_CORRECAO_LEGADO = {'admin', 'estoque'}
+MOVIMENTACAO_CORRECAO_MOV7 = 7
+NOTA_FISCAL_CORRECAO_MOV7 = 9
 
 
 def _normalizar_condicao_material(valor):
@@ -103,6 +108,245 @@ def _query_saldo_tecnico_movimentacao_cliente(movimentacao, item_id):
         )
 
     return query
+
+
+def _nota_cancelada(nota):
+    return MARCADOR_NF_CANCELADA in (nota.observacao or '')
+
+
+def _tipo_servico_saldo_nota(nota):
+    if nota.tipo_servico_id:
+        return 1
+
+    return None
+
+
+def _quantidade_movimentada_da_nota(nota_id, item_id):
+    return (
+        db.session.query(func.coalesce(func.sum(MovimentacaoEstoqueItem.quantidade), 0))
+        .join(
+            MovimentacaoEstoque,
+            MovimentacaoEstoque.id == MovimentacaoEstoqueItem.movimentacao_id
+        )
+        .filter(
+            MovimentacaoEstoque.nota_fiscal_id == nota_id,
+            MovimentacaoEstoque.origem_tipo == 'cliente',
+            MovimentacaoEstoque.destino_tipo == 'tecnico',
+            MovimentacaoEstoqueItem.item_id == item_id
+        )
+        .scalar()
+        or 0
+    )
+
+
+def _itens_pendentes_nota_cliente(nota):
+    tipo_servico_saldo = _tipo_servico_saldo_nota(nota)
+    itens = []
+
+    for item_nf in nota.itens:
+        quantidade_nf = int(item_nf.quantidade or 0)
+        ja_movimentado = int(
+            _quantidade_movimentada_da_nota(nota.id, item_nf.item_id)
+            or 0
+        )
+        pendente_nota = max(quantidade_nf - ja_movimentado, 0)
+
+        if pendente_nota <= 0:
+            continue
+
+        estoque_disponivel = (
+            db.session.query(func.coalesce(func.sum(Estoque.quantidade), 0))
+            .filter(
+                Estoque.item_id == item_nf.item_id,
+                Estoque.tipo_servico_id == tipo_servico_saldo,
+                Estoque.tipo_estoque == 'cliente',
+                Estoque.cliente_id == nota.cliente_id,
+                Estoque.quantidade > 0
+            )
+            .scalar()
+            or 0
+        )
+
+        saldo_liberado = min(pendente_nota, int(estoque_disponivel or 0))
+
+        if saldo_liberado <= 0:
+            continue
+
+        itens.append({
+            'item': item_nf.item,
+            'saldo': saldo_liberado,
+            'valor': float(item_nf.valor_unitario or 0),
+        })
+
+    return itens
+
+
+def _validar_movimentacao_por_nota(nota, codigos, quantidades):
+    pendencias = {
+        item_info['item'].codigo: int(item_info['saldo'] or 0)
+        for item_info in _itens_pendentes_nota_cliente(nota)
+        if item_info['item']
+    }
+
+    solicitadas = {}
+
+    for i, codigo_raw in enumerate(codigos):
+        codigo = (codigo_raw or '').strip()
+
+        if not codigo:
+            continue
+
+        try:
+            quantidade = int(quantidades[i])
+        except Exception:
+            quantidade = 0
+
+        if quantidade <= 0:
+            continue
+
+        solicitadas[codigo] = solicitadas.get(codigo, 0) + quantidade
+
+    bloqueios = []
+
+    for codigo, quantidade in solicitadas.items():
+        disponivel = pendencias.get(codigo, 0)
+
+        if quantidade > disponivel:
+            bloqueios.append(
+                f'Item {codigo}: solicitado {quantidade}, '
+                f'pendente na NF {disponivel}.'
+            )
+
+    return bloqueios
+
+
+def _montar_previa_correcao_mov7_nf_140958():
+    movimentacao = MovimentacaoEstoque.query.get(MOVIMENTACAO_CORRECAO_MOV7)
+    nota = NotaFiscalEntrada.query.get(NOTA_FISCAL_CORRECAO_MOV7)
+    bloqueios = []
+    linhas = []
+
+    if not movimentacao:
+        bloqueios.append('Movimentação 7 não encontrada.')
+
+    if not nota:
+        bloqueios.append('Nota fiscal 140958 não encontrada.')
+
+    if bloqueios:
+        return {'linhas': linhas, 'bloqueios': bloqueios}
+
+    if MARCADOR_CORRECAO_MOV7 in (movimentacao.observacao or ''):
+        bloqueios.append('Correção da movimentação 7 já aplicada.')
+
+    if (
+        movimentacao.origem_tipo != 'cliente'
+        or movimentacao.destino_tipo != 'tecnico'
+    ):
+        bloqueios.append('Movimentação 7 não é Cliente → Técnico.')
+
+    itens_nf = {
+        item_nf.item_id: int(item_nf.quantidade or 0)
+        for item_nf in nota.itens
+    }
+
+    for item_mov in movimentacao.itens:
+        quantidade_nf = itens_nf.get(item_mov.item_id)
+
+        if quantidade_nf is None:
+            continue
+
+        quantidade_mov = int(item_mov.quantidade or 0)
+        excesso = max(quantidade_mov - quantidade_nf, 0)
+
+        if excesso <= 0:
+            continue
+
+        saldo_atual = (
+            _query_saldo_tecnico_movimentacao_cliente(
+                movimentacao=movimentacao,
+                item_id=item_mov.item_id
+            )
+            .with_entities(func.coalesce(func.sum(SaldoTecnico.quantidade), 0))
+            .scalar()
+            or 0
+        )
+
+        if int(saldo_atual or 0) < excesso:
+            codigo = item_mov.item.codigo if item_mov.item else item_mov.item_id
+            bloqueios.append(
+                f'Item {codigo}: saldo técnico {int(saldo_atual or 0)}, '
+                f'excesso a remover {excesso}.'
+            )
+
+        linhas.append({
+            'movimentacao': movimentacao,
+            'nota': nota,
+            'item_mov': item_mov,
+            'quantidade_nf': quantidade_nf,
+            'quantidade_mov': quantidade_mov,
+            'excesso': excesso,
+            'saldo_atual': int(saldo_atual or 0),
+            'saldo_final': int(saldo_atual or 0) - excesso,
+        })
+
+    if not linhas and not bloqueios:
+        bloqueios.append('Nenhum excesso encontrado na movimentação 7.')
+
+    return {'linhas': linhas, 'bloqueios': bloqueios}
+
+
+def _aplicar_correcao_mov7_nf_140958(previa):
+    movimentacao = None
+    nota = None
+    total_removido = 0
+
+    for linha in previa['linhas']:
+        movimentacao = linha['movimentacao']
+        nota = linha['nota']
+        item_mov = linha['item_mov']
+        restante = int(linha['excesso'] or 0)
+
+        saldos = (
+            _query_saldo_tecnico_movimentacao_cliente(
+                movimentacao=movimentacao,
+                item_id=item_mov.item_id
+            )
+            .order_by(SaldoTecnico.id.asc())
+            .all()
+        )
+
+        for saldo in saldos:
+            if restante <= 0:
+                break
+
+            atual = int(saldo.quantidade or 0)
+            baixar = min(atual, restante)
+            saldo.quantidade = atual - baixar
+            restante -= baixar
+            total_removido += baixar
+
+        if restante > 0:
+            codigo = item_mov.item.codigo if item_mov.item else item_mov.item_id
+            raise ValueError(f'Saldo insuficiente no item {codigo}.')
+
+        item_mov.quantidade = int(linha['quantidade_nf'] or 0)
+
+    if movimentacao:
+        movimentacao.nota_fiscal_id = nota.id if nota else None
+        usuario = getattr(current_user, 'nome', None) or getattr(current_user, 'email', None) or 'Usuário'
+        data_ajuste = datetime.now().strftime('%d/%m/%Y %H:%M')
+        texto = (
+            f'{MARCADOR_CORRECAO_MOV7} Correção aplicada em {data_ajuste} '
+            f'por {usuario}. Excesso removido do saldo técnico conforme NF '
+            f'140958. Sem devolução ao estoque cliente.'
+        )
+        observacao_atual = (movimentacao.observacao or '').strip()
+        movimentacao.observacao = (
+            f'{observacao_atual}\n{texto}' if observacao_atual else texto
+        )
+
+    db.session.commit()
+    return total_removido
 
 
 def _montar_previa_correcao_legado_pdfs():
@@ -461,6 +705,11 @@ def nova_movimentacao():
             type=int
         )
 
+        nota_fiscal_id = request.form.get(
+            'nota_fiscal_id',
+            type=int
+        )
+
         endereco_os = request.form.get(
             'endereco',
             ''
@@ -532,6 +781,50 @@ def nova_movimentacao():
             if origem_tipo == 'cliente' and destino_tipo == 'tecnico' and not cliente_os_id:
                 flash('Selecione o Cliente O.S.', 'danger')
                 return redirect(url_for('movimentacao_estoque.nova_movimentacao'))
+
+            nota_fiscal_movimentacao = None
+
+            if origem_tipo == 'cliente' and destino_tipo == 'tecnico' and not nota_fiscal_id:
+                flash('Selecione a nota fiscal que será transferida ao técnico.', 'danger')
+                return redirect(url_for('movimentacao_estoque.nova_movimentacao'))
+
+            if origem_tipo == 'cliente' and destino_tipo == 'tecnico' and nota_fiscal_id:
+                nota_fiscal_movimentacao = NotaFiscalEntrada.query.get(nota_fiscal_id)
+
+                if (
+                    not nota_fiscal_movimentacao
+                    or nota_fiscal_movimentacao.tipo_estoque != 'cliente'
+                    or nota_fiscal_movimentacao.cliente_id != int(cliente_os_id)
+                    or _nota_cancelada(nota_fiscal_movimentacao)
+                ):
+                    flash('Nota fiscal inválida para este cliente.', 'danger')
+                    return redirect(url_for('movimentacao_estoque.nova_movimentacao'))
+
+                if (
+                    ordem_servico_id
+                    and nota_fiscal_movimentacao.ordem_servico_id
+                    and nota_fiscal_movimentacao.ordem_servico_id != ordem_servico_id
+                ):
+                    flash('Nota fiscal não pertence à O.S selecionada.', 'danger')
+                    return redirect(url_for('movimentacao_estoque.nova_movimentacao'))
+
+                bloqueios_nota = _validar_movimentacao_por_nota(
+                    nota=nota_fiscal_movimentacao,
+                    codigos=codigos,
+                    quantidades=quantidades
+                )
+
+                if bloqueios_nota:
+                    for bloqueio in bloqueios_nota:
+                        flash(bloqueio, 'danger')
+
+                    flash(
+                        'Movimentação bloqueada para evitar duplicidade de saldo da NF.',
+                        'danger'
+                    )
+                    return redirect(url_for('movimentacao_estoque.nova_movimentacao'))
+            else:
+                nota_fiscal_id = None
 
         # ==================================================
         # REGRAS FERRAMENTAS / EPIs
@@ -618,6 +911,7 @@ def nova_movimentacao():
             tipo_servico_id=tipo_servico_id,
 
             ordem_servico_id=ordem_servico_id if ordem_servico_id else None,
+            nota_fiscal_id=nota_fiscal_id if nota_fiscal_id else None,
 
             observacao=observacao,
             usuario_id=current_user.id,
@@ -1246,6 +1540,8 @@ def api_itens_movimentacao():
         or request.args.get('os_id', type=int)
     )
 
+    nota_fiscal_id = request.args.get('nota_fiscal_id', type=int)
+
     if categoria_movimentacao not in ['MATERIAL', 'PATRIMONIO']:
         categoria_movimentacao = 'MATERIAL'
 
@@ -1338,6 +1634,44 @@ def api_itens_movimentacao():
 
         if not cliente_id:
             return jsonify([])
+
+        if nota_fiscal_id:
+            nota = NotaFiscalEntrada.query.get(nota_fiscal_id)
+
+            if (
+                not nota
+                or nota.tipo_estoque != 'cliente'
+                or nota.cliente_id != cliente_id
+                or _nota_cancelada(nota)
+            ):
+                return jsonify([])
+
+            if nota.tipo_servico_id and _tipo_servico_saldo_nota(nota) != tipo_servico_consulta:
+                return jsonify([])
+
+            if (
+                ordem_servico_id
+                and nota.ordem_servico_id
+                and nota.ordem_servico_id != ordem_servico_id
+            ):
+                return jsonify([])
+
+            for item_info in _itens_pendentes_nota_cliente(nota):
+                item = item_info['item']
+
+                if not item:
+                    continue
+
+                resultados.append({
+                    'codigo': item.codigo,
+                    'descricao': item.descricao,
+                    'categoria': item.categoria or 'MATERIAL',
+                    'unidade': item.unidade,
+                    'saldo': int(item_info['saldo'] or 0),
+                    'valor': float(item_info['valor'] or 0)
+                })
+
+            return jsonify(resultados)
 
         valor_estoque = func.coalesce(
             func.max(Estoque.valor_unitario),
@@ -1468,6 +1802,64 @@ def api_itens_movimentacao():
     return jsonify([])
 
 
+@bp_movimentacao.route('/api/notas-cliente')
+@login_required
+def api_notas_cliente_movimentacao():
+    cliente_id = request.args.get('cliente_id', type=int)
+    tipo_servico_id = request.args.get('tipo_servico_id', type=int)
+    ordem_servico_id = request.args.get('ordem_servico_id', type=int)
+
+    if not cliente_id or not tipo_servico_id:
+        return jsonify([])
+
+    tipo_servico_consulta = tipo_servico_id
+    if tipo_servico_consulta and tipo_servico_consulta != 1:
+        tipo_servico_consulta = 1
+
+    notas = (
+        NotaFiscalEntrada.query
+        .filter(
+            NotaFiscalEntrada.tipo_estoque == 'cliente',
+            NotaFiscalEntrada.cliente_id == cliente_id,
+            NotaFiscalEntrada.tipo_servico_id.isnot(None)
+        )
+        .order_by(NotaFiscalEntrada.data_hora.desc())
+        .all()
+    )
+
+    resultados = []
+
+    for nota in notas:
+        if _nota_cancelada(nota):
+            continue
+
+        if _tipo_servico_saldo_nota(nota) != tipo_servico_consulta:
+            continue
+
+        if (
+            ordem_servico_id
+            and nota.ordem_servico_id
+            and nota.ordem_servico_id != ordem_servico_id
+        ):
+            continue
+
+        itens_pendentes = _itens_pendentes_nota_cliente(nota)
+        total_pendente = sum(int(item['saldo'] or 0) for item in itens_pendentes)
+
+        if total_pendente <= 0:
+            continue
+
+        resultados.append({
+            'id': nota.id,
+            'numero_nf': nota.numero_nf,
+            'data_hora': nota.data_hora.strftime('%d/%m/%Y %H:%M') if nota.data_hora else '',
+            'fornecedor': nota.fornecedor,
+            'total_pendente': total_pendente
+        })
+
+    return jsonify(resultados)
+
+
 @bp_movimentacao.route('/detalhes/<int:id>/pdf')
 @login_required
 def detalhes_pdf(id):
@@ -1502,6 +1894,59 @@ def detalhes_pdf(id):
         'movimentacao_estoque/detalhes_pdf.html',
         movimentacao=movimentacao,
         itens=itens,
+        empresas_dict=empresas_dict,
+        tecnicos_dict=tecnicos_dict
+    )
+
+
+@bp_movimentacao.route('/correcao-movimentacao-7-nf-140958', methods=['GET', 'POST'])
+@login_required
+def correcao_movimentacao_7_nf_140958():
+    if not _pode_corrigir_saldo_legado():
+        flash('Acesso restrito para correção de saldo.', 'danger')
+        return redirect(url_for('movimentacao_estoque.historico'))
+
+    previa = _montar_previa_correcao_mov7_nf_140958()
+
+    if request.method == 'POST':
+        confirmacao = (request.form.get('confirmacao') or '').strip().upper()
+
+        if confirmacao != 'CORRIGIR':
+            flash('Digite CORRIGIR para confirmar a correção.', 'danger')
+            return redirect(
+                url_for('movimentacao_estoque.correcao_movimentacao_7_nf_140958')
+            )
+
+        if previa['bloqueios']:
+            flash('Correção bloqueada. Verifique os avisos da prévia.', 'danger')
+            return redirect(
+                url_for('movimentacao_estoque.correcao_movimentacao_7_nf_140958')
+            )
+
+        try:
+            total_removido = _aplicar_correcao_mov7_nf_140958(previa)
+        except Exception as e:
+            db.session.rollback()
+            flash(f'Erro ao aplicar correção: {e}', 'danger')
+            return redirect(
+                url_for('movimentacao_estoque.correcao_movimentacao_7_nf_140958')
+            )
+
+        flash(
+            f'Correção aplicada. {total_removido} unidade(s) removidas do saldo técnico.',
+            'success'
+        )
+        return redirect(url_for('movimentacao_estoque.historico'))
+
+    empresas = Empresa.query.all()
+    tecnicos = Tecnico.query.all()
+
+    empresas_dict = {e.id: e.razao_social for e in empresas}
+    tecnicos_dict = {t.id: t.nome for t in tecnicos}
+
+    return render_template(
+        'movimentacao_estoque/correcao_movimentacao_7_nf_140958.html',
+        previa=previa,
         empresas_dict=empresas_dict,
         tecnicos_dict=tecnicos_dict
     )

@@ -1,0 +1,123 @@
+{% extends 'base.html' %}
+{% block content %}
+
+<div class="container-fluid mt-4">
+
+  <div class="app-page-header">
+    <div>
+      <p class="app-page-kicker">Correção de Movimentação</p>
+      <h1>Movimentação 7 x NF 140958</h1>
+      <p class="app-page-subtitle">
+        Remove do saldo técnico apenas o excesso movimentado além da nota fiscal, sem devolver para estoque cliente.
+      </p>
+    </div>
+
+    <div class="app-page-actions">
+      <a href="{{ url_for('movimentacao_estoque.historico') }}" class="btn btn-outline-secondary">
+        <i class="bi bi-arrow-left me-1"></i>
+        Histórico
+      </a>
+    </div>
+  </div>
+
+  <div class="alert alert-warning">
+    Esta ação corrige a movimentação nº 7 da Valdirene para bater com a NF 140958.
+    O histórico permanece, o comprovante passa a refletir as quantidades corretas e o estoque cliente não recebe devolução.
+  </div>
+
+  {% if previa.bloqueios %}
+  <div class="alert alert-danger">
+    <strong>Bloqueios encontrados:</strong>
+    <ul class="mb-0 mt-2">
+      {% for bloqueio in previa.bloqueios %}
+      <li>{{ bloqueio }}</li>
+      {% endfor %}
+    </ul>
+  </div>
+  {% endif %}
+
+  <div class="app-panel mb-4">
+    <div class="app-panel-header">
+      <div>
+        <h2>Prévia da correção</h2>
+        <p>Conferência item a item antes de aplicar.</p>
+      </div>
+    </div>
+
+    <div class="table-responsive">
+      <table class="table table-hover align-middle mb-0 app-table">
+        <thead>
+          <tr>
+            <th>Mov.</th>
+            <th>Cliente</th>
+            <th>Técnico</th>
+            <th>Código</th>
+            <th>Descrição</th>
+            <th class="text-end">Qtd. NF</th>
+            <th class="text-end">Qtd. Mov.</th>
+            <th class="text-end">Excesso</th>
+            <th class="text-end">Saldo técnico atual</th>
+            <th class="text-end">Saldo final</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for linha in previa.linhas %}
+          {% set mov = linha.movimentacao %}
+          {% set item_mov = linha.item_mov %}
+          <tr>
+            <td class="fw-semibold">{{ mov.id }}</td>
+            <td>{{ empresas_dict.get(mov.origem_id|int, '-') }}</td>
+            <td>{{ tecnicos_dict.get(mov.destino_id|int, '-') }}</td>
+            <td class="fw-semibold">{{ item_mov.item.codigo if item_mov.item else item_mov.item_id }}</td>
+            <td>{{ item_mov.item.descricao if item_mov.item else '-' }}</td>
+            <td class="text-end">{{ linha.quantidade_nf }}</td>
+            <td class="text-end">{{ linha.quantidade_mov }}</td>
+            <td class="text-end fw-semibold text-danger">{{ linha.excesso }}</td>
+            <td class="text-end">{{ linha.saldo_atual }}</td>
+            <td class="text-end">{{ linha.saldo_final }}</td>
+          </tr>
+          {% else %}
+          <tr>
+            <td colspan="10" class="text-center text-muted py-5">
+              Nenhum excesso encontrado.
+            </td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+  <div class="app-panel">
+    <div class="app-panel-header">
+      <div>
+        <h2>Aplicar correção</h2>
+        <p>Digite CORRIGIR para confirmar.</p>
+      </div>
+    </div>
+
+    <form method="post" class="p-3">
+      <div class="mb-3">
+        <label class="form-label fw-semibold">Confirmação</label>
+        <input
+          name="confirmacao"
+          class="form-control"
+          required
+          placeholder="Digite CORRIGIR"
+        >
+      </div>
+
+      <button
+        type="submit"
+        class="btn btn-danger"
+        {% if previa.bloqueios or not previa.linhas %}disabled{% endif %}
+      >
+        <i class="bi bi-check2-circle me-1"></i>
+        Aplicar correção da movimentação 7
+      </button>
+    </form>
+  </div>
+
+</div>
+
+{% endblock %}

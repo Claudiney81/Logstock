@@ -218,6 +218,16 @@
                 >
               </div>
 
+              <div class="col-md-4" id="nota_fiscal_div" style="display:none;">
+                <label class="form-label fw-semibold">Nota Fiscal do Cliente</label>
+                <select id="nota_fiscal_id" name="nota_fiscal_id" class="form-select">
+                  <option value="">Selecione a NF a transferir</option>
+                </select>
+                <div class="form-text">
+                  A movimentação ficará limitada ao saldo pendente desta NF.
+                </div>
+              </div>
+
               <div class="col-md-4">
                 <label class="form-label fw-semibold">Tipo de Serviço</label>
                 <select id="tipo_servico_id" name="tipo_servico_id" class="form-select" required>
@@ -550,11 +560,13 @@ function atualizarCamposDinamicos() {
   const clienteDiv = document.getElementById("cliente_div");
   const osDiv = document.getElementById("os_div");
   const enderecoDiv = document.getElementById("endereco_div");
+  const notaFiscalDiv = document.getElementById("nota_fiscal_div");
 
   const tecnico = document.getElementById("tecnico_id");
   const cliente = document.getElementById("cliente_id");
   const osInput = document.getElementById("os_id");
   const enderecoInput = document.getElementById("endereco");
+  const notaFiscal = document.getElementById("nota_fiscal_id");
 
   const mostrarTecnico =
     origemTipo === "tecnico" ||
@@ -597,10 +609,15 @@ function atualizarCamposDinamicos() {
   clienteDiv.style.display = mostrarClienteOs ? "block" : "none";
   osDiv.style.display = mostrarClienteOs ? "block" : "none";
   enderecoDiv.style.display = mostrarClienteOs ? "block" : "none";
+  notaFiscalDiv.style.display =
+    origemTipo === "cliente" && destinoTipo === "tecnico"
+      ? "block"
+      : "none";
 
   tecnico.required = mostrarTecnico;
   cliente.required = origemTipo === "cliente" && destinoTipo === "tecnico";
   osInput.required = origemTipo === "cliente" && destinoTipo === "tecnico";
+  notaFiscal.required = origemTipo === "cliente" && destinoTipo === "tecnico";
 
   if (!mostrarTecnico) {
     tecnico.value = "";
@@ -622,9 +639,65 @@ function atualizarCamposDinamicos() {
     enderecoInput.value = "";
   }
 
+  if (!(origemTipo === "cliente" && destinoTipo === "tecnico")) {
+    notaFiscal.innerHTML = '<option value="">Selecione a NF a transferir</option>';
+    notaFiscal.value = "";
+  }
+
   configurarMinimoTecnico();
   limparItens();
+  carregarNotasCliente();
   atualizarListaDeItens();
+}
+
+function carregarNotasCliente() {
+  const origemTipo = document.getElementById("origem_tipo")?.value;
+  const destinoTipo = document.getElementById("destino_tipo")?.value;
+  const clienteId = document.getElementById("cliente_id")?.value;
+  const tipoServicoId = document.getElementById("tipo_servico_id")?.value;
+  const osId = document.getElementById("os_id")?.value;
+  const notaSelect = document.getElementById("nota_fiscal_id");
+
+  if (!notaSelect) return Promise.resolve();
+
+  notaSelect.innerHTML = '<option value="">Selecione a NF a transferir</option>';
+
+  if (
+    origemTipo !== "cliente" ||
+    destinoTipo !== "tecnico" ||
+    !clienteId ||
+    !tipoServicoId
+  ) {
+    return Promise.resolve();
+  }
+
+  let url = `/movimentacao_estoque/api/notas-cliente?cliente_id=${clienteId}&tipo_servico_id=${tipoServicoId}`;
+
+  if (osId) {
+    url += `&ordem_servico_id=${osId}`;
+  }
+
+  return fetch(url)
+    .then((res) => res.json())
+    .then((notas) => {
+      if (!notas.length) {
+        const option = document.createElement("option");
+        option.value = "";
+        option.textContent = "Nenhuma NF pendente para este cliente";
+        notaSelect.appendChild(option);
+        return;
+      }
+
+      notas.forEach((nota) => {
+        const option = document.createElement("option");
+        option.value = nota.id;
+        option.textContent = `NF ${nota.numero_nf} - ${nota.total_pendente} un. pendentes - ${nota.data_hora}`;
+        notaSelect.appendChild(option);
+      });
+    })
+    .catch(() => {
+      notaSelect.innerHTML = '<option value="">Erro ao carregar NFs</option>';
+    });
 }
 
 function configurarMinimoTecnico() {
@@ -677,6 +750,7 @@ function atualizarListaDeItens() {
   const destinoTipo = document.getElementById("destino_tipo")?.value;
   const tecnicoId = document.getElementById("tecnico_id")?.value;
   const clienteId = document.getElementById("cliente_id")?.value;
+  const notaFiscalId = document.getElementById("nota_fiscal_id")?.value;
   const saldoTecnicoTipo = document.getElementById("saldo_tecnico_tipo")?.value || "empresa";
 
   if (!tipoServicoId || !origemTipo || !destinoTipo) {
@@ -705,7 +779,7 @@ function atualizarListaDeItens() {
   if (origemTipo === "cliente") {
     const osId = document.getElementById("os_id")?.value;
 
-    if (!clienteId || !osId || !tecnicoId) {
+    if (!clienteId || !osId || !tecnicoId || !notaFiscalId) {
       itensDisponiveis = [];
       renderizarTabelaLote();
       preencherTodosSelects();
@@ -713,6 +787,7 @@ function atualizarListaDeItens() {
     }
 
     url += `&cliente_id=${clienteId}&ordem_servico_id=${osId}&tecnico_id=${tecnicoId}`;
+    url += `&nota_fiscal_id=${notaFiscalId}`;
   }
 
   if (origemTipo === "tecnico") {
@@ -986,7 +1061,7 @@ document.getElementById("cliente_id")?.addEventListener("change", function () {
       });
 
       limparItens();
-      atualizarListaDeItens();
+      carregarNotasCliente().then(atualizarListaDeItens);
     })
     .catch(() => {
       osSelect.innerHTML = '<option value="">Erro ao carregar O.S</option>';
@@ -1000,10 +1075,15 @@ document.getElementById("os_id")?.addEventListener("change", function () {
   document.getElementById("endereco").value = endereco;
 
   limparItens();
-  atualizarListaDeItens();
+  carregarNotasCliente().then(atualizarListaDeItens);
 });
 
 document.getElementById("tipo_servico_id")?.addEventListener("change", () => {
+  limparItens();
+  carregarNotasCliente().then(atualizarListaDeItens);
+});
+
+document.getElementById("nota_fiscal_id")?.addEventListener("change", () => {
   limparItens();
   atualizarListaDeItens();
 });
