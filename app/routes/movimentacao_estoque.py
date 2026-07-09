@@ -34,6 +34,10 @@ CONDICOES_MATERIAL = {
     'USADO_DEF'
 }
 
+MOVIMENTACOES_CORRECAO_LEGADO_PDFS = [2, 3, 4]
+MARCADOR_CORRECAO_LEGADO_PDFS = '[CORRECAO_LEGADO_PDFS_JULHO_2026]'
+PERFIS_CORRECAO_LEGADO = {'admin', 'estoque'}
+
 
 def _normalizar_condicao_material(valor):
     valor = (valor or '').strip().upper()
@@ -70,6 +74,172 @@ def _filtro_condicao_estoque(query, condicao):
 def _atribuir_condicao_estoque(estoque, condicao):
     if _estoque_tem_condicao():
         estoque.condicao_material = condicao
+
+
+def _pode_corrigir_saldo_legado():
+    return getattr(current_user, 'perfil', None) in PERFIS_CORRECAO_LEGADO
+
+
+def _tipo_servico_saldo_movimentacao(movimentacao):
+    if movimentacao.tipo_servico_id:
+        return 1
+
+    return None
+
+
+def _query_saldo_tecnico_movimentacao_cliente(movimentacao, item_id):
+    query = SaldoTecnico.query.filter(
+        SaldoTecnico.tecnico_id == movimentacao.destino_id,
+        SaldoTecnico.item_id == item_id,
+        SaldoTecnico.tipo_servico_id == _tipo_servico_saldo_movimentacao(movimentacao),
+        SaldoTecnico.tipo_estoque == 'cliente',
+        SaldoTecnico.cliente_id == movimentacao.origem_id,
+        SaldoTecnico.quantidade > 0
+    )
+
+    if movimentacao.ordem_servico_id:
+        query = query.filter(
+            SaldoTecnico.ordem_servico_id == movimentacao.ordem_servico_id
+        )
+
+    return query
+
+
+def _montar_previa_correcao_legado_pdfs():
+    movimentacoes = (
+        MovimentacaoEstoque.query
+        .filter(MovimentacaoEstoque.id.in_(MOVIMENTACOES_CORRECAO_LEGADO_PDFS))
+        .order_by(MovimentacaoEstoque.id.asc())
+        .all()
+    )
+
+    movimentacoes_por_id = {
+        movimentacao.id: movimentacao
+        for movimentacao in movimentacoes
+    }
+
+    linhas = []
+    bloqueios = []
+    ja_aplicadas = []
+    total_ajustar = 0
+
+    for movimentacao_id in MOVIMENTACOES_CORRECAO_LEGADO_PDFS:
+        movimentacao = movimentacoes_por_id.get(movimentacao_id)
+
+        if not movimentacao:
+            bloqueios.append(f'Movimentação {movimentacao_id} não encontrada.')
+            continue
+
+        if (
+            movimentacao.origem_tipo != 'cliente'
+            or movimentacao.destino_tipo != 'tecnico'
+        ):
+            bloqueios.append(
+                f'Movimentação {movimentacao.id} não é Cliente → Técnico.'
+            )
+            continue
+
+        if MARCADOR_CORRECAO_LEGADO_PDFS in (movimentacao.observacao or ''):
+            ja_aplicadas.append(movimentacao.id)
+
+        for item_mov in movimentacao.itens:
+            quantidade_ajustar = int(item_mov.quantidade or 0)
+
+            saldo_atual = (
+                _query_saldo_tecnico_movimentacao_cliente(
+                    movimentacao=movimentacao,
+                    item_id=item_mov.item_id
+                )
+                .with_entities(func.coalesce(func.sum(SaldoTecnico.quantidade), 0))
+                .scalar()
+                or 0
+            )
+
+            total_ajustar += quantidade_ajustar
+
+            if quantidade_ajustar <= 0:
+                bloqueios.append(
+                    f'Movimentação {movimentacao.id}, item sem quantidade válida.'
+                )
+
+            if int(saldo_atual or 0) < quantidade_ajustar:
+                codigo = item_mov.item.codigo if item_mov.item else item_mov.item_id
+                bloqueios.append(
+                    f'Movimentação {movimentacao.id}, item {codigo}: '
+                    f'saldo atual {int(saldo_atual or 0)}, '
+                    f'ajuste necessário {quantidade_ajustar}.'
+                )
+
+            linhas.append({
+                'movimentacao': movimentacao,
+                'item_mov': item_mov,
+                'saldo_atual': int(saldo_atual or 0),
+                'quantidade_ajustar': quantidade_ajustar,
+                'saldo_final': int(saldo_atual or 0) - quantidade_ajustar
+            })
+
+    return {
+        'linhas': linhas,
+        'bloqueios': bloqueios,
+        'ja_aplicadas': ja_aplicadas,
+        'total_ajustar': total_ajustar
+    }
+
+
+def _aplicar_correcao_legado_pdfs(previa):
+    total_ajustado = 0
+    movimentacoes_ajustadas = {}
+
+    for linha in previa['linhas']:
+        movimentacao = linha['movimentacao']
+        item_mov = linha['item_mov']
+        restante = int(linha['quantidade_ajustar'] or 0)
+
+        saldos = (
+            _query_saldo_tecnico_movimentacao_cliente(
+                movimentacao=movimentacao,
+                item_id=item_mov.item_id
+            )
+            .order_by(SaldoTecnico.id.asc())
+            .all()
+        )
+
+        for saldo in saldos:
+            if restante <= 0:
+                break
+
+            atual = int(saldo.quantidade or 0)
+            baixar = min(atual, restante)
+            saldo.quantidade = atual - baixar
+            restante -= baixar
+            total_ajustado += baixar
+
+        if restante > 0:
+            codigo = item_mov.item.codigo if item_mov.item else item_mov.item_id
+            raise ValueError(
+                f'Saldo insuficiente durante aplicação: movimentação '
+                f'{movimentacao.id}, item {codigo}.'
+            )
+
+        movimentacoes_ajustadas[movimentacao.id] = movimentacao
+
+    usuario = getattr(current_user, 'nome', None) or getattr(current_user, 'email', None) or 'Usuário'
+    data_ajuste = datetime.now().strftime('%d/%m/%Y %H:%M')
+    texto = (
+        f'{MARCADOR_CORRECAO_LEGADO_PDFS} Correção legado aplicada em '
+        f'{data_ajuste} por {usuario}. Saldo técnico removido conforme PDFs '
+        'das movimentações 2, 3 e 4. Sem alteração em estoque.'
+    )
+
+    for movimentacao in movimentacoes_ajustadas.values():
+        observacao_atual = (movimentacao.observacao or '').strip()
+        movimentacao.observacao = (
+            f'{observacao_atual}\n{texto}'
+            if observacao_atual
+            else texto
+        )
+
+    return total_ajustado
 
 
 def _buscar_ou_criar_estoque_empresa(item_id, tipo_servico_id, condicao):
@@ -931,6 +1101,75 @@ def exportar_historico_excel():
         as_attachment=True,
         download_name=f'historico_movimentacoes_{data_arquivo}.xlsx',
         mimetype='application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
+    )
+
+
+@bp_movimentacao.route('/correcao-legado-saldo-pdfs-julho-2026', methods=['GET', 'POST'])
+@login_required
+def correcao_legado_saldo_pdfs_julho_2026():
+    if not _pode_corrigir_saldo_legado():
+        flash('Acesso permitido apenas para administrador ou estoque.', 'danger')
+        return redirect(url_for('movimentacao_estoque.historico'))
+
+    previa = _montar_previa_correcao_legado_pdfs()
+
+    if request.method == 'POST':
+        confirmacao = (request.form.get('confirmacao') or '').strip().upper()
+
+        if confirmacao != 'CORRIGIR':
+            flash('Digite CORRIGIR para confirmar a correção legado.', 'warning')
+            return redirect(
+                url_for('movimentacao_estoque.correcao_legado_saldo_pdfs_julho_2026')
+            )
+
+        if previa['ja_aplicadas']:
+            flash(
+                'Correção já aplicada em uma ou mais movimentações. '
+                'Ação bloqueada para evitar desconto duplicado.',
+                'danger'
+            )
+            return redirect(
+                url_for('movimentacao_estoque.correcao_legado_saldo_pdfs_julho_2026')
+            )
+
+        if previa['bloqueios']:
+            flash('Existem bloqueios na prévia. Nenhum saldo foi alterado.', 'danger')
+            return redirect(
+                url_for('movimentacao_estoque.correcao_legado_saldo_pdfs_julho_2026')
+            )
+
+        try:
+            total_ajustado = _aplicar_correcao_legado_pdfs(previa)
+            db.session.commit()
+            flash(
+                f'Correção aplicada com sucesso. {total_ajustado} unidade(s) '
+                'removida(s) do saldo técnico, sem alteração em estoque.',
+                'success'
+            )
+            return redirect(url_for('movimentacao_estoque.historico'))
+
+        except Exception as e:
+            db.session.rollback()
+            flash(f'Correção não aplicada: {e}', 'danger')
+            return redirect(
+                url_for('movimentacao_estoque.correcao_legado_saldo_pdfs_julho_2026')
+            )
+
+    tecnicos_dict = {
+        tecnico.id: tecnico.nome
+        for tecnico in Tecnico.query.all()
+    }
+
+    empresas_dict = {
+        empresa.id: empresa.razao_social
+        for empresa in Empresa.query.all()
+    }
+
+    return render_template(
+        'movimentacao_estoque/correcao_legado_saldo_pdfs.html',
+        previa=previa,
+        tecnicos_dict=tecnicos_dict,
+        empresas_dict=empresas_dict
     )
 
 

@@ -1,0 +1,158 @@
+{% extends 'base.html' %}
+{% block content %}
+
+<div class="container-fluid mt-4">
+
+  <div class="app-page-header">
+    <div>
+      <p class="app-page-kicker">Correção Legado</p>
+      <h1>Correção de saldo técnico pelos PDFs</h1>
+      <p class="app-page-subtitle">
+        Remove do saldo técnico as quantidades das movimentações 2, 3 e 4, sem alterar estoque.
+      </p>
+    </div>
+
+    <div class="app-page-actions">
+      <a href="{{ url_for('movimentacao_estoque.historico') }}" class="btn btn-outline-secondary">
+        <i class="bi bi-arrow-left me-1"></i>
+        Histórico
+      </a>
+    </div>
+  </div>
+
+  <div class="alert alert-warning">
+    Esta correção é apenas para o legado das NFs já excluídas antes da nova regra de cancelamento.
+    Ela não apaga movimentações, não apaga comprovantes e não mexe em estoque.
+  </div>
+
+  {% if previa.ja_aplicadas %}
+  <div class="alert alert-info">
+    Correção já marcada nas movimentações:
+    {{ previa.ja_aplicadas|join(', ') }}.
+  </div>
+  {% endif %}
+
+  {% if previa.bloqueios %}
+  <div class="alert alert-danger">
+    <strong>Bloqueios encontrados:</strong>
+    <ul class="mb-0 mt-2">
+      {% for bloqueio in previa.bloqueios %}
+      <li>{{ bloqueio }}</li>
+      {% endfor %}
+    </ul>
+  </div>
+  {% endif %}
+
+  <div class="row g-3 mb-4">
+    <div class="col-sm-6 col-xl-4">
+      <div class="app-kpi-card">
+        <span class="app-kpi-icon app-kpi-blue"><i class="bi bi-file-earmark-text"></i></span>
+        <span class="app-kpi-label">Movimentações</span>
+        <strong>2, 3 e 4</strong>
+      </div>
+    </div>
+    <div class="col-sm-6 col-xl-4">
+      <div class="app-kpi-card">
+        <span class="app-kpi-icon app-kpi-green"><i class="bi bi-box-seam"></i></span>
+        <span class="app-kpi-label">Unidades a remover</span>
+        <strong>{{ previa.total_ajustar }}</strong>
+      </div>
+    </div>
+    <div class="col-sm-6 col-xl-4">
+      <div class="app-kpi-card">
+        <span class="app-kpi-icon app-kpi-yellow"><i class="bi bi-arrow-repeat"></i></span>
+        <span class="app-kpi-label">Alteração em estoque</span>
+        <strong>Não</strong>
+      </div>
+    </div>
+  </div>
+
+  <div class="app-panel mb-4">
+    <div class="app-panel-header">
+      <div>
+        <h2>Prévia da correção</h2>
+        <p>Conferência item a item antes de aplicar no saldo técnico.</p>
+      </div>
+    </div>
+
+    <div class="table-responsive">
+      <table class="table table-hover align-middle mb-0 app-table">
+        <thead>
+          <tr>
+            <th>Mov.</th>
+            <th>Data/Hora</th>
+            <th>Cliente</th>
+            <th>Técnico</th>
+            <th>Código</th>
+            <th>Descrição</th>
+            <th class="text-end">Qtd. PDF</th>
+            <th class="text-end">Saldo atual</th>
+            <th class="text-end">Saldo final</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for linha in previa.linhas %}
+          {% set mov = linha.movimentacao %}
+          {% set item_mov = linha.item_mov %}
+          <tr>
+            <td class="fw-semibold">{{ mov.id }}</td>
+            <td class="text-nowrap">{{ mov.data_hora.strftime('%d/%m/%Y %H:%M') if mov.data_hora else '-' }}</td>
+            <td>{{ empresas_dict.get(mov.origem_id|int, '-') }}</td>
+            <td>{{ tecnicos_dict.get(mov.destino_id|int, '-') }}</td>
+            <td class="fw-semibold">{{ item_mov.item.codigo if item_mov.item else item_mov.item_id }}</td>
+            <td>{{ item_mov.item.descricao if item_mov.item else '-' }}</td>
+            <td class="text-end fw-semibold">{{ linha.quantidade_ajustar }}</td>
+            <td class="text-end">{{ linha.saldo_atual }}</td>
+            <td class="text-end">
+              {% if linha.saldo_final < 0 %}
+                <span class="text-danger fw-semibold">{{ linha.saldo_final }}</span>
+              {% else %}
+                {{ linha.saldo_final }}
+              {% endif %}
+            </td>
+          </tr>
+          {% else %}
+          <tr>
+            <td colspan="9" class="text-center text-muted py-5">
+              Nenhum item encontrado para correção.
+            </td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+  <div class="app-panel">
+    <div class="app-panel-header">
+      <div>
+        <h2>Aplicar correção</h2>
+        <p>Digite CORRIGIR para confirmar.</p>
+      </div>
+    </div>
+
+    <form method="post" class="p-3">
+      <div class="mb-3">
+        <label class="form-label fw-semibold">Confirmação</label>
+        <input
+          name="confirmacao"
+          class="form-control"
+          required
+          placeholder="Digite CORRIGIR"
+        >
+      </div>
+
+      <button
+        type="submit"
+        class="btn btn-danger"
+        {% if previa.bloqueios or previa.ja_aplicadas or not previa.linhas %}disabled{% endif %}
+      >
+        <i class="bi bi-check2-circle me-1"></i>
+        Aplicar correção legado
+      </button>
+    </form>
+  </div>
+
+</div>
+
+{% endblock %}
