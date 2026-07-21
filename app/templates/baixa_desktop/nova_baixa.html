@@ -278,6 +278,8 @@ const hiddenInputsResumo = document.getElementById("hiddenInputsResumo");
 
 let resumoBaixa = [];
 let modoCorrecaoBaixa = false;
+let carregamentoSaldoAtual = 0;
+let controleCarregamentoSaldo = null;
 
 function origemTexto(origem) {
   return origem === "cliente" ? "Cliente" : "Empresa";
@@ -367,6 +369,13 @@ async function carregarSaldo() {
   const estoque = tipoEstoque.value;
   const cliente = clienteId.value;
   const os = ordemServico.value;
+  const idCarregamento = ++carregamentoSaldoAtual;
+
+  if (controleCarregamentoSaldo) {
+    controleCarregamentoSaldo.abort();
+  }
+
+  controleCarregamentoSaldo = new AbortController();
 
   let url = `{{ url_for('baixa_desktop.api_itens_saldo') }}`;
   url += `?tecnico_id=${tecnico}`;
@@ -387,8 +396,18 @@ async function carregarSaldo() {
   `;
 
   try {
-    const resposta = await fetch(url);
+    const resposta = await fetch(url, { signal: controleCarregamentoSaldo.signal });
     const dados = await resposta.json();
+
+    if (
+      idCarregamento !== carregamentoSaldoAtual ||
+      tecnicoId.value !== tecnico ||
+      tipoServico.value !== tipoServicoId ||
+      tipoEstoque.value !== estoque ||
+      (estoque === "cliente" && (clienteId.value !== cliente || ordemServico.value !== os))
+    ) {
+      return;
+    }
 
     if (!dados.itens || dados.itens.length === 0) {
       tbodyItensDisponiveis.innerHTML = `
@@ -450,6 +469,9 @@ async function carregarSaldo() {
     }
 
   } catch (erro) {
+    if (erro.name === "AbortError" || idCarregamento !== carregamentoSaldoAtual) {
+      return;
+    }
     console.error(erro);
     tbodyItensDisponiveis.innerHTML = `
       <tr>
@@ -633,6 +655,14 @@ tipoEstoque.addEventListener("change", function () {
       carregarOrdensServico();
     }
 
+  }
+
+  // Se os filtros necessários já estão preenchidos, troca imediatamente a
+  // listagem para o saldo da origem recém-selecionada.
+  if (tecnicoId.value && tipoServico.value && tipoEstoque.value) {
+    if (tipoEstoque.value === "empresa" || (clienteId.value && ordemServico.value)) {
+      carregarSaldo();
+    }
   }
 
 });

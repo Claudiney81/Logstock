@@ -321,6 +321,7 @@
     </div>
 
     <form
+      id="formNotaFiscal"
       method="POST"
       action="{{ url_for('nota_fiscal.nova_nota') }}"
       onsubmit="return validarItens()"
@@ -485,7 +486,7 @@
                 </button>
 
                 <div class="d-flex gap-2 justify-content-end">
-                  <button type="submit" class="btn btn-nf-success px-4">
+                  <button type="submit" id="btnSalvarNotaFiscal" class="btn btn-nf-success px-4">
                     <i class="bi bi-check-circle me-1"></i>
                     Salvar Nota Fiscal
                   </button>
@@ -1488,6 +1489,21 @@ document.addEventListener("keydown", function (e) {
       inputs[index + 1].focus();
       inputs[index + 1].select();
     }
+  }
+});
+
+// Impede que Enter em qualquer campo envie a nota implicitamente. O envio por
+// Enter continua permitido quando o foco estiver no próprio botão Salvar.
+document.getElementById("formNotaFiscal")?.addEventListener("keydown", function (e) {
+  if (e.key !== "Enter") {
+    return;
+  }
+
+  const botaoSalvar = document.getElementById("btnSalvarNotaFiscal");
+
+  // Textarea mantém o Enter para quebra de linha; ele não causa envio implícito.
+  if (e.target !== botaoSalvar && e.target.tagName !== "TEXTAREA") {
+    e.preventDefault();
   }
 });
 

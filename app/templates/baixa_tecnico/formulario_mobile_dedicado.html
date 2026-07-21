@@ -561,6 +561,8 @@
       const tbodyItens = document.getElementById('tbodyItens');
       const tbodyResumo = document.getElementById('tbodyResumo');
       const hiddenInputs = document.getElementById('hiddenInputs');
+      let carregamentoItensAtual = 0;
+      let controleCarregamentoItens = null;
 
       function mensagemItens(texto, classe = 'text-muted') {
         tbodyItens.innerHTML = `
@@ -590,6 +592,13 @@
         const cliente = clienteId.value;
         const osId = ordemServico.value;
 
+        // Invalida qualquer resposta iniciada com os filtros anteriores.
+        const idCarregamento = ++carregamentoItensAtual;
+        if (controleCarregamentoItens) {
+          controleCarregamentoItens.abort();
+        }
+        controleCarregamentoItens = new AbortController();
+
         if (!cliente || !osId || !estoque || !ts) {
           mensagemItens(
             'Selecione Cliente, O.S, Tipo de Estoque e Tipo de Serviço'
@@ -604,9 +613,21 @@
           `&cliente_id=${cliente}` +
           `&ordem_servico_id=${osId}`;
 
-        fetch(url)
+        mensagemItens('Carregando itens...');
+
+        fetch(url, { signal: controleCarregamentoItens.signal })
           .then(response => response.json())
           .then(data => {
+            if (
+              idCarregamento !== carregamentoItensAtual ||
+              tipoServico.value !== ts ||
+              tipoEstoque.value !== estoque ||
+              clienteId.value !== cliente ||
+              ordemServico.value !== osId
+            ) {
+              return;
+            }
+
             tbodyItens.innerHTML = '';
 
             if (!data.itens || data.itens.length === 0) {
@@ -640,7 +661,10 @@
               `;
             });
           })
-          .catch(() => {
+          .catch((erro) => {
+            if (erro.name === 'AbortError' || idCarregamento !== carregamentoItensAtual) {
+              return;
+            }
             mensagemItens('Erro ao carregar itens', 'text-danger');
           });
       }
