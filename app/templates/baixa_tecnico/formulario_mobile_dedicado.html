@@ -671,7 +671,8 @@
                       data-cliente-id="${estoque === 'cliente' ? cliente : ''}"
                       min="0"
                       max="${item.saldo || 0}"
-                      value=""
+                      value="${item.saldo || 0}"
+                      title="Saldo disponível: ${item.saldo || 0}"
                     >
                   </td>
                 </tr>
