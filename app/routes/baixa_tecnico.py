@@ -301,14 +301,20 @@ def api_itens():
     ordem_servico_id = request.args.get("ordem_servico_id", type=int)
 
     if not tecnico_id or not tipo_servico_id:
-        return jsonify({"itens": []})
+        resposta = jsonify({"itens": [], "tipo_estoque": tipo_estoque})
+        resposta.headers["Cache-Control"] = "no-store, no-cache, must-revalidate, max-age=0"
+        return resposta
 
     if tipo_estoque not in ["empresa", "cliente"]:
-        return jsonify({"itens": []})
+        resposta = jsonify({"itens": [], "tipo_estoque": tipo_estoque})
+        resposta.headers["Cache-Control"] = "no-store, no-cache, must-revalidate, max-age=0"
+        return resposta
 
     if tipo_estoque == "cliente":
         if not cliente_id or not ordem_servico_id:
-            return jsonify({"itens": []})
+            resposta = jsonify({"itens": [], "tipo_estoque": tipo_estoque})
+            resposta.headers["Cache-Control"] = "no-store, no-cache, must-revalidate, max-age=0"
+            return resposta
 
     # REGRA LOGISTOCK:
     # O serviço selecionado classifica a baixa, mas o saldo físico do técnico
@@ -370,7 +376,12 @@ def api_itens():
                 "valor": valor
             })
 
-    return jsonify({"itens": resultado})
+    resposta = jsonify({
+        "itens": resultado,
+        "tipo_estoque": tipo_estoque
+    })
+    resposta.headers["Cache-Control"] = "no-store, no-cache, must-revalidate, max-age=0"
+    return resposta
 # ==========================================================
 # REGISTRAR BAIXA MOBILE
 # ==========================================================

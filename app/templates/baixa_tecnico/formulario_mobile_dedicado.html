@@ -379,7 +379,12 @@
 
             <div class="mb-3">
               <label class="form-label fw-bold">Tipo de Estoque</label>
-              <select class="form-select" id="tipo_estoque" required>
+              <select
+                class="form-select"
+                id="tipo_estoque"
+                required
+                onchange="carregarItens()"
+              >
                 <option value="">Selecione</option>
                 <option value="empresa">Estoque Empresa</option>
                 <option value="cliente">Estoque Cliente</option>
@@ -611,15 +616,21 @@
           `&tipo_servico_id=${ts}` +
           `&tipo_estoque=${estoque}` +
           `&cliente_id=${cliente}` +
-          `&ordem_servico_id=${osId}`;
+          `&ordem_servico_id=${osId}` +
+          `&_=${Date.now()}`;
 
         mensagemItens('Carregando itens...');
 
-        fetch(url, { signal: controleCarregamentoItens.signal })
+        fetch(url, {
+          signal: controleCarregamentoItens.signal,
+          cache: 'no-store',
+          headers: { 'Cache-Control': 'no-cache' }
+        })
           .then(response => response.json())
           .then(data => {
             if (
               idCarregamento !== carregamentoItensAtual ||
+              data.tipo_estoque !== estoque ||
               tipoServico.value !== ts ||
               tipoEstoque.value !== estoque ||
               clienteId.value !== cliente ||
@@ -720,7 +731,6 @@
         carregarItens();
       });
 
-      tipoEstoque.addEventListener('change', carregarItens);
       tipoServico.addEventListener('change', carregarItens);
 
 
