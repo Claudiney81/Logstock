@@ -588,36 +588,14 @@
         }
       }
 
-      function sairModoCorrecaoParaNovaConsulta() {
-        if (!modoCorrecaoBaixa) {
-          return;
-        }
-
-        modoCorrecaoBaixa = false;
-        document.getElementById('baixa_id_corrigir').value = '';
-        hiddenInputs.innerHTML = '';
-        tbodyResumo.innerHTML = `
-          <tr id="linhaVaziaResumo">
-            <td colspan="5" class="text-center text-muted">
-              Nenhum item adicionado
-            </td>
-          </tr>
-        `;
-        document.getElementById('btnEnviarBaixa').innerHTML = '✅ Enviar Baixa';
-      }
-
       function trocarTipoEstoque() {
-        // Ao trocar a origem, os itens de uma eventual correção anterior não
-        // podem permanecer na tela nem bloquear a consulta do novo saldo.
-        sairModoCorrecaoParaNovaConsulta();
+        // Mantém a baixa em correção e os itens já adicionados ao resumo. Só a
+        // lista de saldo disponível é substituída pela nova origem.
         mensagemItens('Carregando saldo do estoque selecionado...');
         carregarItens();
       }
 
       function carregarItens() {
-        if (modoCorrecaoBaixa) {
-          return;
-        }
         const ts = tipoServico.value;
         const estoque = tipoEstoque.value;
         const cliente = clienteId.value;
@@ -689,6 +667,8 @@
                       data-codigo="${item.codigo || ''}"
                       data-descricao="${item.descricao || ''}"
                       data-saldo="${item.saldo || 0}"
+                      data-tipo-estoque="${estoque}"
+                      data-cliente-id="${estoque === 'cliente' ? cliente : ''}"
                       min="0"
                       max="${item.saldo || 0}"
                       value=""
@@ -789,7 +769,7 @@
 
           if (qtd <= 0) return;
 
-          if (!modoCorrecaoBaixa && qtd > saldo) {
+          if (qtd > saldo) {
             alert(`Quantidade maior que o saldo do item ${input.dataset.codigo}.`);
             return;
           }
@@ -805,13 +785,10 @@
 
           document.getElementById('linhaVaziaResumo')?.remove();
 
-          const estoqueItem = modoCorrecaoBaixa
-          ? (input.getAttribute('data-tipo-estoque') || 'empresa')
-          : estoque;
+          const estoqueItem = input.getAttribute('data-tipo-estoque') || estoque;
 
-          const clienteItem = modoCorrecaoBaixa
-          ? (input.getAttribute('data-cliente-id') || '')
-          : (estoque === 'cliente' ? cliente : '');
+          const clienteItem = input.getAttribute('data-cliente-id') ||
+            (estoqueItem === 'cliente' ? cliente : '');
 
           const origemTexto =
             estoqueItem === 'cliente'
