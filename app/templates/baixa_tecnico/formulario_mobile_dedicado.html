@@ -383,7 +383,7 @@
                 class="form-select"
                 id="tipo_estoque"
                 required
-                onchange="carregarItens()"
+                onchange="trocarTipoEstoque()"
               >
                 <option value="">Selecione</option>
                 <option value="empresa">Estoque Empresa</option>
@@ -586,6 +586,32 @@
           endereco.value = option.dataset.endereco || '';
           ordemServico.value = option.dataset.os || '';
         }
+      }
+
+      function sairModoCorrecaoParaNovaConsulta() {
+        if (!modoCorrecaoBaixa) {
+          return;
+        }
+
+        modoCorrecaoBaixa = false;
+        document.getElementById('baixa_id_corrigir').value = '';
+        hiddenInputs.innerHTML = '';
+        tbodyResumo.innerHTML = `
+          <tr id="linhaVaziaResumo">
+            <td colspan="5" class="text-center text-muted">
+              Nenhum item adicionado
+            </td>
+          </tr>
+        `;
+        document.getElementById('btnEnviarBaixa').innerHTML = '✅ Enviar Baixa';
+      }
+
+      function trocarTipoEstoque() {
+        // Ao trocar a origem, os itens de uma eventual correção anterior não
+        // podem permanecer na tela nem bloquear a consulta do novo saldo.
+        sairModoCorrecaoParaNovaConsulta();
+        mensagemItens('Carregando saldo do estoque selecionado...');
+        carregarItens();
       }
 
       function carregarItens() {
