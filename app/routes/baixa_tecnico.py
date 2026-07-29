@@ -930,6 +930,10 @@ def portal_mobile():
 @bp_baixa_tecnico.route("/aprovador/login", methods=["GET", "POST"])
 def login_aprovador_mobile():
 
+    if request.method == "GET" and current_user.is_authenticated:
+        logout_user()
+        session.clear()
+
     if request.method == "POST":
 
         email = request.form.get("login", "").strip()

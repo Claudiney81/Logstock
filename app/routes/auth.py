@@ -19,9 +19,10 @@ import os
 import requests
 from werkzeug.security import generate_password_hash, check_password_hash
 from itsdangerous import URLSafeTimedSerializer, BadSignature, SignatureExpired
+from sqlalchemy import func, or_
 
 from app.extensions import db, login_manager, mail
-from app.models import Usuario
+from app.models import Tecnico, Usuario
 
 
 auth_bp = Blueprint('auth', __name__, url_prefix='/auth')
@@ -155,27 +156,104 @@ def login():
 # --------------------------------------------------
 # LOGIN TÉCNICO MOBILE
 # --------------------------------------------------
+def localizar_usuario_tecnico(login):
+    login_normalizado = (login or "").strip().lower()
+
+    usuario = (
+        Usuario.query
+        .filter(
+            Usuario.perfil == "tecnico",
+            or_(
+                func.lower(Usuario.email) == login_normalizado,
+                func.lower(Usuario.nome) == login_normalizado,
+            ),
+        )
+        .first()
+    )
+
+    tecnico = None
+
+    if usuario:
+        tecnico = getattr(usuario, "tecnico", None)
+
+        if not tecnico and usuario.email:
+            tecnico = (
+                Tecnico.query
+                .filter(func.lower(Tecnico.email) == usuario.email.lower())
+                .first()
+            )
+
+    if not tecnico:
+        tecnico = (
+            Tecnico.query
+            .filter(
+                or_(
+                    Tecnico.matricula == login,
+                    func.lower(Tecnico.email) == login_normalizado,
+                    func.lower(Tecnico.nome) == login_normalizado,
+                )
+            )
+            .first()
+        )
+
+    if tecnico and not usuario:
+        usuario = (
+            Usuario.query
+            .filter(
+                Usuario.perfil == "tecnico",
+                or_(
+                    Usuario.tecnico_id == tecnico.id,
+                    func.lower(Usuario.email) == (tecnico.email or "").lower(),
+                    func.lower(Usuario.nome) == tecnico.nome.lower(),
+                ),
+            )
+            .first()
+        )
+
+    return usuario, tecnico
+
+
 @auth_bp.route('/login_tecnico', methods=['GET', 'POST'])
 def login_tecnico():
 
     if current_user.is_authenticated and current_user.perfil == 'tecnico':
-        return redirect(url_for('baixa_tecnico.formulario_baixa', modo='mobile'))
+        tecnico = None
+
+        if getattr(current_user, "tecnico_id", None):
+            tecnico = Tecnico.query.get(current_user.tecnico_id)
+
+        if not tecnico and getattr(current_user, "email", None):
+            tecnico = (
+                Tecnico.query
+                .filter(func.lower(Tecnico.email) == current_user.email.lower())
+                .first()
+            )
+
+        if tecnico:
+            session["tecnico_id"] = tecnico.id
+            session["tecnico_nome"] = tecnico.nome
+            session["perfil"] = "tecnico"
+            return redirect(url_for('baixa_tecnico.formulario_baixa', modo='mobile'))
+
+        logout_user()
+        session.clear()
 
     if request.method == 'POST':
 
         email = request.form.get('email', '').strip()
         senha = request.form.get('senha', '').strip()
 
-        user = Usuario.query.filter_by(
-            email=email,
-            perfil='tecnico'
-        ).first()
+        user, tecnico = localizar_usuario_tecnico(email)
 
-        if user and check_password_hash(user.senha_hash, senha):
+        if user and tecnico and check_password_hash(user.senha_hash, senha):
             login_user(user)
 
-            session["tecnico_id"] = user.id
-            session["tecnico_nome"] = user.nome
+            if user.tecnico_id != tecnico.id:
+                user.tecnico_id = tecnico.id
+                db.session.commit()
+
+            session["tecnico_id"] = tecnico.id
+            session["tecnico_nome"] = tecnico.nome
             session["perfil"] = "tecnico"
 
             return redirect(url_for('baixa_tecnico.formulario_baixa', modo='mobile'))
