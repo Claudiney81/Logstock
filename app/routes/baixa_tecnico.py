@@ -17,7 +17,7 @@ from flask_login import (
 )
 
 from datetime import datetime
-from sqlalchemy import func
+from sqlalchemy import func, or_
 import os
 
 from werkzeug.utils import secure_filename
@@ -46,6 +46,26 @@ bp_baixa_tecnico = Blueprint(
     __name__,
     url_prefix="/baixa_tecnico"
 )
+
+PERFIS_APROVADOR_BAIXA = {"admin", "tecnica", "engenheiro", "supervisor"}
+
+
+def usuario_pode_aprovar_baixa():
+    return (
+        current_user.is_authenticated
+        and getattr(current_user, "perfil", None) in PERFIS_APROVADOR_BAIXA
+    )
+
+
+def exigir_aprovador_mobile():
+    if usuario_pode_aprovar_baixa():
+        session["portal_mobile_aprovador"] = True
+        return None
+
+    logout_user()
+    session.clear()
+    flash("Entre com um usuário autorizado para aprovar baixas.", "warning")
+    return redirect(url_for("baixa_tecnico.login_aprovador_mobile"))
 
 
 # ==========================================================
@@ -641,6 +661,9 @@ def registrar():
 @bp_baixa_tecnico.route("/pendentes-mobile")
 @login_required
 def pendentes_mobile():
+    acesso = exigir_aprovador_mobile()
+    if acesso:
+        return acesso
 
     baixas = (
         BaixaTecnica.query
@@ -662,6 +685,9 @@ def pendentes_mobile():
 @bp_baixa_tecnico.route("/detalhe-pendente-mobile/<int:baixa_id>")
 @login_required
 def detalhe_pendente_mobile(baixa_id):
+    acesso = exigir_aprovador_mobile()
+    if acesso:
+        return acesso
 
     baixa = BaixaTecnica.query.get_or_404(baixa_id)
 
@@ -678,6 +704,9 @@ def detalhe_pendente_mobile(baixa_id):
 @bp_baixa_tecnico.route("/aprovar-mobile/<int:baixa_id>", methods=["POST"])
 @login_required
 def aprovar_mobile(baixa_id):
+    acesso = exigir_aprovador_mobile()
+    if acesso:
+        return acesso
 
     baixa = BaixaTecnica.query.get_or_404(baixa_id)
 
@@ -815,6 +844,9 @@ def aprovar_mobile(baixa_id):
 @bp_baixa_tecnico.route("/recusar-mobile/<int:baixa_id>", methods=["POST"])
 @login_required
 def recusar_mobile(baixa_id):
+    acesso = exigir_aprovador_mobile()
+    if acesso:
+        return acesso
 
     baixa = BaixaTecnica.query.get_or_404(baixa_id)
 
@@ -902,11 +934,15 @@ def login_aprovador_mobile():
 
         email = request.form.get("login", "").strip()
         senha = request.form.get("senha", "").strip()
+        login_normalizado = email.lower()
 
         usuario = (
             Usuario.query
             .filter(
-                func.lower(Usuario.email) == email.lower()
+                or_(
+                    func.lower(Usuario.email) == login_normalizado,
+                    func.lower(Usuario.nome) == login_normalizado,
+                )
             )
             .first()
         )
@@ -921,7 +957,7 @@ def login_aprovador_mobile():
             flash("Senha inválida.", "danger")
             return redirect(url_for("baixa_tecnico.login_aprovador_mobile"))
 
-        if usuario.perfil not in ["admin", "tecnica", "engenheiro", "supervisor"]:
+        if usuario.perfil not in PERFIS_APROVADOR_BAIXA:
             flash("Usuário sem permissão para aprovar baixas.", "danger")
             return redirect(url_for("baixa_tecnico.login_aprovador_mobile"))
 
