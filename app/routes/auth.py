@@ -316,10 +316,14 @@ def registro():
             'Administrador': 'admin',
             'Estoque': 'estoque',
             'Área Técnica': 'tecnica',
+            'Engenheiro': 'engenheiro',
+            'Supervisor': 'supervisor',
             'Técnico': 'tecnico',
             'admin': 'admin',
             'estoque': 'estoque',
             'tecnica': 'tecnica',
+            'engenheiro': 'engenheiro',
+            'supervisor': 'supervisor',
             'tecnico': 'tecnico'
         }
 
@@ -346,7 +350,33 @@ def registro():
         flash('Usuário registrado com sucesso!', 'success')
         return redirect(url_for('auth.registro'))
 
-    return render_template('auth/registro.html')
+    usuarios = Usuario.query.order_by(Usuario.nome.asc()).all()
+
+    return render_template(
+        'auth/registro.html',
+        usuarios=usuarios
+    )
+
+
+@auth_bp.route('/usuarios/<int:usuario_id>/senha', methods=['POST'])
+@login_required
+def redefinir_senha_usuario(usuario_id):
+    if current_user.perfil != 'admin':
+        flash('Acesso permitido apenas para administrador.', 'danger')
+        return redirect(url_for('home.home'))
+
+    usuario = Usuario.query.get_or_404(usuario_id)
+    nova_senha = request.form.get('nova_senha', '').strip()
+
+    if len(nova_senha) < 6:
+        flash('Informe uma senha com pelo menos 6 caracteres.', 'warning')
+        return redirect(url_for('auth.registro'))
+
+    usuario.senha_hash = generate_password_hash(nova_senha)
+    db.session.commit()
+
+    flash(f'Senha de {usuario.nome} redefinida com sucesso.', 'success')
+    return redirect(url_for('auth.registro'))
 
 
 # --------------------------------------------------
