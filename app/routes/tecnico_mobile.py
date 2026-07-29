@@ -100,6 +100,10 @@ def localizar_usuario_tecnico(login):
 @bp_tecnico_mobile.route("/login", methods=["GET", "POST"])
 def login():
 
+    if request.method == "GET" and current_user.is_authenticated:
+        logout_user()
+        session.clear()
+
     if request.method == "POST":
 
         login = (
@@ -116,6 +120,8 @@ def login():
             flash("Login ou senha inválidos.", "danger")
             return redirect(url_for("tecnico_mobile.login"))
 
+        logout_user()
+        session.clear()
         login_user(usuario)
 
         if not tecnico:

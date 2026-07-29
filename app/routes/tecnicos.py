@@ -1,4 +1,5 @@
 from flask import Blueprint, render_template, request, redirect, url_for, flash
+from flask_login import current_user, login_required
 from app.extensions import db
 from app.models import Tecnico, Usuario
 import qrcode
@@ -15,6 +16,10 @@ def limpar_cpf(cpf):
            .replace(" ", "")
            .strip()
     )
+
+
+def senha_inicial_tecnico(tecnico):
+    return limpar_cpf(tecnico.cpf or "")[:6]
 
 
 @bp.route('/cadastro', methods=['GET', 'POST'])
@@ -55,8 +60,7 @@ def cadastrar_tecnico():
         db.session.add(novo_tecnico)
         db.session.commit()
 
-        cpf_limpo = limpar_cpf(cpf)
-        senha_gerada = cpf_limpo[:6]
+        senha_gerada = senha_inicial_tecnico(novo_tecnico)
         senha_hash = generate_password_hash(senha_gerada)
 
         if email:
@@ -213,8 +217,7 @@ Qualquer dúvida, entre em contato com o setor responsável.
 def acesso_tecnico(tecnico_id):
     tecnico = Tecnico.query.get_or_404(tecnico_id)
 
-    cpf_limpo = limpar_cpf(tecnico.cpf)
-    senha_gerada = cpf_limpo[:6]
+    senha_gerada = senha_inicial_tecnico(tecnico)
 
     link_login = url_for(
         'tecnico_mobile.login',
@@ -243,6 +246,57 @@ Após acessar, você verá:
         senha_gerada=senha_gerada,
         mensagem_whatsapp=mensagem_whatsapp
     )
+
+
+@bp.route('/resetar-senha/<int:tecnico_id>', methods=['POST'])
+@login_required
+def resetar_senha_tecnico(tecnico_id):
+    if current_user.perfil != 'admin':
+        flash('Apenas administrador pode redefinir senha de técnico.', 'danger')
+        return redirect(url_for('tecnicos.listar_tecnicos'))
+
+    tecnico = Tecnico.query.get_or_404(tecnico_id)
+    senha_gerada = senha_inicial_tecnico(tecnico)
+
+    if len(senha_gerada) < 6:
+        flash('CPF do técnico inválido para gerar senha inicial.', 'danger')
+        return redirect(url_for('tecnicos.listar_tecnicos'))
+
+    usuario = None
+
+    if tecnico.email:
+        usuario = Usuario.query.filter_by(email=tecnico.email).first()
+
+    if not usuario:
+        usuario = Usuario.query.filter_by(tecnico_id=tecnico.id).first()
+
+    if not usuario:
+        if not tecnico.email:
+            flash('Técnico sem e-mail. Cadastre um e-mail antes de criar acesso.', 'danger')
+            return redirect(url_for('tecnicos.listar_tecnicos'))
+
+        usuario = Usuario(
+            nome=tecnico.nome,
+            email=tecnico.email,
+            perfil='tecnico',
+            tecnico=tecnico,
+            senha_hash=generate_password_hash(senha_gerada)
+        )
+        db.session.add(usuario)
+    else:
+        usuario.nome = tecnico.nome
+        usuario.perfil = 'tecnico'
+        usuario.tecnico = tecnico
+        usuario.senha_hash = generate_password_hash(senha_gerada)
+
+    usuario.status = 'Ativo'
+    db.session.commit()
+
+    flash(
+        f'Senha de {tecnico.nome} redefinida para os 6 primeiros números do CPF.',
+        'success'
+    )
+    return redirect(url_for('tecnicos.listar_tecnicos'))
 
 
 @bp.route('/alterar-status/<int:tecnico_id>', methods=['POST'])
