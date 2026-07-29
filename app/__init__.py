@@ -2,7 +2,7 @@
 
 import os
 
-from sqlalchemy import inspect, text
+from sqlalchemy import func, inspect, or_, text
 
 from flask import (
     Flask,
@@ -20,7 +20,7 @@ from werkzeug.middleware.proxy_fix import ProxyFix
 from werkzeug.security import check_password_hash, generate_password_hash
 
 from .extensions import db, login_manager, mail
-from app.models import RequisicaoTecnico, Usuario
+from app.models import RequisicaoTecnico, Tecnico, Usuario
 from app.routes.ferramentas_epis import bp_ferramentas_epis
 from app.routes.frota_vistoria import bp_frota_vistoria
 
@@ -377,23 +377,73 @@ def create_app():
     @app.route("/login-tecnico", methods=["GET", "POST"])
     def login_tecnico():
         if request.method == "POST":
-            email = request.form.get("email")
+            email = (request.form.get("email") or "").strip()
             senha = request.form.get("senha")
+            login_normalizado = email.lower()
 
-            usuario = Usuario.query.filter_by(
-                email=email,
-                perfil="tecnico",
-            ).first()
+            usuario = (
+                Usuario.query
+                .filter(
+                    Usuario.perfil == "tecnico",
+                    or_(
+                        func.lower(Usuario.email) == login_normalizado,
+                        func.lower(Usuario.nome) == login_normalizado,
+                    ),
+                )
+                .first()
+            )
+
+            tecnico = None
+
+            if usuario:
+                tecnico = getattr(usuario, "tecnico", None)
+                if not tecnico and usuario.email:
+                    tecnico = (
+                        Tecnico.query
+                        .filter(func.lower(Tecnico.email) == usuario.email.lower())
+                        .first()
+                    )
+
+            if not tecnico:
+                tecnico = (
+                    Tecnico.query
+                    .filter(
+                        or_(
+                            Tecnico.matricula == email,
+                            func.lower(Tecnico.email) == login_normalizado,
+                            func.lower(Tecnico.nome) == login_normalizado,
+                        )
+                    )
+                    .first()
+                )
+
+            if tecnico and not usuario:
+                usuario = (
+                    Usuario.query
+                    .filter(
+                        Usuario.perfil == "tecnico",
+                        or_(
+                            Usuario.tecnico_id == tecnico.id,
+                            func.lower(Usuario.email) == (tecnico.email or "").lower(),
+                            func.lower(Usuario.nome) == tecnico.nome.lower(),
+                        ),
+                    )
+                    .first()
+                )
 
             if usuario and check_password_hash(
                 usuario.senha_hash,
                 senha,
-            ):
+            ) and tecnico:
+                if usuario.tecnico_id != tecnico.id:
+                    usuario.tecnico_id = tecnico.id
+                    db.session.commit()
+
                 session.permanent = True
 
                 session["usuario_id"] = usuario.id
-                session["tecnico_id"] = usuario.id
-                session["tecnico_nome"] = usuario.nome
+                session["tecnico_id"] = tecnico.id
+                session["tecnico_nome"] = tecnico.nome
                 session["perfil"] = usuario.perfil
 
                 return redirect(

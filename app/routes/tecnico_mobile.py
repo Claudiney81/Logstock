@@ -1,5 +1,6 @@
 from flask import Blueprint, render_template, request, redirect, url_for, flash, session
 from flask_login import login_user, logout_user, login_required, current_user
+from sqlalchemy import func, or_
 from werkzeug.security import check_password_hash, generate_password_hash
 
 from app.extensions import db
@@ -39,6 +40,63 @@ def get_tecnico_logado():
     return None
 
 
+def localizar_usuario_tecnico(login):
+    login = (login or "").strip()
+    login_normalizado = login.lower()
+
+    usuario = (
+        Usuario.query
+        .filter(
+            Usuario.perfil == "tecnico",
+            or_(
+                func.lower(Usuario.email) == login_normalizado,
+                func.lower(Usuario.nome) == login_normalizado,
+            )
+        )
+        .first()
+    )
+
+    tecnico = None
+
+    if usuario:
+        tecnico = getattr(usuario, "tecnico", None)
+        if not tecnico and usuario.email:
+            tecnico = (
+                Tecnico.query
+                .filter(func.lower(Tecnico.email) == usuario.email.lower())
+                .first()
+            )
+
+    if not tecnico:
+        tecnico = (
+            Tecnico.query
+            .filter(
+                or_(
+                    Tecnico.matricula == login,
+                    func.lower(Tecnico.email) == login_normalizado,
+                    func.lower(Tecnico.nome) == login_normalizado,
+                )
+            )
+            .first()
+        )
+
+    if tecnico and not usuario:
+        usuario = (
+            Usuario.query
+            .filter(
+                Usuario.perfil == "tecnico",
+                or_(
+                    Usuario.tecnico_id == tecnico.id,
+                    func.lower(Usuario.email) == (tecnico.email or "").lower(),
+                    func.lower(Usuario.nome) == tecnico.nome.lower(),
+                )
+            )
+            .first()
+        )
+
+    return usuario, tecnico
+
+
 @bp_tecnico_mobile.route("/login", methods=["GET", "POST"])
 def login():
 
@@ -52,28 +110,7 @@ def login():
 
         senha = request.form.get("senha", "").strip()
 
-        usuario = (
-            Usuario.query
-            .filter(
-                Usuario.perfil == "tecnico",
-                (
-                    (Usuario.email == login) |
-                    (Usuario.nome == login)
-                )
-            )
-            .first()
-        )
-
-        tecnico = None
-
-        if not usuario:
-            tecnico = Tecnico.query.filter_by(matricula=login).first()
-
-            if tecnico and tecnico.email:
-                usuario = Usuario.query.filter_by(
-                    email=tecnico.email,
-                    perfil="tecnico"
-                ).first()
+        usuario, tecnico = localizar_usuario_tecnico(login)
 
         if not usuario or not check_password_hash(usuario.senha_hash, senha):
             flash("Login ou senha inválidos.", "danger")
@@ -90,6 +127,10 @@ def login():
         if not tecnico:
             flash("Usuário técnico não vinculado ao cadastro de técnico.", "danger")
             return redirect(url_for("tecnico_mobile.login"))
+
+        if usuario.tecnico_id != tecnico.id:
+            usuario.tecnico_id = tecnico.id
+            db.session.commit()
 
         session["tecnico_id"] = tecnico.id
         session["tecnico_nome"] = tecnico.nome
