@@ -44,6 +44,12 @@ def saldo_detalhado(id_tecnico):
     cliente_id = request.args.get('cliente_id', type=int)
     ordem_servico_id = request.args.get('ordem_servico_id', type=int)
 
+    if tipo_estoque != 'cliente':
+        cliente_id = None
+        ordem_servico_id = None
+    elif not cliente_id:
+        ordem_servico_id = None
+
     cliente_selecionado = Empresa.query.get(cliente_id) if cliente_id else None
     ordem_servico_selecionada = (
         OrdemServico.query.get(ordem_servico_id)
@@ -211,6 +217,12 @@ def exportar_saldo_tecnico(id_tecnico):
     tipo_estoque = request.args.get('tipo_estoque', 'todos')
     cliente_id = request.args.get('cliente_id', type=int)
     ordem_servico_id = request.args.get('ordem_servico_id', type=int)
+
+    if tipo_estoque != 'cliente':
+        cliente_id = None
+        ordem_servico_id = None
+    elif not cliente_id:
+        ordem_servico_id = None
 
     campos_query = [
         Item.codigo.label('Código'),
