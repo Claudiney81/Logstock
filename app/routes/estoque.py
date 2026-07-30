@@ -3,6 +3,7 @@ from app import db
 from app.models import Item, Estoque, TipoServico
 import pandas as pd
 from flask_login import login_required
+from app.utils.valores_estoque import sincronizar_valor_empresa_item
 
 bp = Blueprint('estoque', __name__, url_prefix='/estoque')
 
@@ -206,6 +207,7 @@ def importar_itens():
                 item_existente.valor = valor
                 item_existente.categoria = categoria
                 item_existente.eh_equipamento = categoria in ['FERRAMENTA', 'EPI']
+                sincronizar_valor_empresa_item(item_existente.id, valor)
                 atualizados += 1
 
             else:

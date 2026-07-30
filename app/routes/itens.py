@@ -1,5 +1,6 @@
 from flask import Blueprint, render_template, request, redirect, url_for, flash, jsonify
 from app.models import Item, Estoque, NotaFiscalItem, RequisicaoTecnicoItem, db
+from app.utils.valores_estoque import sincronizar_valor_empresa_item
 
 bp = Blueprint('itens', __name__, url_prefix='/itens')
 
@@ -74,6 +75,7 @@ def editar(id):
         item.descricao = descricao
         item.unidade = unidade
         item.valor = converter_valor(request.form.get('valor', '0'))
+        sincronizar_valor_empresa_item(item.id, item.valor)
 
         categoria = request.form.get(
             'categoria',

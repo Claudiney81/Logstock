@@ -14,6 +14,7 @@ from app.models import (
 
 from flask_login import current_user
 from datetime import datetime
+from app.utils.valores_estoque import sincronizar_valor_empresa_item
 import os, pdfkit, re
 
 bp = Blueprint('nota_fiscal', __name__, url_prefix='/nota')
@@ -450,6 +451,9 @@ def nova_nota():
                 )
 
                 db.session.add(novo_estoque)
+
+            if tipo_estoque == 'empresa':
+                sincronizar_valor_empresa_item(item.id, valor_convertido)
 
             itens_processados += 1
 
