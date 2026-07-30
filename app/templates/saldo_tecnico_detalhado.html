@@ -32,7 +32,56 @@
     background: #f8fafc;
     border-bottom: 1px solid #d9e2ec;
   }
+
+  .saldo-context-panel {
+    background: #f8fbff;
+    border-bottom: 1px solid #d9e2ec;
+  }
+
+  .saldo-context-grid {
+    display: grid;
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+    gap: .75rem;
+  }
+
+  .saldo-context-item {
+    background: #fff;
+    border: 1px solid #d7e2ec;
+    border-radius: .5rem;
+    padding: .75rem .85rem;
+  }
+
+  .saldo-context-item span {
+    color: #64748b;
+    display: block;
+    font-size: .75rem;
+    font-weight: 700;
+    margin-bottom: .2rem;
+    text-transform: uppercase;
+  }
+
+  .saldo-context-item strong {
+    color: #0f172a;
+    display: block;
+    font-size: .92rem;
+    line-height: 1.35;
+  }
+
+  @media (max-width: 992px) {
+    .saldo-context-grid {
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+    }
+  }
+
+  @media (max-width: 576px) {
+    .saldo-context-grid {
+      grid-template-columns: 1fr;
+    }
+  }
 </style>
+
+{% set contexto_fechado = tipo_estoque == 'cliente' and cliente_id and ordem_servico_id %}
+{% set saldo_contexto = saldos|first %}
 
 <div class="container-fluid mt-4">
 
@@ -176,11 +225,50 @@
       </form>
     </div>
 
+    {% if contexto_fechado %}
+    <div class="p-3 saldo-context-panel">
+      <div class="saldo-context-grid">
+        <div class="saldo-context-item">
+          <span>Cliente</span>
+          <strong>
+            {% if cliente_selecionado %}
+              {{ cliente_selecionado.razao_social }}
+            {% elif saldo_contexto %}
+              {{ saldo_contexto.cliente_nome or '-' }}
+            {% else %}
+              -
+            {% endif %}
+          </strong>
+        </div>
+        <div class="saldo-context-item">
+          <span>O.S</span>
+          <strong>
+            {% if ordem_servico_selecionada %}
+              {{ ordem_servico_selecionada.numero_os }}
+            {% elif saldo_contexto and saldo_contexto.numero_os is defined %}
+              {{ saldo_contexto.numero_os or '-' }}
+            {% else %}
+              -
+            {% endif %}
+          </strong>
+        </div>
+        <div class="saldo-context-item">
+          <span>Endereço</span>
+          <strong>{{ saldo_contexto.endereco if saldo_contexto and saldo_contexto.endereco else '-' }}</strong>
+        </div>
+        <div class="saldo-context-item">
+          <span>Filtro</span>
+          <strong>Estoque Cliente{% if tipo_servico_id != 'todos' %} / Instalação{% endif %}</strong>
+        </div>
+      </div>
+    </div>
+    {% endif %}
+
     <div class="table-responsive">
       <table class="table table-hover align-middle table-saldo-detalhe mb-0">
         <thead class="table-light">
           <tr>
-            {% if tipo_estoque == 'cliente' %}
+            {% if tipo_estoque == 'cliente' and not contexto_fechado %}
             <th>Cliente</th>
             <th>O.S</th>
             <th>Endereço</th>
@@ -201,7 +289,7 @@
           {% set minimo = saldo.quantidade_minima or 0 %}
           {% set reposicao = minimo - atual if atual < minimo else 0 %}
           <tr>
-            {% if tipo_estoque == 'cliente' %}
+            {% if tipo_estoque == 'cliente' and not contexto_fechado %}
             <td>{{ saldo.cliente_nome or '-' }}</td>
             <td>{{ saldo.numero_os if saldo.numero_os is defined and saldo.numero_os else '-' }}</td>
             <td>{{ saldo.endereco or '-' }}</td>
@@ -230,7 +318,7 @@
           </tr>
           {% else %}
           <tr>
-            <td colspan="{% if tipo_estoque == 'cliente' %}10{% else %}7{% endif %}" class="text-center text-muted py-4">
+            <td colspan="{% if tipo_estoque == 'cliente' and not contexto_fechado %}10{% else %}7{% endif %}" class="text-center text-muted py-4">
               Nenhum item encontrado.
             </td>
           </tr>

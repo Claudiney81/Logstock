@@ -45,6 +45,11 @@ def saldo_detalhado(id_tecnico):
     ordem_servico_id = request.args.get('ordem_servico_id', type=int)
 
     cliente_selecionado = Empresa.query.get(cliente_id) if cliente_id else None
+    ordem_servico_selecionada = (
+        OrdemServico.query.get(ordem_servico_id)
+        if OrdemServico and ordem_servico_id
+        else None
+    )
 
     campos_query = [
         Item.codigo.label('codigo'),
@@ -193,7 +198,8 @@ def saldo_detalhado(id_tecnico):
         tipo_estoque=tipo_estoque,
         cliente_id=cliente_id,
         ordem_servico_id=ordem_servico_id,
-        cliente_selecionado=cliente_selecionado
+        cliente_selecionado=cliente_selecionado,
+        ordem_servico_selecionada=ordem_servico_selecionada
     )
 
 
