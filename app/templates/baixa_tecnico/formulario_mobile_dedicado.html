@@ -192,7 +192,8 @@
                         <th>Código</th>
                         <th>Descrição</th>
                         <th>Un.</th>
-                        <th>Qtd.</th>
+                        <th>Saldo</th>
+                        <th>QTD</th>
                       </tr>
                     </thead>
 
@@ -208,6 +209,12 @@
                           </td>
                           <td class="text-center">
                             {{ item_baixa.item.unidade if item_baixa.item else '-' }}
+                          </td>
+                          <td class="text-center">
+                            {% set tipo_saldo_correcao = item_baixa.tipo_estoque or 'empresa' %}
+                            {% set cliente_saldo_correcao = item_baixa.cliente_estoque_id or baixa.cliente_id or 0 if tipo_saldo_correcao == 'cliente' else 0 %}
+                            {% set saldo_key = (item_baixa.item_id, tipo_saldo_correcao, cliente_saldo_correcao) %}
+                            {{ saldos_correcao.get(baixa.id, {}).get(saldo_key, 0) }}
                           </td>
                           <td class="text-center fw-bold">
                             {{ item_baixa.quantidade or 0 }}
@@ -274,7 +281,7 @@
 
         tbodyResumo.innerHTML = `
           <tr id="linhaVaziaResumo">
-            <td colspan="5" class="text-center text-muted">
+            <td colspan="6" class="text-center text-muted">
               Nenhum item adicionado
             </td>
           </tr>
@@ -282,35 +289,22 @@
 
         {% for item_baixa in baixa.itens %}
           {% if item_baixa.status in ['recusado', 'pendente_ajuste'] %}
-            tbodyItens.innerHTML += `
-              <tr>
-                <td>{{ item_baixa.item.codigo if item_baixa.item else '-' }}</td>
-
-                <td>{{ item_baixa.item.descricao if item_baixa.item else '-' }}</td>
-
-                <td class="text-center">
-                  {{ item_baixa.item.unidade if item_baixa.item else '-' }}
-                </td>
-
-                <td style="width:90px;">
-                  <input
-                    type="number"
-                    class="form-control form-control-sm qtd"
-                    data-id="{{ item_baixa.item_id }}"
-                    data-codigo="{{ item_baixa.item.codigo if item_baixa.item else '' }}"
-                    data-descricao="{{ item_baixa.item.descricao if item_baixa.item else '' }}"
-                    data-tipo-estoque="{{ item_baixa.tipo_estoque }}"
-                    data-cliente-id="{{ item_baixa.cliente_estoque_id or '' }}"
-                    data-saldo="{{ item_baixa.quantidade or 0 }}"
-                    min="1"
-                    max="{{ item_baixa.quantidade or 0 }}"
-                    value="{{ item_baixa.quantidade or 0 }}"
-                  >
-                </td>
-              </tr>
-            `;
+            {% set tipo_item_correcao = item_baixa.tipo_estoque or 'empresa' %}
+            {% set cliente_item_correcao = item_baixa.cliente_estoque_id or baixa.cliente_id or '' if tipo_item_correcao == 'cliente' else '' %}
+            {% set saldo_key = (item_baixa.item_id, tipo_item_correcao, cliente_item_correcao or 0) %}
+            adicionarItemResumo({
+              id: {{ item_baixa.item_id|tojson }},
+              codigo: {{ (item_baixa.item.codigo if item_baixa.item else '')|tojson }},
+              descricao: {{ (item_baixa.item.descricao if item_baixa.item else '')|tojson }},
+              qtd: {{ (item_baixa.quantidade or 0)|tojson }},
+              saldo: {{ saldos_correcao.get(baixa.id, {}).get(saldo_key, 0)|tojson }},
+              tipoEstoque: {{ tipo_item_correcao|tojson }},
+              clienteId: {{ cliente_item_correcao|tojson }}
+            });
           {% endif %}
         {% endfor %}
+
+        carregarItens();
 
         document.getElementById('btnEnviarBaixa').innerHTML =
           '✅ Reenviar Correção';
@@ -434,14 +428,15 @@
                     <tr>
                       <th>Código</th>
                       <th>Descrição</th>
-                      <th>Un.</th>                
-                      <th>Qtd.</th>
+                      <th>Un.</th>
+                      <th>Saldo</th>
+                      <th>QTD</th>
                     </tr>
                   </thead>
 
                   <tbody id="tbodyItens">
                     <tr>
-                      <td colspan="4" class="text-center text-muted">
+                      <td colspan="5" class="text-center text-muted">
                         Selecione os filtros
                       </td>
                     </tr>
@@ -471,14 +466,15 @@
                       <th>Origem</th>
                       <th>Código</th>
                       <th>Descrição</th>
-                      <th>Qtd.</th>
+                      <th>Saldo</th>
+                      <th>QTD</th>
                       <th>Ação</th>
                     </tr>
                   </thead>
 
                   <tbody id="tbodyResumo">
                     <tr id="linhaVaziaResumo">
-                      <td colspan="5" class="text-center text-muted">
+                      <td colspan="6" class="text-center text-muted">
                         Nenhum item adicionado
                       </td>
                     </tr>
@@ -572,11 +568,94 @@
       function mensagemItens(texto, classe = 'text-muted') {
         tbodyItens.innerHTML = `
           <tr>
-            <td colspan="4" class="text-center ${classe}">
+            <td colspan="5" class="text-center ${classe}">
               ${texto}
             </td>
           </tr>
         `;
+      }
+
+      function chaveResumo(itemId, tipoEstoqueItem, clienteItem) {
+        return `${itemId}|${tipoEstoqueItem || 'empresa'}|${clienteItem || ''}`;
+      }
+
+      function adicionarItemResumo(item) {
+        const qtd = parseInt(item.qtd || 0);
+        const saldo = parseInt(item.saldo || 0);
+
+        if (qtd <= 0) {
+          return false;
+        }
+
+        if (qtd > saldo) {
+          alert(`Quantidade maior que o saldo do item ${item.codigo}.`);
+          return false;
+        }
+
+        const tipoEstoqueItem = item.tipoEstoque || 'empresa';
+        const clienteItem = item.clienteId || '';
+        const chave = chaveResumo(item.id, tipoEstoqueItem, clienteItem);
+
+        const linhaExistente = tbodyResumo.querySelector(
+          `tr[data-resumo-key="${chave}"]`
+        );
+
+        const hiddenExistente = hiddenInputs.querySelector(
+          `.hidden-item[data-resumo-key="${chave}"]`
+        );
+
+        if (linhaExistente && hiddenExistente) {
+          linhaExistente.querySelector('.resumo-saldo').textContent = saldo;
+          linhaExistente.querySelector('.resumo-qtd').textContent = qtd;
+          hiddenExistente.querySelector('input[name="quantidade[]"]').value = qtd;
+          return true;
+        }
+
+        document.getElementById('linhaVaziaResumo')?.remove();
+
+        const origemTexto =
+          tipoEstoqueItem === 'cliente'
+            ? 'Cliente'
+            : 'Empresa';
+
+        const badgeClass =
+          tipoEstoqueItem === 'cliente'
+            ? 'bg-warning text-dark'
+            : 'bg-primary';
+
+        tbodyResumo.innerHTML += `
+          <tr data-resumo-key="${chave}">
+            <td class="text-center">
+              <span class="badge ${badgeClass}">
+                ${origemTexto}
+              </span>
+            </td>
+            <td>${item.codigo || ''}</td>
+            <td>${item.descricao || ''}</td>
+            <td class="text-center resumo-saldo">${saldo}</td>
+            <td class="text-center resumo-qtd">${qtd}</td>
+            <td class="text-center">
+              <button
+                type="button"
+                class="btn btn-sm btn-outline-danger"
+                onclick="removerItemResumo(this)"
+              >
+                Remover
+              </button>
+            </td>
+          </tr>
+        `;
+
+        hiddenInputs.innerHTML += `
+          <div class="hidden-item" data-resumo-key="${chave}">
+            <input type="hidden" name="item_id[]" value="${item.id}">
+            <input type="hidden" name="quantidade[]" value="${qtd}">
+            <input type="hidden" name="tipo_estoque[]" value="${tipoEstoqueItem}">
+            <input type="hidden" name="cliente_estoque_id[]" value="${clienteItem}">
+          </div>
+        `;
+
+        return true;
       }
 
       function preencherDadosCliente() {
@@ -659,6 +738,7 @@
                   <td>${item.codigo || ''}</td>
                   <td>${item.descricao || ''}</td>
                   <td class="text-center">${item.unidade || ''}</td>
+                  <td class="text-center fw-bold">${item.saldo || 0}</td>
                   <td style="width:90px;">
                     <input
                       type="number"
@@ -671,8 +751,8 @@
                       data-cliente-id="${estoque === 'cliente' ? cliente : ''}"
                       min="0"
                       max="${item.saldo || 0}"
-                      value="${item.saldo || 0}"
-                      title="Saldo disponível: ${item.saldo || 0}"
+                      value="0"
+                      title="Saldo: ${item.saldo || 0}"
                     >
                   </td>
                 </tr>
@@ -775,64 +855,24 @@
             return;
           }
 
-          adicionou = true;
-
-          const linha = input.closest('tr');
-          if (linha) {
-            linha.remove();
-          }
-
-      document.getElementById('linhaVaziaResumo')?.remove();
-
-          document.getElementById('linhaVaziaResumo')?.remove();
-
           const estoqueItem = input.getAttribute('data-tipo-estoque') || estoque;
 
           const clienteItem = input.getAttribute('data-cliente-id') ||
             (estoqueItem === 'cliente' ? cliente : '');
 
-          const origemTexto =
-            estoqueItem === 'cliente'
-              ? 'Cliente'
-              : 'Empresa';
+          adicionou = adicionarItemResumo({
+            id: input.dataset.id,
+            codigo: input.dataset.codigo,
+            descricao: input.dataset.descricao,
+            qtd: qtd,
+            saldo: saldo,
+            tipoEstoque: estoqueItem,
+            clienteId: clienteItem
+          }) || adicionou;
 
-          const badgeClass =
-            estoqueItem === 'cliente'
-              ? 'bg-warning text-dark'
-              : 'bg-primary';
-
-          tbodyResumo.innerHTML += `
-            <tr>
-              <td class="text-center">
-                <span class="badge ${badgeClass}">
-                  ${origemTexto}
-                </span>
-              </td>
-              <td>${input.dataset.codigo}</td>
-              <td>${input.dataset.descricao}</td>
-              <td class="text-center">${qtd}</td>
-              <td class="text-center">
-                <button
-                  type="button"
-                  class="btn btn-sm btn-outline-danger"
-                  onclick="removerItemResumo(this)"
-                >
-                  Remover
-                </button>
-              </td>
-            </tr>
-          `;
-
-          hiddenInputs.innerHTML += `
-            <div class="hidden-item">
-              <input type="hidden" name="item_id[]" value="${input.dataset.id}">
-              <input type="hidden" name="quantidade[]" value="${qtd}">
-              <input type="hidden" name="tipo_estoque[]" value="${estoqueItem}">
-              <input type="hidden" name="cliente_estoque_id[]" value="${clienteItem}">
-            </div>
-          `;
-
-          input.value = '';
+          if (adicionou) {
+            input.value = '0';
+          }
         });
 
         if (!adicionou) {
@@ -994,12 +1034,14 @@
 
       function removerItemResumo(botao) {
         const linha = botao.closest('tr');
-        const linhas = Array.from(tbodyResumo.querySelectorAll('tr'));
-        const index = linhas.indexOf(linha);
+        const chave = linha?.dataset?.resumoKey;
 
         linha.remove();
 
-        const hidden = hiddenInputs.querySelectorAll('.hidden-item')[index];
+        const hidden = hiddenInputs.querySelector(
+          `.hidden-item[data-resumo-key="${chave}"]`
+        );
+
         if (hidden) {
           hidden.remove();
         }
@@ -1007,7 +1049,7 @@
         if (tbodyResumo.querySelectorAll('tr').length === 0) {
           tbodyResumo.innerHTML = `
             <tr id="linhaVaziaResumo">
-              <td colspan="5" class="text-center text-muted">
+              <td colspan="6" class="text-center text-muted">
                 Nenhum item adicionado
               </td>
             </tr>

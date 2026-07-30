@@ -134,6 +134,39 @@ def valor_saldo_tecnico(
     return float(item.valor or 0) if item else 0
 
 
+def quantidade_saldo_tecnico(
+    tecnico_id,
+    item_id,
+    tipo_estoque,
+    cliente_id=None,
+    ordem_servico_id=None
+):
+    query = SaldoTecnico.query.filter(
+        SaldoTecnico.tecnico_id == tecnico_id,
+        SaldoTecnico.item_id == item_id,
+        SaldoTecnico.tipo_servico_id == 1,
+        SaldoTecnico.tipo_estoque == tipo_estoque,
+        SaldoTecnico.quantidade > 0
+    )
+
+    if tipo_estoque == "cliente":
+        query = query.filter(
+            SaldoTecnico.cliente_id == cliente_id,
+            SaldoTecnico.ordem_servico_id == ordem_servico_id
+        )
+    else:
+        query = query.filter(
+            SaldoTecnico.cliente_id.is_(None),
+            SaldoTecnico.ordem_servico_id.is_(None)
+        )
+
+    total = query.with_entities(
+        func.coalesce(func.sum(SaldoTecnico.quantidade), 0)
+    ).scalar()
+
+    return int(total or 0)
+
+
 # ==========================================================
 # BAIXA - LINK ANTIGO / PORTAL
 # ==========================================================
@@ -209,6 +242,35 @@ def formulario_mobile_dedicado(tecnico_id=None):
         .all()
     )
 
+    saldos_correcao = {}
+
+    for baixa in baixas_recusadas:
+        saldos_correcao[baixa.id] = {}
+
+        for item_baixa in baixa.itens:
+            if item_baixa.status not in ["recusado", "pendente_ajuste"]:
+                continue
+
+            tipo_item = (item_baixa.tipo_estoque or "empresa").strip().lower()
+            cliente_estoque_id = item_baixa.cliente_estoque_id
+
+            if tipo_item == "cliente" and not cliente_estoque_id:
+                cliente_estoque_id = baixa.cliente_id
+
+            chave = (
+                item_baixa.item_id,
+                tipo_item,
+                cliente_estoque_id or 0
+            )
+
+            saldos_correcao[baixa.id][chave] = quantidade_saldo_tecnico(
+                tecnico_id=tecnico.id,
+                item_id=item_baixa.item_id,
+                tipo_estoque=tipo_item,
+                cliente_id=cliente_estoque_id,
+                ordem_servico_id=baixa.ordem_servico_id
+            )
+
     return render_template(
         "baixa_tecnico/formulario_mobile_dedicado.html",
         tecnico=tecnico,
@@ -216,7 +278,8 @@ def formulario_mobile_dedicado(tecnico_id=None):
         tecnico_nome=tecnico.nome,
         tipos_servico=tipos_servico,
         clientes=clientes,
-        baixas_recusadas=baixas_recusadas
+        baixas_recusadas=baixas_recusadas,
+        saldos_correcao=saldos_correcao
     )
     
 # ==========================================================
