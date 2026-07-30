@@ -108,7 +108,7 @@
               <th style="width:170px;">Tipo Serviço</th>
               <th style="width:80px;">Itens</th>
               <th style="width:180px;">Observação</th>
-              <th style="width:120px;">Ações</th>
+              <th style="width:210px;">Ações</th>
             </tr>
           </thead>
 
@@ -172,6 +172,7 @@
               </td>
 
               <td>
+                <div class="d-flex gap-2">
                 <a
                   href="{{ url_for('baixa_desktop.detalhe_baixa', baixa_id=baixa.id) }}"
                   class="btn btn-outline-primary btn-sm btn-icon-text"
@@ -179,6 +180,18 @@
                   <i class="bi bi-eye me-1"></i>
                   Detalhes
                 </a>
+                <form
+                  method="POST"
+                  action="{{ url_for('baixa_desktop.detalhe_baixa', baixa_id=baixa.id) }}"
+                  onsubmit="return confirm('Excluir esta baixa pendente? Esta ação não pode ser desfeita.');"
+                >
+                  <input type="hidden" name="excluir" value="1">
+                  <button type="submit" class="btn btn-outline-danger btn-sm btn-icon-text">
+                    <i class="bi bi-trash me-1"></i>
+                    Excluir
+                  </button>
+                </form>
+                </div>
               </td>
 
             </tr>

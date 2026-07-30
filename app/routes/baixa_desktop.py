@@ -195,6 +195,25 @@ def debitar_saldo_tecnico(
     return restante == 0
 
 
+def baixa_pode_ser_excluida(baixa):
+    if baixa.status in ["confirmado", "recusado", "aprovada_parcial"]:
+        return False
+
+    for item_baixa in baixa.itens:
+        if item_baixa.status == "confirmado":
+            return False
+
+        if int(item_baixa.quantidade_aprovada or 0) > 0:
+            return False
+
+    return True
+
+
+def usuario_pode_excluir_baixa():
+    perfil = (getattr(current_user, "perfil", "") or "").lower()
+    return perfil in ["admin", "estoque", "tecnica", "supervisor"]
+
+
 @bp_baixa_desktop.route("/api/ordens-servico")
 @login_required
 def api_ordens_servico():
@@ -548,6 +567,46 @@ def detalhe_baixa(baixa_id):
 
         if baixa.status in ["confirmado", "recusado"]:
             flash("Esta baixa já foi finalizada.", "info")
+            return redirect(url_for("baixa_desktop.baixas_pendentes"))
+
+        if "excluir" in request.form:
+            if not usuario_pode_excluir_baixa():
+                flash("Usuário sem permissão para excluir baixa.", "danger")
+                return redirect(url_for("baixa_desktop.detalhe_baixa", baixa_id=baixa.id))
+
+            if not baixa_pode_ser_excluida(baixa):
+                flash(
+                    "Esta baixa não pode ser excluída porque já possui item aprovado ou confirmado.",
+                    "warning"
+                )
+                return redirect(url_for("baixa_desktop.detalhe_baixa", baixa_id=baixa.id))
+
+            baixa_id_excluida = baixa.id
+
+            for foto in list(baixa.fotos):
+                caminho = (foto.caminho_arquivo or "").strip()
+
+                if caminho:
+                    caminho_abs = os.path.abspath(
+                        os.path.join(current_app.root_path, "static", caminho)
+                    )
+                    static_root = os.path.abspath(
+                        os.path.join(current_app.root_path, "static")
+                    )
+
+                    if (
+                        caminho_abs.startswith(static_root + os.sep)
+                        and os.path.exists(caminho_abs)
+                    ):
+                        try:
+                            os.remove(caminho_abs)
+                        except OSError:
+                            pass
+
+            db.session.delete(baixa)
+            db.session.commit()
+
+            flash(f"Baixa #{baixa_id_excluida} excluída com sucesso.", "success")
             return redirect(url_for("baixa_desktop.baixas_pendentes"))
 
         itens_ids = [

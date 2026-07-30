@@ -498,6 +498,15 @@
     <button
       type="button"
       class="btn btn-outline-danger btn-acao"
+      id="btnExcluir"
+    >
+      <i class="bi bi-trash me-1"></i>
+      Excluir Baixa
+    </button>
+
+    <button
+      type="button"
+      class="btn btn-outline-danger btn-acao"
       data-bs-toggle="modal"
       data-bs-target="#modalRecusa"
     >
@@ -581,6 +590,7 @@
   const checkAll = document.getElementById("checkAll");
   const itens = Array.from(document.querySelectorAll(".chk-item:not(:disabled)"));
   const btnAprovar = document.getElementById("btnAprovar");
+  const btnExcluir = document.getElementById("btnExcluir");
   const btnModalRecusar = document.getElementById("btnModalRecusar");
   const motivoRecusa = document.getElementById("motivoRecusa");
   const acaoField = document.getElementById("acaoField");
@@ -643,6 +653,20 @@
       if (!confirm("Aprovar baixa e debitar do saldo do técnico?")) return;
 
       acaoField.setAttribute("name", "aprovar");
+      acaoField.value = "1";
+      form.submit();
+    });
+  }
+
+  if (btnExcluir) {
+    btnExcluir.addEventListener("click", () => {
+      const ok = confirm(
+        "Excluir esta baixa pendente? Use apenas para baixa duplicada ou lançada por engano. Esta ação não pode ser desfeita."
+      );
+
+      if (!ok) return;
+
+      acaoField.setAttribute("name", "excluir");
       acaoField.value = "1";
       form.submit();
     });
