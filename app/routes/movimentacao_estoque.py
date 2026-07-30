@@ -983,10 +983,23 @@ def nova_movimentacao():
                     flash(f'O item {item.codigo} é Ferramenta/EPI. Use Ferramentas & EPIs.', 'danger')
                     continue
 
-            try:
-                valor_unitario = float(str(valores[i]).replace(',', '.')) if valores[i] else 0
-            except Exception:
-                valor_unitario = 0
+            # Para saldos pertencentes à empresa, o cadastro do item é a
+            # fonte oficial do valor. Não confie no campo enviado pela tela:
+            # saldos antigos podem conservar um valor_unitario desatualizado.
+            if origem_tipo == 'empresa' or (
+                origem_tipo == 'tecnico'
+                and saldo_tecnico_tipo == 'empresa'
+            ):
+                valor_unitario = float(item.valor or 0)
+            else:
+                try:
+                    valor_unitario = (
+                        float(str(valores[i]).replace(',', '.'))
+                        if valores[i]
+                        else 0
+                    )
+                except Exception:
+                    valor_unitario = 0
 
             try:
                 quantidade_minima = int(minimos[i]) if minimos[i] else 0
@@ -1557,10 +1570,9 @@ def api_itens_movimentacao():
     # ESTOQUE EMPRESA
     # ==================================================
     if origem_tipo == 'empresa':
-        valor_estoque = func.coalesce(
-            func.max(Estoque.valor_unitario),
-            Item.valor
-        ).label('valor')
+        # O valor exibido na transferência deve ser o mesmo do cadastro do
+        # item. Estoque.valor_unitario pode conter valores históricos.
+        valor_estoque = Item.valor.label('valor')
 
         query = (
             db.session.query(
@@ -1730,10 +1742,15 @@ def api_itens_movimentacao():
         if not tecnico_id:
             return jsonify([])
 
-        valor_saldo = func.coalesce(
-            func.max(SaldoTecnico.valor_unitario),
-            Item.valor
-        ).label('valor')
+        # Materiais da empresa acompanham o valor corrente do cadastro.
+        # Para materiais de cliente, preserve o valor específico do saldo/NF.
+        if saldo_tecnico_tipo == 'empresa':
+            valor_saldo = Item.valor.label('valor')
+        else:
+            valor_saldo = func.coalesce(
+                func.max(SaldoTecnico.valor_unitario),
+                Item.valor
+            ).label('valor')
 
         query = (
             db.session.query(
