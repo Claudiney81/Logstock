@@ -7,10 +7,12 @@ SESSION_COOKIE_SECURE = bool(os.getenv("RENDER"))
 PREFERRED_URL_SCHEME = "https" if os.getenv("RENDER") else "http"
 
 if os.getenv("RENDER"):
-    SQLALCHEMY_DATABASE_URI = os.getenv(
-        "DATABASE_URL",
-        "sqlite:////var/data/logistock.db"
-    )
+    SQLALCHEMY_DATABASE_URI = os.getenv("DATABASE_URL")
+
+    if not SQLALCHEMY_DATABASE_URI:
+        data_path = "/var/data"
+        os.makedirs(data_path, exist_ok=True)
+        SQLALCHEMY_DATABASE_URI = "sqlite:////var/data/logistock.db"
 else:
     SQLALCHEMY_DATABASE_URI = "sqlite:///logistock.db"
 

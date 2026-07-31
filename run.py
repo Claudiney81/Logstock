@@ -7,6 +7,10 @@ import os
 # Cria a aplicação
 app = create_app()
 
+@app.get("/health")
+def health():
+    return "OK", 200
+
 # Rota temporária para criar o admin
 @app.get("/_bootstrap_admin")
 def _bootstrap_admin():
