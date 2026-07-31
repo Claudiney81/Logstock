@@ -11,8 +11,13 @@ if os.getenv("RENDER"):
 
     if not SQLALCHEMY_DATABASE_URI:
         data_path = "/var/data"
-        os.makedirs(data_path, exist_ok=True)
-        SQLALCHEMY_DATABASE_URI = "sqlite:////var/data/logistock.db"
+        try:
+            os.makedirs(data_path, exist_ok=True)
+        except PermissionError:
+            data_path = "/tmp"
+            os.makedirs(data_path, exist_ok=True)
+
+        SQLALCHEMY_DATABASE_URI = "sqlite:///" + os.path.join(data_path, "logistock.db")
 else:
     SQLALCHEMY_DATABASE_URI = "sqlite:///logistock.db"
 
