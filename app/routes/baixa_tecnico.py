@@ -235,8 +235,7 @@ def formulario_mobile_dedicado(tecnico_id=None):
         BaixaTecnica.query
         .filter(
             BaixaTecnica.tecnico_id == tecnico.id,
-            BaixaTecnica.status.in_(["recusado", "pendente_ajuste"]),
-            BaixaTecnica.origem_mobile == True
+            BaixaTecnica.status.in_( ["recusado", "pendente_ajuste"] )
         )
         .order_by(BaixaTecnica.data_hora.desc())
         .all()
