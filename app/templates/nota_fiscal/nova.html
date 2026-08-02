@@ -476,16 +476,20 @@
               </div>
 
               <div class="nf-actions-bar">
-                <button
-                  type="reset"
-                  class="btn btn-outline-secondary"
-                  onclick="limparItens()"
-                >
-                  <i class="bi bi-eraser me-1"></i>
-                  Limpar
-                </button>
+                <div id="totalNotaFiscal" class="d-flex align-items-center fw-semibold">
+                  Total da Nota: R$ 0,00
+                </div>
 
                 <div class="d-flex gap-2 justify-content-end">
+                  <button
+                    type="button"
+                    class="btn btn-outline-secondary"
+                    onclick="limparItens()"
+                  >
+                    <i class="bi bi-eraser me-1"></i>
+                    Limpar
+                  </button>
+
                   <button type="submit" id="btnSalvarNotaFiscal" class="btn btn-nf-success px-4">
                     <i class="bi bi-check-circle me-1"></i>
                     Salvar Nota Fiscal
@@ -743,14 +747,66 @@ function textoItemNF(item) {
   return normalizarTextoNF(`${item.codigo || ""} ${item.descricao || ""}`);
 }
 
+function parseNumeroBRNF(valor) {
+  const texto = String(valor ?? "0").replace("R$", "").trim();
+
+  if (!texto) {
+    return 0;
+  }
+
+  if (texto.includes(",")) {
+    return parseFloat(texto.replace(/\./g, "").replace(",", "."));
+  }
+
+  return parseFloat(texto);
+}
+
 function formatarValorNF(valor) {
-  const numero = parseFloat(String(valor || "0").replace(",", "."));
+  const numero = parseNumeroBRNF(valor);
 
   if (isNaN(numero)) {
     return "0.00";
   }
 
   return numero.toFixed(2);
+}
+
+function formatarReal(valor) {
+  const numero = parseNumeroBRNF(valor);
+
+  if (isNaN(numero)) {
+    return "R$ 0,00";
+  }
+
+  return numero.toLocaleString("pt-BR", {
+    style: "currency",
+    currency: "BRL",
+  });
+}
+
+function atualizarTotalNotaFiscal() {
+  const tabela = document.getElementById("tabela-itens");
+  let total = 0;
+
+  if (tabela) {
+    tabela.querySelectorAll("tr").forEach((tr) => {
+      const valorInput = tr.querySelector('input[name="valor[]"]');
+      const quantidadeInput = tr.querySelector('input[name="quantidade[]"]');
+
+      const valor = parseFloat(String(valorInput?.value || "0").replace(",", "."));
+      const quantidade = parseFloat(String(quantidadeInput?.value || "0").replace(",", "."));
+
+      if (!isNaN(valor) && !isNaN(quantidade)) {
+        total += valor * quantidade;
+      }
+    });
+  }
+
+  const totalEl = document.getElementById("totalNotaFiscal");
+
+  if (totalEl) {
+    totalEl.textContent = `Total da Nota: ${formatarReal(total)}`;
+  }
 }
 
 function itemJaNaNota(codigo) {
@@ -1133,7 +1189,7 @@ function adicionarItem() {
   let valor =
     document.getElementById("valor").value.trim();
 
-  valor = valor.replace(",", ".");
+  valor = formatarValorNF(valor);
 
   if (!codigo || !descricao || !quantidade) {
     alert("Selecione um item e informe a quantidade.");
@@ -1164,14 +1220,14 @@ function adicionarItem() {
 
     <td>
       <input type="hidden" name="valor[]" value="${valor}">
-      R$ ${valor.replace(".", ",")}
+      ${formatarReal(valor)}
     </td>
 
     <td>
       <button
         type="button"
         class="btn btn-sm btn-danger"
-        onclick="this.closest('tr').remove()"
+        onclick="removerItem(this)"
       >
         Excluir
       </button>
@@ -1186,12 +1242,22 @@ function adicionarItem() {
 
   selectDescricao.selectedIndex = 0;
 
+  atualizarTotalNotaFiscal();
 }
 
 function limparItens() {
   document.getElementById("tabela-itens").innerHTML = "";
+  atualizarTotalNotaFiscal();
 }
 
+function removerItem(button) {
+  const row = button.closest("tr");
+
+  if (row) {
+    row.remove();
+    atualizarTotalNotaFiscal();
+  }
+}
 
 function validarItens() {
 
@@ -1287,9 +1353,7 @@ document
 
 function adicionarItemImportado(codigo, descricao, quantidade, valor) {
 
-  valor = parseFloat(
-    (valor || "0").toString().replace(",", ".")
-  ).toFixed(2);
+  valor = formatarValorNF(valor);
 
   const tabela = document.getElementById("tabela-itens");
 
@@ -1313,14 +1377,14 @@ function adicionarItemImportado(codigo, descricao, quantidade, valor) {
 
     <td>
       <input type="hidden" name="valor[]" value="${valor}">
-      R$ ${valor.replace(".", ",")}
+      ${formatarReal(valor)}
     </td>
 
     <td>
       <button
         type="button"
         class="btn btn-sm btn-danger"
-        onclick="this.closest('tr').remove()"
+        onclick="removerItem(this)"
       >
         Excluir
       </button>
@@ -1328,15 +1392,37 @@ function adicionarItemImportado(codigo, descricao, quantidade, valor) {
   `;
 
   tabela.appendChild(row);
+  atualizarTotalNotaFiscal();
 
 }
 
 document.addEventListener("DOMContentLoaded", function () {
 
+  const formNotaFiscal = document.getElementById("formNotaFiscal");
+
   const categoriaEntrada = document.getElementById("categoria_entrada");
   const selectDescricao = document.getElementById("descricao");
   const campoCodigo = document.getElementById("codigo");
   const campoValor = document.getElementById("valor");
+
+  if (formNotaFiscal) {
+    formNotaFiscal.addEventListener("keydown", function (event) {
+      const alvo = event.target;
+      const camposAuxiliares = ["codigo", "quantidade", "valor", "busca_lote_nf"];
+
+      if (
+        event.key === "Enter" &&
+        alvo &&
+        camposAuxiliares.includes(alvo.id)
+      ) {
+        event.preventDefault();
+
+        if (alvo.id === "codigo" || alvo.id === "quantidade" || alvo.id === "valor") {
+          adicionarItem();
+        }
+      }
+    });
+  }
 
   function carregarItensPorCategoria() {
 

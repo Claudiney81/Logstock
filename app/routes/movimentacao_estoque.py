@@ -81,6 +81,20 @@ def _atribuir_condicao_estoque(estoque, condicao):
         estoque.condicao_material = condicao
 
 
+def parse_valor_br(valor):
+    texto = str(valor or "0").replace("R$", "").strip()
+
+    if not texto:
+        return 0.0
+
+    try:
+        if "," in texto:
+            texto = texto.replace(".", "").replace(",", ".")
+        return float(texto)
+    except Exception:
+        return 0.0
+
+
 def _pode_corrigir_saldo_legado():
     return getattr(current_user, 'perfil', None) in PERFIS_CORRECAO_LEGADO
 
@@ -992,14 +1006,7 @@ def nova_movimentacao():
             ):
                 valor_unitario = float(item.valor or 0)
             else:
-                try:
-                    valor_unitario = (
-                        float(str(valores[i]).replace(',', '.'))
-                        if valores[i]
-                        else 0
-                    )
-                except Exception:
-                    valor_unitario = 0
+                valor_unitario = parse_valor_br(valores[i] if i < len(valores) else 0)
 
             try:
                 quantidade_minima = int(minimos[i]) if minimos[i] else 0

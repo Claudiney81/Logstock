@@ -24,9 +24,9 @@
     <div>
       <h5>
         <i class="bi bi-clipboard-check me-2"></i>
-        Detalhe da Baixa
+        Conferência da Baixa
       </h5>
-      <small>Conferência e aprovação</small>
+      <small>Revise saldos, valores e evidências antes de aprovar.</small>
     </div>
   </div>
 
@@ -109,7 +109,26 @@
     <div>
       <span class="label-info">Status</span>
       <strong>
-        {{ baixa.status|replace('_',' ')|capitalize }}
+        {% if baixa.status == 'revisada' %}
+          Baixa Revisada
+        {% elif baixa.status == 'pendente_ajuste' %}
+          Técnico Revisando
+        {% elif baixa.status == 'pendente' %}
+          Aprovação Pendente
+        {% else %}
+          {{ baixa.status|replace('_',' ')|capitalize }}
+        {% endif %}
+      </strong>
+    </div>
+
+    <div>
+      <span class="label-info">Origem</span>
+      <strong>
+        {% if baixa.origem_mobile %}
+          Portal Técnico
+        {% else %}
+          Baixa Desktop
+        {% endif %}
       </strong>
     </div>
 
@@ -124,108 +143,163 @@
 
 </div>
 
+  <!-- FOTOS DE EVIDÊNCIA -->
+  <div class="info-card">
+    <div class="d-flex justify-content-between align-items-center mb-3">
+      <div>
+        <h6 class="mb-1">Evidências do Técnico</h6>
+        <div class="text-muted" style="font-size:0.90rem;">Fotos enviadas pelo técnico durante a baixa.</div>
+      </div>
+    </div>
+
+    {% if baixa.fotos %}
+      <div class="evidencias-grid">
+        {% for foto in baixa.fotos %}
+          <div class="evidencia-card">
+            <a href="{{ url_for('static', filename=foto.caminho_arquivo) }}" target="_blank" rel="noreferrer noopener">
+              <img src="{{ url_for('static', filename=foto.caminho_arquivo) }}" alt="Evidência {{ loop.index }}" />
+            </a>
+            <div class="evidencia-info">
+              <div class="fw-semibold">{{ foto.legenda or 'Sem legenda' }}</div>
+              <small class="text-muted">{{ foto.data_upload.strftime('%d/%m/%Y %H:%M') }}</small>
+            </div>
+          </div>
+        {% endfor %}
+      </div>
+    {% else %}
+      <div class="text-muted">Nenhuma evidência enviada pelo técnico.</div>
+    {% endif %}
+  </div>
+
   <!-- ITENS -->
 <div class="info-card">
 
-  <h6>Itens da Baixa</h6>
+  <div class="d-flex flex-column gap-2 mb-3">
+    <button
+      type="button"
+      id="btnProjCliente"
+      class="btn btn-outline-primary btn-action"
+    >
+      <i class="bi bi-file-earmark-text me-2"></i>
+      Proj Cliente
+    </button>
 
-  <div class="tabela-scroll-mobile">
+    <div id="projClientePanel" class="proj-cliente-panel d-none">
+      <div class="proj-cliente-header">
+        <strong>Materiais Cliente</strong>
+        <span>Total da projeção: {{ proj_cliente_total|brl }}</span>
+      </div>
+      <div class="proj-cliente-list">
+        {% if proj_cliente_itens %}
+          {% for item in proj_cliente_itens %}
+            <div class="proj-cliente-row">
+              <div>
+                <strong>{{ item.codigo }}</strong> · {{ item.descricao }}
+              </div>
+              <div>
+                {{ item.quantidade }} x {{ item.valor_unitario|brl }} =
+                <strong>{{ item.valor_total|brl }}</strong>
+              </div>
+            </div>
+          {% endfor %}
+        {% else %}
+          <div class="text-muted">Nenhum item de cliente para projeção.</div>
+        {% endif %}
+      </div>
+    </div>
+  </div>
 
-    <table class="table-mobile-detalhe">
+  <div class="itens-mobile-list">
+    {% set grupo = namespace(tipo='') %}
 
-      <thead>
-        <tr>
-          <th>Tipo Estoque</th>
-          <th>Código</th>
-          <th>Descrição</th>
-          <th>Un.</th>
-          <th>Qtd.</th>
-          <th>Valor Unit.</th>
-          <th>Valor Total</th>
-          <th>Status Item</th>
-        </tr>
-      </thead>
+    {% for item in itens_ordenados %}
+      {% set tipo_atual = item.tipo_estoque or 'empresa' %}
+      {% set qtd_origem = (item.quantidade or 0) + (item.quantidade_aprovada or 0) %}
+      {% set saldo_key = item.item_id|string ~ '|' ~ tipo_atual ~ '|' ~ (item.cliente_estoque_id if tipo_atual == 'cliente' else 0) %}
 
-      <tbody>
+      {% if tipo_atual != grupo.tipo %}
+        {% set grupo.tipo = tipo_atual %}
+        <div class="grupo-estoque {{ 'grupo-cliente' if tipo_atual == 'cliente' else 'grupo-empresa' }}">
+          {% if tipo_atual == 'cliente' %}
+            Material do cliente/O.S
+          {% else %}
+            Material do saldo da empresa
+          {% endif %}
+        </div>
+      {% endif %}
 
-        {% for item in baixa.itens %}
-        <tr>
+      <article class="item-card {{ 'item-cliente' if tipo_atual == 'cliente' else 'item-empresa' }}">
+        <div class="item-card-top">
+          <div>
+            <span class="codigo-item">{{ item.item.codigo if item.item else '-' }}</span>
+            <h6>{{ item.item.descricao if item.item else '-' }}</h6>
+          </div>
 
-          <td>
-            {% if item.tipo_estoque == 'cliente' %}
-              Cliente
-            {% else %}
-              Empresa
-            {% endif %}
-          </td>
+          {% if item.status == 'pendente' %}
+            <span class="badge-status badge-pendente">Pendente</span>
+          {% elif item.status == 'pendente_ajuste' %}
+            <span class="badge-status badge-ajuste">Ajuste</span>
+          {% elif item.status == 'confirmado' %}
+            <span class="badge-status badge-aprovado">Confirmado</span>
+          {% else %}
+            <span class="badge-status badge-neutro">{{ item.status or '-' }}</span>
+          {% endif %}
+        </div>
 
-          <td>
-            {{ item.item.codigo if item.item else '-' }}
-          </td>
+        <div class="item-metrics">
+          <div>
+            <span>Qtd.</span>
+            <strong>{{ qtd_origem }} {{ item.item.unidade if item.item else '' }}</strong>
+          </div>
+          <div>
+            <span>Saldo</span>
+            <strong>{{ saldos_itens.get(saldo_key, 0) }}</strong>
+          </div>
+          <div>
+            <span>Valor unit.</span>
+            <strong>{{ (item.valor_unitario or 0)|brl }}</strong>
+          </div>
+          <div>
+            <span>Total</span>
+            <strong>{{ (item.valor_total or 0)|brl }}</strong>
+          </div>
+        </div>
+      </article>
+    {% else %}
+      <div class="text-muted">Nenhum item encontrado nesta baixa.</div>
+    {% endfor %}
+  </div>
 
-          <td class="descricao-col">
-            {{ item.item.descricao if item.item else '-' }}
-          </td>
-
-          <td>
-            {{ item.item.unidade if item.item else '-' }}
-          </td>
-
-          <td>
-            <strong>{{ item.quantidade }}</strong>
-          </td>
-
-          <td>
-            R$
-            {{
-              '%.2f'|format((item.valor_unitario or 0)|float)
-              | replace('.', ',')
-            }}
-          </td>
-
-          <td>
-            <strong>
-              R$
-              {{
-                '%.2f'|format((item.valor_total or 0)|float)
-                | replace('.', ',')
-              }}
-            </strong>
-          </td>
-
-          <td>
-            {% if item.status == 'pendente' %}
-              <span class="badge-status badge-pendente">
-                Pendente
-              </span>
-
-            {% elif item.status == 'pendente_ajuste' %}
-              <span class="badge-status badge-ajuste">
-                Ajuste
-              </span>
-
-            {% elif item.status == 'confirmado' %}
-              <span class="badge-status badge-aprovado">
-                Confirmado
-              </span>
-
-            {% else %}
-              <span class="badge-status badge-neutro">
-                {{ item.status or '-' }}
-              </span>
-            {% endif %}
-          </td>
-
-        </tr>
-        {% endfor %}
-
-      </tbody>
-
-    </table>
-
+  <div class="mt-3 p-3 rounded bg-light border">
+    <div class="d-flex flex-column flex-md-row justify-content-between gap-2">
+      <div>
+        <div class="fw-bold">Total da Baixa</div>
+        <div class="text-muted" style="font-size:0.90rem;">Valor original de todos os itens</div>
+      </div>
+      <div class="text-end">
+        <div class="fw-bold">{{ total_geral|brl }}</div>
+        <div class="text-muted" style="font-size:0.90rem;">
+          Empresa: {{ total_empresa|brl }}
+          &nbsp;|&nbsp;
+          Cliente: {{ total_cliente|brl }}
+        </div>
+      </div>
+    </div>
   </div>
 
 </div>
+
+  <div class="info-card action-card">
+    <h6>Decisão do aprovador</h6>
+    <p class="text-muted">
+      Aprove se os materiais, saldos e evidências estiverem corretos.
+      Se devolver, a correção volta para
+      {% if baixa.origem_mobile %}
+        o portal do técnico.
+      {% else %}
+        o Baixa Desktop.
+      {% endif %}
+    </p>
 
   <!-- APROVAR -->
   <form
@@ -248,7 +322,7 @@
   <form
     method="POST"
     action="{{ url_for('baixa_tecnico.recusar_mobile', baixa_id=baixa.id) }}"
-    onsubmit="return confirm('Confirmar devolução desta baixa para ajuste do técnico?');"
+    onsubmit="return confirm('Confirmar devolução desta baixa para ajuste?');"
   >
 
     <textarea
@@ -277,6 +351,7 @@
     <i class="bi bi-arrow-left me-2"></i>
     Voltar
   </a>
+  </div>
 
 </div>
 
@@ -354,72 +429,6 @@ body{
     grid-column:1 / -1;
 }
 
-.table-mobile{
-    border-radius:14px;
-    overflow:hidden;
-    border:1px solid #e8edf3;
-}
-
-.table-head{
-    display:grid;
-    grid-template-columns:2fr 1fr .8fr .6fr 1fr;
-    gap:8px;
-    background:#002b55;
-    color:#fff;
-    padding:10px;
-    font-size:12px;
-    font-weight:600;
-}
-
-.table-row{
-    display:grid;
-    grid-template-columns:2fr 1fr .8fr .6fr 1fr;
-    gap:8px;
-    align-items:center;
-    padding:12px 10px;
-    border-bottom:1px solid #eef2f6;
-    background:#fff;
-    font-size:12px;
-}
-
-.table-row:last-child{
-    border-bottom:none;
-}
-
-.item-desc{
-    font-weight:600;
-    color:#1f2d3d;
-}
-
-.badge-estoque{
-    display:inline-flex;
-    justify-content:center;
-    align-items:center;
-    padding:4px 8px;
-    border-radius:999px;
-    font-size:11px;
-    font-weight:700;
-}
-
-.badge-empresa{
-    background:rgba(13,110,253,.10);
-    color:#0b5ed7;
-    border:1px solid rgba(13,110,253,.22);
-}
-
-.badge-cliente{
-    background:rgba(111,66,193,.10);
-    color:#6f42c1;
-    border:1px solid rgba(111,66,193,.22);
-}
-
-.estoque-sub{
-    display:block;
-    font-size:10px;
-    color:#6c757d;
-    margin-top:4px;
-}
-
 .badge-status{
     display:inline-flex;
     justify-content:center;
@@ -495,49 +504,179 @@ textarea{
     }
 }
 
-.tabela-scroll-mobile{
-    width:100%;
-    overflow-x:auto;
-    border-radius:14px;
-    border:1px solid #e8edf3;
+.itens-mobile-list{
+    display:flex;
+    flex-direction:column;
+    gap:10px;
 }
 
-.table-mobile-detalhe{
-    width:100%;
-    min-width:780px;
-    border-collapse:collapse;
-    background:#fff;
+.grupo-estoque{
+    padding:9px 11px;
+    border-radius:12px;
     font-size:12px;
+    font-weight:800;
+    letter-spacing:.03em;
+    text-transform:uppercase;
 }
 
-.table-mobile-detalhe thead th{
-    background:#002b55;
-    color:#fff;
-    padding:10px 8px;
-    text-align:center;
-    white-space:nowrap;
+.grupo-empresa{
+    background:#eaf3ff;
+    color:#084298;
+    border-left:4px solid #0d6efd;
+}
+
+.grupo-cliente{
+    background:#e9f8ef;
+    color:#0f5132;
+    border-left:4px solid #198754;
+}
+
+.item-card{
+    border:1px solid #e1e8ee;
+    border-left-width:5px;
+    border-radius:14px;
+    padding:12px;
+    background:#fff;
+}
+
+.item-empresa{
+    border-left-color:#0d6efd;
+}
+
+.item-cliente{
+    border-left-color:#198754;
+}
+
+.item-card-top{
+    display:flex;
+    justify-content:space-between;
+    gap:10px;
+    align-items:flex-start;
+    margin-bottom:10px;
+}
+
+.codigo-item{
+    color:#6c757d;
+    font-size:12px;
     font-weight:700;
 }
 
-.table-mobile-detalhe tbody td{
-    padding:10px 8px;
-    border-bottom:1px solid #eef2f6;
-    text-align:center;
-    vertical-align:middle;
-    white-space:nowrap;
+.item-card h6{
+    color:#17212b;
+    margin:2px 0 0;
+    line-height:1.25;
 }
 
-.table-mobile-detalhe tbody tr:last-child td{
-    border-bottom:none;
+.item-metrics{
+    display:grid;
+    grid-template-columns:1fr 1fr;
+    gap:8px;
 }
 
-.table-mobile-detalhe .descricao-col{
-    text-align:left;
-    white-space:normal;
-    min-width:220px;
-    font-weight:600;
+.item-metrics div{
+    background:#f8fafc;
+    border:1px solid #e8edf3;
+    border-radius:10px;
+    padding:8px;
 }
 
+.item-metrics span{
+    display:block;
+    color:#6c757d;
+    font-size:11px;
+    font-weight:700;
+    margin-bottom:2px;
+}
+
+.item-metrics strong{
+    font-size:14px;
+}
+
+.action-card{
+    position:sticky;
+    bottom:10px;
+    z-index:10;
+}
+
+  .proj-cliente-panel{
+    padding: 12px;
+    border: 1px solid #ced4da;
+    border-radius: 12px;
+    background: #f8f9fa;
+  }
+
+  .proj-cliente-header{
+    display: flex;
+    justify-content: space-between;
+    gap: 12px;
+    align-items: center;
+    margin-bottom: 10px;
+    font-size: 14px;
+  }
+
+  .proj-cliente-list{
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+  }
+
+  .proj-cliente-row{
+    display: flex;
+    justify-content: space-between;
+    gap: 12px;
+    font-size: 13px;
+    padding: 8px;
+    border-radius: 10px;
+    background: #ffffff;
+  }
+
+  .evidencias-grid{
+    display:grid;
+    grid-template-columns:repeat(auto-fill, minmax(140px, 1fr));
+    gap:12px;
+  }
+
+  .evidencia-card{
+    background:#f8f9fa;
+    border-radius:14px;
+    overflow:hidden;
+    border:1px solid #dee2e6;
+    display:flex;
+    flex-direction:column;
+  }
+
+  .evidencia-card img{
+    width:100%;
+    height:140px;
+    object-fit:cover;
+    display:block;
+  }
+
+  .evidencia-info{
+    padding:10px;
+  }
+
+  .evidencia-info .fw-semibold{
+    font-size:13px;
+    margin-bottom:4px;
+  }
+
+  .btn-action{
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+  }
 </style>
+
+<script>
+  document.getElementById('btnProjCliente').addEventListener('click', function () {
+    const panel = document.getElementById('projClientePanel');
+    panel.classList.toggle('d-none');
+    this.innerHTML = panel.classList.contains('d-none')
+      ? '<i class="bi bi-file-earmark-text me-2"></i> Proj Cliente'
+      : '<i class="bi bi-eye-slash me-2"></i> Ocultar Projeção';
+  });
+</script>
 </body>
 </html>

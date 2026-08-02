@@ -1216,6 +1216,21 @@ function removerLinha(btn, isFirstLine) {
   tr.remove();
 }
 
+document.querySelector("form")?.addEventListener("keydown", function (e) {
+  if (e.key !== "Enter") return;
+
+  const tagName = e.target.tagName;
+  const usaEnterNaTela =
+    e.target.classList.contains("codigo-input") ||
+    e.target.classList.contains("lote-qtd");
+
+  if (tagName === "BUTTON" || tagName === "TEXTAREA" || usaEnterNaTela) {
+    return;
+  }
+
+  e.preventDefault();
+});
+
 document.querySelector("form")?.addEventListener("submit", function (e) {
   const origemTipo = document.getElementById("origem_tipo").value;
   const destinoTipo = document.getElementById("destino_tipo").value;

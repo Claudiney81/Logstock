@@ -27,61 +27,67 @@
     <div class="card-body">
 
       {% if baixas_recusadas %}
-      <div class="alert alert-danger shadow-sm border-0 mb-4">
-        <div class="fw-bold mb-2">
-          ⚠ Baixas manuais devolvidas para ajuste
-        </div>
+      <div class="mb-4">
+        <button
+          class="btn btn-outline-danger w-100 d-flex justify-content-between align-items-center"
+          type="button"
+          data-bs-toggle="collapse"
+          data-bs-target="#painelBaixasDevolvidas"
+          aria-expanded="false"
+          aria-controls="painelBaixasDevolvidas"
+        >
+          <span class="fw-bold">
+            ⚠ Baixas devolvidas para ajuste
+          </span>
+          <span>
+            <span class="badge bg-danger me-2">{{ baixas_recusadas|length }}</span>
+            Abrir lista
+          </span>
+        </button>
 
-        {% for baixa in baixas_recusadas %}
-        <div class="bg-white border rounded p-3 mb-2">
+        <div class="collapse mt-2" id="painelBaixasDevolvidas">
+          <div class="bg-white border border-danger rounded p-3 shadow-sm">
+            <small class="text-muted d-block mb-3">
+              Você pode criar nova baixa normalmente ou escolher uma pendência para corrigir.
+            </small>
+
           <div class="row g-2 align-items-end">
-            <div class="col-md-3">
-              <small class="text-muted">Técnico</small><br>
-              <strong>{{ baixa.tecnico.nome if baixa.tecnico else '-' }}</strong>
+            <div class="col-md-9">
+              <label class="form-label fw-bold">Escolher baixa devolvida</label>
+              <select id="selectBaixaDevolvida" class="form-select">
+                <option value="">Selecione uma pendência para corrigir</option>
+                {% for baixa in baixas_recusadas %}
+                <option value="{{ baixa.id }}">
+                  Baixa {{ baixa.id }} -
+                  {{ baixa.tecnico.nome if baixa.tecnico else 'Técnico não informado' }} |
+                  {{ baixa.cliente.razao_social if baixa.cliente else 'Cliente não informado' }} |
+                  O.S:
+                  {% if baixa.ordem_servico %}
+                    {{ baixa.ordem_servico.numero_os }}
+                  {% elif baixa.os_cliente %}
+                    {{ baixa.os_cliente.split(' - ')[-1] }}
+                  {% else %}
+                    -
+                  {% endif %}
+                  | {{ baixa.data_hora.strftime('%d/%m/%Y %H:%M') if baixa.data_hora else '-' }}
+                </option>
+                {% endfor %}
+              </select>
             </div>
 
             <div class="col-md-3">
-              <small class="text-muted">Cliente</small><br>
-              <strong>{{ baixa.cliente.razao_social if baixa.cliente else '-' }}</strong>
-            </div>
-
-            <div class="col-md-2">
-              <small class="text-muted">O.S</small><br>
-              <strong>
-                {% if baixa.ordem_servico %}
-                  {{ baixa.ordem_servico.numero_os }}
-                {% elif baixa.os_cliente %}
-                  {{ baixa.os_cliente.split(' - ')[-1] }}
-                {% else %}
-                  -
-                {% endif %}
-              </strong>
-            </div>
-
-            <div class="col-md-2">
-              <small class="text-muted">Data</small><br>
-              <strong>
-                {{ baixa.data_hora.strftime('%d/%m/%Y %H:%M') if baixa.data_hora else '-' }}
-              </strong>
-            </div>
-
-            <div class="col-md-2 text-end">
               <button
                 type="button"
-                class="btn btn-danger btn-sm w-100"
-                onclick="corrigirBaixa{{ baixa.id }}()"
+                class="btn btn-danger w-100"
+                onclick="corrigirBaixaSelecionada()"
               >
-                Corrigir
+                Corrigir selecionada
               </button>
             </div>
           </div>
 
-          <div class="mt-2">
-            <small class="text-muted">Motivo da devolução:</small><br>
-            <strong>{{ baixa.motivo_recusa or 'A baixa foi devolvida para correção.' }}</strong>
           </div>
         </div>
-        {% endfor %}
       </div>
       {% endif %}
 
@@ -178,7 +184,41 @@
 
         <hr>
 
-        <h5 class="fw-bold mb-3">
+        <div id="avisoListaCorrecao" class="alert alert-warning d-none">
+          <strong>Modo correção ativo:</strong>
+          ajuste os itens devolvidos pelo aprovador. Se precisar acrescentar material novo, use a tabela
+          de itens disponíveis logo abaixo, que inicia com <strong>Qtd. Baixa = 0</strong>.
+        </div>
+
+        <div id="secaoItensCorrecao" class="d-none">
+          <h5 class="fw-bold mb-3">
+            Itens devolvidos para correção
+          </h5>
+
+          <div class="table-responsive mb-4">
+            <table class="table table-hover table-sm align-middle mb-0 app-table">
+              <thead>
+                <tr>
+                  <th style="width:120px;">Código</th>
+                  <th>Descrição</th>
+                  <th style="width:80px;">Un.</th>
+                  <th style="width:90px;">Saldo</th>
+                  <th style="width:150px;">Qtd. Baixa</th>
+                </tr>
+              </thead>
+
+              <tbody id="tbodyItensCorrecao">
+                <tr>
+                  <td colspan="5" class="text-center text-muted">
+                    Selecione uma baixa devolvida para corrigir.
+                  </td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+
+        <h5 class="fw-bold mb-3" id="tituloItensDisponiveis">
           Itens disponíveis para baixa
         </h5>
 
@@ -220,17 +260,18 @@
           <table class="table table-hover table-sm align-middle mb-0 app-table">
             <thead>
               <tr>
-                <th style="width:110px;">Origem</th>
-                <th style="width:120px;">Código</th>
+                <th style="width:90px;">Origem</th>
+                <th style="width:110px;">Código</th>
                 <th>Descrição</th>
                 <th style="width:80px;">Un.</th>
-                <th style="width:100px;">Quantidade</th>
+                <th style="width:90px;">Quantidade</th>
+                <th style="width:90px;">Ação</th>
               </tr>
             </thead>
 
             <tbody id="tbodyResumoBaixa">
               <tr id="linhaVaziaResumo">
-                <td colspan="5" class="text-center text-muted">
+                <td colspan="6" class="text-center text-muted">
                   Nenhum item adicionado ao resumo.
                 </td>
               </tr>
@@ -273,16 +314,37 @@ const baixaIdCorrigir = document.getElementById("baixa_id_corrigir");
 const btnRegistrarBaixa = document.getElementById("btnRegistrarBaixa");
 
 const tbodyItensDisponiveis = document.getElementById("tbodyItensDisponiveis");
+const tituloItensDisponiveis = document.getElementById("tituloItensDisponiveis");
+const avisoListaCorrecao = document.getElementById("avisoListaCorrecao");
+const secaoItensCorrecao = document.getElementById("secaoItensCorrecao");
+const tbodyItensCorrecao = document.getElementById("tbodyItensCorrecao");
 const tbodyResumoBaixa = document.getElementById("tbodyResumoBaixa");
 const hiddenInputsResumo = document.getElementById("hiddenInputsResumo");
 
 let resumoBaixa = [];
 let modoCorrecaoBaixa = false;
+let baixaCorrecaoAtual = null;
 let carregamentoSaldoAtual = 0;
 let controleCarregamentoSaldo = null;
 
 function origemTexto(origem) {
   return origem === "cliente" ? "Cliente" : "Empresa";
+}
+
+function chaveResumo(origem, itemId) {
+  return `${origem}_${itemId}`;
+}
+
+function quantidadeNoResumo(origem, itemId) {
+  const chave = chaveResumo(origem, itemId);
+  const existente = resumoBaixa.find(l => l.chave === chave);
+  return existente ? parseInt(existente.quantidade || 0) : 0;
+}
+
+function saldoRestanteParaItem(origem, itemId, saldoTotal) {
+  const saldo = parseInt(saldoTotal || 0);
+  const usado = quantidadeNoResumo(origem, itemId);
+  return Math.max(saldo - usado, 0);
 }
 
 function atualizarEndereco() {
@@ -299,6 +361,30 @@ function limparItensDisponiveis() {
       </td>
     </tr>
   `;
+}
+
+function atualizarListagensAposResumo() {
+  if (modoCorrecaoBaixa && baixaCorrecaoAtual) {
+    renderizarItensCorrecao(baixaCorrecaoAtual);
+  }
+
+  if (validarBaseCarregamentoSilencioso()) {
+    carregarSaldo();
+  }
+}
+
+function validarBaseCarregamentoSilencioso() {
+  const tecnico = tecnicoId.value;
+  const tipoServicoId = tipoServico.value;
+  const estoque = tipoEstoque.value;
+  const cliente = clienteId.value;
+  const os = ordemServico.value;
+
+  if (!tecnico || !tipoServicoId || !estoque) {
+    return false;
+  }
+
+  return estoque !== "cliente" || (cliente && os);
 }
 
 function validarBaseCarregamento() {
@@ -410,6 +496,11 @@ async function carregarSaldo() {
     }
 
     if (!dados.itens || dados.itens.length === 0) {
+      if (modoCorrecaoBaixa && baixaCorrecaoAtual) {
+        renderizarItensCorrecao(baixaCorrecaoAtual, [], estoque);
+        return;
+      }
+
       tbodyItensDisponiveis.innerHTML = `
         <tr>
           <td colspan="5" class="text-center text-muted">
@@ -420,23 +511,29 @@ async function carregarSaldo() {
       return;
     }
 
+    if (modoCorrecaoBaixa && baixaCorrecaoAtual) {
+      renderizarItensCorrecao(baixaCorrecaoAtual, dados.itens, estoque);
+      return;
+    }
+
     tbodyItensDisponiveis.innerHTML = "";
 
     dados.itens.forEach(item => {
-      const chave = `${estoque}_${item.item_id}`;
-      const jaAdicionado = resumoBaixa.find(l => l.chave === chave);
-      const saldoDisponivelTela = item.quantidade - (jaAdicionado ? jaAdicionado.quantidade : 0);
+      const itemId = parseInt(item.item_id);
+      const saldoTotal = parseInt(item.quantidade || 0);
+      const saldoDisponivelTela = saldoRestanteParaItem(estoque, itemId, saldoTotal);
 
       if (saldoDisponivelTela <= 0) {
         return;
       }
 
       const tr = document.createElement("tr");
-      tr.dataset.itemId = item.item_id;
+      tr.dataset.itemId = itemId;
       tr.dataset.codigo = item.codigo || "";
       tr.dataset.descricao = item.descricao || "";
       tr.dataset.unidade = item.unidade || "-";
       tr.dataset.quantidade = saldoDisponivelTela;
+      tr.dataset.saldoTotal = saldoTotal;
       tr.dataset.tipoEstoque = estoque;
 
       tr.innerHTML = `
@@ -483,11 +580,9 @@ async function carregarSaldo() {
   }
 }
 
-function adicionarItensInformadosAoResumo() {
-  const linhas = tbodyItensDisponiveis.querySelectorAll("tr[data-item-id]");
-
+function adicionarLinhasAoResumo(linhas, mensagemSemItens) {
   if (!linhas.length) {
-    alert("Carregue os itens do saldo antes de adicionar.");
+    alert(mensagemSemItens);
     return;
   }
 
@@ -503,20 +598,22 @@ function adicionarItensInformadosAoResumo() {
       return;
     }
 
-    const saldoDisponivelTela = parseInt(tr.dataset.quantidade || 0);
+    const origem = tr.dataset.tipoEstoque;
+    const itemId = parseInt(tr.dataset.itemId);
+    const saldoTotal = parseInt(tr.dataset.saldoTotal || tr.dataset.quantidade || 0);
+    const saldoDisponivelTela = saldoRestanteParaItem(origem, itemId, saldoTotal);
 
     if (quantidade > saldoDisponivelTela) {
       erros.push(`${tr.dataset.codigo}: quantidade maior que o saldo disponível (${saldoDisponivelTela}).`);
       return;
     }
 
-    const origem = tr.dataset.tipoEstoque;
-    const itemId = parseInt(tr.dataset.itemId);
-    const chave = `${origem}_${itemId}`;
+    const chave = chaveResumo(origem, itemId);
     const existente = resumoBaixa.find(l => l.chave === chave);
 
     if (existente) {
       existente.quantidade += quantidade;
+      existente.saldo_total = saldoTotal;
     } else {
       resumoBaixa.push({
         chave: chave,
@@ -525,7 +622,8 @@ function adicionarItensInformadosAoResumo() {
         descricao: tr.dataset.descricao,
         unidade: tr.dataset.unidade || "-",
         quantidade: quantidade,
-        tipo_estoque: origem
+        tipo_estoque: origem,
+        saldo_total: saldoTotal
       });
     }
 
@@ -541,11 +639,30 @@ function adicionarItensInformadosAoResumo() {
     return;
   }
 
-  renderizarResumo();
+  const ordemTipoEstoque = { empresa: 0, cliente: 1 };
+  resumoBaixa.sort((a, b) => {
+    const ordemA = ordemTipoEstoque[a.tipo_estoque] ?? 2;
+    const ordemB = ordemTipoEstoque[b.tipo_estoque] ?? 2;
 
-  if (!modoCorrecaoBaixa) {
-    carregarSaldo();
-  }
+    if (ordemA !== ordemB) {
+      return ordemA - ordemB;
+    }
+
+    return a.codigo.localeCompare(b.codigo, undefined, { numeric: true });
+  });
+
+  renderizarResumo();
+  atualizarListagensAposResumo();
+}
+
+function adicionarItensInformadosAoResumo() {
+  const linhasCorrecao = tbodyItensCorrecao
+    ? Array.from(tbodyItensCorrecao.querySelectorAll("tr[data-item-id]"))
+    : [];
+  const linhasDisponiveis = Array.from(tbodyItensDisponiveis.querySelectorAll("tr[data-item-id]"));
+  const linhas = [...linhasCorrecao, ...linhasDisponiveis];
+
+  adicionarLinhasAoResumo(linhas, "Carregue os itens do saldo antes de adicionar.");
 }
 
 function limparResumoBaixa() {
@@ -561,10 +678,13 @@ function limparResumoBaixa() {
 
   resumoBaixa = [];
   renderizarResumo();
+  atualizarListagensAposResumo();
+}
 
-  if (!modoCorrecaoBaixa) {
-    carregarSaldo();
-  }
+function removerItemResumo(chave) {
+  resumoBaixa = resumoBaixa.filter(item => item.chave !== chave);
+  renderizarResumo();
+  atualizarListagensAposResumo();
 }
 
 function renderizarResumo() {
@@ -574,7 +694,7 @@ function renderizarResumo() {
   if (resumoBaixa.length === 0) {
     tbodyResumoBaixa.innerHTML = `
       <tr id="linhaVaziaResumo">
-        <td colspan="5" class="text-center text-muted">
+        <td colspan="6" class="text-center text-muted">
           Nenhum item adicionado ao resumo.
         </td>
       </tr>
@@ -590,6 +710,15 @@ function renderizarResumo() {
       <td>${linha.descricao}</td>
       <td class="text-center">${linha.unidade}</td>
       <td class="text-center fw-bold">${linha.quantidade}</td>
+      <td class="text-center">
+        <button
+          type="button"
+          class="btn btn-sm btn-outline-danger"
+          onclick="removerItemResumo('${linha.chave}')"
+        >
+          <i class="bi bi-trash"></i>
+        </button>
+      </td>
     `;
     tbodyResumoBaixa.appendChild(tr);
 
@@ -599,6 +728,34 @@ function renderizarResumo() {
       <input type="hidden" name="resumo_tipo_estoque[]" value="${linha.tipo_estoque}">
     `;
   });
+}
+
+function carregarResumoDaCorrecao(baixa) {
+  resumoBaixa = [];
+
+  (baixa.itens || []).forEach(item => {
+    const quantidade = parseInt(item.quantidade || 0);
+
+    if (!quantidade || quantidade <= 0) {
+      return;
+    }
+
+    const origem = item.tipo_estoque || "empresa";
+    const itemId = parseInt(item.item_id);
+
+    resumoBaixa.push({
+      chave: chaveResumo(origem, itemId),
+      item_id: itemId,
+      codigo: item.codigo || "",
+      descricao: item.descricao || "",
+      unidade: item.unidade || "-",
+      quantidade: quantidade,
+      tipo_estoque: origem,
+      saldo_total: parseInt(item.saldo_real || 0)
+    });
+  });
+
+  renderizarResumo();
 }
 
 function bloquearAlteracaoComResumo(evento) {
@@ -686,72 +843,114 @@ async function selecionarOrdemServicoPorId(osId, numeroOs = "", enderecoOs = "")
   atualizarEndereco();
 }
 
-function renderizarItensCorrecao(baixa) {
-  const itens = baixa.itens || [];
+function montarLinhaItemBaixa(item, origem, saldoTotal, quantidadeInicial, exibirOrigem = false) {
+  const itemId = parseInt(item.item_id);
+  const saldoDisponivelTela = saldoRestanteParaItem(origem, itemId, saldoTotal);
+  const quantidadeSugerida = Math.min(parseInt(quantidadeInicial || 0), saldoDisponivelTela);
 
-  if (!itens.length) {
-    tbodyItensDisponiveis.innerHTML = `
-      <tr>
-        <td colspan="5" class="text-center text-warning">
-          Nenhum item devolvido para ajuste nesta baixa.
-        </td>
-      </tr>
-    `;
-    return;
+  if (saldoDisponivelTela <= 0 && quantidadeSugerida <= 0) {
+    return null;
   }
 
+  const tr = document.createElement("tr");
+
+  tr.dataset.itemId = itemId;
+  tr.dataset.codigo = item.codigo || "";
+  tr.dataset.descricao = item.descricao || "";
+  tr.dataset.unidade = item.unidade || "-";
+  tr.dataset.quantidade = saldoDisponivelTela;
+  tr.dataset.saldoTotal = saldoTotal;
+  tr.dataset.tipoEstoque = origem;
+
+  tr.innerHTML = `
+    <td class="text-center">
+      ${exibirOrigem ? `
+        <span class="badge ${origem === "cliente" ? "bg-warning text-dark" : "bg-primary"} mb-1">
+          ${origemTexto(origem)}
+        </span><br>
+      ` : ""}
+      ${item.codigo || ""}
+    </td>
+    <td>${item.descricao || ""}</td>
+    <td class="text-center">${item.unidade || "-"}</td>
+    <td class="text-center fw-bold">${saldoDisponivelTela}</td>
+    <td>
+      <input
+        type="number"
+        class="form-control form-control-sm text-center qtd-disponivel"
+        min="0"
+        max="${saldoDisponivelTela}"
+        value="${quantidadeSugerida}"
+      >
+    </td>
+  `;
+
+  return tr;
+}
+
+function renderizarItensCorrecao(baixa, itensDisponiveis = [], origemItensDisponiveis = null) {
+  const itens = baixa.itens || [];
+  const chavesJaRenderizadas = new Set();
+
+  tbodyItensCorrecao.innerHTML = "";
   tbodyItensDisponiveis.innerHTML = "";
 
   itens.forEach(item => {
     const origem = item.tipo_estoque || "empresa";
     const quantidadeDevolvida = parseInt(item.quantidade || 0);
     const saldoReal = parseInt(item.saldo_real || 0);
+    const itemId = parseInt(item.item_id);
+    const chave = chaveResumo(origem, itemId);
 
     if (quantidadeDevolvida <= 0) {
       return;
     }
 
-    const tr = document.createElement("tr");
+    const tr = montarLinhaItemBaixa(item, origem, saldoReal, 0, true);
 
-    tr.dataset.itemId = item.item_id;
-    tr.dataset.codigo = item.codigo || "";
-    tr.dataset.descricao = item.descricao || "";
-    tr.dataset.unidade = item.unidade || "-";
-    tr.dataset.quantidade = saldoReal;
-    tr.dataset.tipoEstoque = origem;
+    if (!tr) {
+      return;
+    }
 
-    tr.innerHTML = `
-      <td class="text-center">
-        <span class="badge ${origem === "cliente" ? "bg-warning text-dark" : "bg-primary"} mb-1">
-          ${origemTexto(origem)}
-        </span><br>
-        ${item.codigo || ""}
-      </td>
-      <td>${item.descricao || ""}</td>
-      <td class="text-center">${item.unidade || "-"}</td>
-      <td class="text-center fw-bold ${saldoReal <= 0 ? "text-danger" : ""}">
-        ${saldoReal}
-      </td>
-      <td>
-        <input
-          type="number"
-          class="form-control form-control-sm text-center qtd-disponivel"
-          min="0"
-          max="${saldoReal}"
-          value="${quantidadeDevolvida > saldoReal ? saldoReal : quantidadeDevolvida}"
-          ${saldoReal <= 0 ? "disabled" : ""}
-        >
-      </td>
+    chavesJaRenderizadas.add(chave);
+    tbodyItensCorrecao.appendChild(tr);
+  });
+
+  if (!tbodyItensCorrecao.innerHTML.trim()) {
+    tbodyItensCorrecao.innerHTML = `
+      <tr>
+        <td colspan="5" class="text-center text-warning">
+          Nenhum item devolvido para correção nesta baixa.
+        </td>
+      </tr>
     `;
+  }
 
+  itensDisponiveis.forEach(item => {
+    const origem = origemItensDisponiveis || tipoEstoque.value || "empresa";
+    const itemId = parseInt(item.item_id);
+    const chave = chaveResumo(origem, itemId);
+
+    if (chavesJaRenderizadas.has(chave)) {
+      return;
+    }
+
+    const saldoTotal = parseInt(item.quantidade || 0);
+    const tr = montarLinhaItemBaixa(item, origem, saldoTotal, 0, true);
+
+    if (!tr) {
+      return;
+    }
+
+    chavesJaRenderizadas.add(chave);
     tbodyItensDisponiveis.appendChild(tr);
   });
 
   if (!tbodyItensDisponiveis.innerHTML.trim()) {
     tbodyItensDisponiveis.innerHTML = `
       <tr>
-        <td colspan="5" class="text-center text-warning">
-          Nenhum item com saldo disponível para correção.
+        <td colspan="5" class="text-center text-muted">
+          Nenhum item adicional disponível para inclusão.
         </td>
       </tr>
     `;
@@ -760,8 +959,11 @@ function renderizarItensCorrecao(baixa) {
 
 function entrarModoCorrecao(baixa) {
   modoCorrecaoBaixa = true;
-  resumoBaixa = [];
-  renderizarResumo();
+  baixaCorrecaoAtual = baixa;
+  tituloItensDisponiveis.textContent = "Itens disponíveis para inclusão";
+  avisoListaCorrecao.classList.remove("d-none");
+  secaoItensCorrecao.classList.remove("d-none");
+  carregarResumoDaCorrecao(baixa);
 
   baixaIdCorrigir.value = baixa.id || "";
   tecnicoId.value = baixa.tecnico_id || "";
@@ -774,6 +976,7 @@ function entrarModoCorrecao(baixa) {
 
   selecionarOrdemServicoPorId(baixa.ordem_servico_id, baixa.numero_os || "", baixa.endereco || "").then(() => {
     endereco.value = baixa.endereco || endereco.value || "";
+    carregarSaldo();
   });
 
   renderizarItensCorrecao(baixa);
@@ -783,26 +986,30 @@ function entrarModoCorrecao(baixa) {
     Reenviar Correção para Aprovação
   `;
 
-  const aviso = document.createElement("div");
-  aviso.className = "alert alert-warning mt-3";
-  aviso.id = "avisoModoCorrecao";
-  aviso.innerHTML = `
-    <strong>Modo correção ativo:</strong>
-    os itens abaixo são somente os devolvidos nesta baixa. A coluna <strong>Saldo</strong> mostra o saldo real atual.
-    Ajuste as quantidades, clique em <strong>Inserir itens com quantidade no resumo</strong> e depois em
-    <strong>Reenviar Correção para Aprovação</strong>.
-  `;
-
-  document.getElementById("avisoModoCorrecao")?.remove();
-  tbodyItensDisponiveis.closest(".table-responsive").insertAdjacentElement("beforebegin", aviso);
-
   document.getElementById("formBaixaDesktop").scrollIntoView({
     behavior: "smooth",
     block: "start"
   });
 }
 
-document.getElementById("formBaixaDesktop").addEventListener("submit", function (e) {
+const formBaixaDesktop = document.getElementById("formBaixaDesktop");
+
+formBaixaDesktop.addEventListener("keydown", function (e) {
+  if (e.key !== "Enter") {
+    return;
+  }
+
+  const target = e.target;
+  const tagName = target.tagName;
+
+  if (tagName === "BUTTON" || tagName === "TEXTAREA") {
+    return;
+  }
+
+  e.preventDefault();
+});
+
+formBaixaDesktop.addEventListener("submit", function (e) {
   if (!tecnicoId.value || !tipoServico.value || !clienteId.value || !ordemServico.value) {
     e.preventDefault();
     alert("Preencha Técnico, Tipo de Serviço, Cliente e O.S antes de enviar.");
@@ -823,6 +1030,25 @@ if (clienteId.value) {
   carregarOrdensServico();
 }
 {% if baixas_recusadas %}
+function corrigirBaixaSelecionada() {
+  const select = document.getElementById("selectBaixaDevolvida");
+  const baixaId = select ? select.value : "";
+
+  if (!baixaId) {
+    alert("Selecione uma baixa devolvida para corrigir.");
+    return;
+  }
+
+  const funcaoCorrecao = window[`corrigirBaixa${baixaId}`];
+
+  if (typeof funcaoCorrecao !== "function") {
+    alert("Não foi possível carregar esta baixa para correção.");
+    return;
+  }
+
+  funcaoCorrecao();
+}
+
 {% for baixa in baixas_recusadas %}
 function corrigirBaixa{{ baixa.id }}() {
   entrarModoCorrecao({

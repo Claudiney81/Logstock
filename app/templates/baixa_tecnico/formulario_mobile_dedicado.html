@@ -579,6 +579,26 @@
         return `${itemId}|${tipoEstoqueItem || 'empresa'}|${clienteItem || ''}`;
       }
 
+      function quantidadeResumo(itemId, tipoEstoqueItem, clienteItem) {
+        const chave = chaveResumo(itemId, tipoEstoqueItem, clienteItem);
+        const hiddenExistente = hiddenInputs.querySelector(
+          `.hidden-item[data-resumo-key="${chave}"]`
+        );
+
+        if (!hiddenExistente) {
+          return 0;
+        }
+
+        const inputQuantidade = hiddenExistente.querySelector('input[name="quantidade[]"]');
+        return parseInt(inputQuantidade?.value || 0);
+      }
+
+      function saldoRestanteResumo(itemId, tipoEstoqueItem, clienteItem, saldoTotal) {
+        const saldo = parseInt(saldoTotal || 0);
+        const usado = quantidadeResumo(itemId, tipoEstoqueItem, clienteItem);
+        return Math.max(saldo - usado, 0);
+      }
+
       function adicionarItemResumo(item) {
         const qtd = parseInt(item.qtd || 0);
         const saldo = parseInt(item.saldo || 0);
@@ -595,6 +615,13 @@
         const tipoEstoqueItem = item.tipoEstoque || 'empresa';
         const clienteItem = item.clienteId || '';
         const chave = chaveResumo(item.id, tipoEstoqueItem, clienteItem);
+        const qtdAtual = quantidadeResumo(item.id, tipoEstoqueItem, clienteItem);
+        const novaQuantidade = qtdAtual + qtd;
+
+        if (novaQuantidade > saldo) {
+          alert(`Quantidade maior que o saldo do item ${item.codigo}. Saldo restante: ${Math.max(saldo - qtdAtual, 0)}.`);
+          return false;
+        }
 
         const linhaExistente = tbodyResumo.querySelector(
           `tr[data-resumo-key="${chave}"]`
@@ -606,8 +633,8 @@
 
         if (linhaExistente && hiddenExistente) {
           linhaExistente.querySelector('.resumo-saldo').textContent = saldo;
-          linhaExistente.querySelector('.resumo-qtd').textContent = qtd;
-          hiddenExistente.querySelector('input[name="quantidade[]"]').value = qtd;
+          linhaExistente.querySelector('.resumo-qtd').textContent = novaQuantidade;
+          hiddenExistente.querySelector('input[name="quantidade[]"]').value = novaQuantidade;
           return true;
         }
 
@@ -633,7 +660,7 @@
             <td>${item.codigo || ''}</td>
             <td>${item.descricao || ''}</td>
             <td class="text-center resumo-saldo">${saldo}</td>
-            <td class="text-center resumo-qtd">${qtd}</td>
+            <td class="text-center resumo-qtd">${novaQuantidade}</td>
             <td class="text-center">
               <button
                 type="button"
@@ -649,7 +676,7 @@
         hiddenInputs.innerHTML += `
           <div class="hidden-item" data-resumo-key="${chave}">
             <input type="hidden" name="item_id[]" value="${item.id}">
-            <input type="hidden" name="quantidade[]" value="${qtd}">
+            <input type="hidden" name="quantidade[]" value="${novaQuantidade}">
             <input type="hidden" name="tipo_estoque[]" value="${tipoEstoqueItem}">
             <input type="hidden" name="cliente_estoque_id[]" value="${clienteItem}">
           </div>
@@ -733,31 +760,53 @@
             }
 
             data.itens.forEach(item => {
+              const itemId = parseInt(item.item_id);
+              const saldoTotal = parseInt(item.saldo || 0);
+              const clienteItem = estoque === 'cliente' ? cliente : '';
+              const saldoRestante = saldoRestanteResumo(
+                itemId,
+                estoque,
+                clienteItem,
+                saldoTotal
+              );
+
+              if (saldoRestante <= 0) {
+                return;
+              }
+
               tbodyItens.innerHTML += `
                 <tr>
                   <td>${item.codigo || ''}</td>
                   <td>${item.descricao || ''}</td>
                   <td class="text-center">${item.unidade || ''}</td>
-                  <td class="text-center fw-bold">${item.saldo || 0}</td>
+                  <td class="text-center fw-bold">${saldoRestante}</td>
                   <td style="width:90px;">
                     <input
                       type="number"
                       class="form-control form-control-sm qtd"
-                      data-id="${item.item_id}"
+                      data-id="${itemId}"
                       data-codigo="${item.codigo || ''}"
                       data-descricao="${item.descricao || ''}"
-                      data-saldo="${item.saldo || 0}"
+                      data-saldo="${saldoTotal}"
+                      data-saldo-restante="${saldoRestante}"
                       data-tipo-estoque="${estoque}"
-                      data-cliente-id="${estoque === 'cliente' ? cliente : ''}"
+                      data-cliente-id="${clienteItem}"
                       min="0"
-                      max="${item.saldo || 0}"
+                      max="${saldoRestante}"
                       value="0"
-                      title="Saldo: ${item.saldo || 0}"
+                      title="Saldo restante: ${saldoRestante}"
                     >
                   </td>
                 </tr>
               `;
             });
+
+            if (!tbodyItens.querySelector('tr')) {
+              mensagemItens(
+                'Todos os itens desse saldo já foram adicionados ao resumo',
+                'text-muted'
+              );
+            }
           })
           .catch((erro) => {
             if (erro.name === 'AbortError' || idCarregamento !== carregamentoItensAtual) {
@@ -847,11 +896,12 @@
         inputs.forEach(input => {
           const qtd = parseInt(input.value || 0);
           const saldo = parseInt(input.dataset.saldo || 0);
+          const saldoRestante = parseInt(input.dataset.saldoRestante || 0);
 
           if (qtd <= 0) return;
 
-          if (qtd > saldo) {
-            alert(`Quantidade maior que o saldo do item ${input.dataset.codigo}.`);
+          if (qtd > saldoRestante) {
+            alert(`Quantidade maior que o saldo restante do item ${input.dataset.codigo}. Disponível: ${saldoRestante}.`);
             return;
           }
 
@@ -877,6 +927,8 @@
 
         if (!adicionou) {
           alert('Informe pelo menos uma quantidade.');
+        } else {
+          carregarItens();
         }
       });
       document.getElementById('formBaixa').addEventListener('submit', function(e) {
@@ -1055,6 +1107,8 @@
             </tr>
           `;
         }
+
+        carregarItens();
       }
 
       document.getElementById('formBaixa').addEventListener('submit', function () {

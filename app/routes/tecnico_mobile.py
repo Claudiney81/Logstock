@@ -15,26 +15,11 @@ bp_tecnico_mobile = Blueprint(
 
 
 def get_tecnico_logado():
-    tecnico_id = session.get("tecnico_id")
-
-    if tecnico_id:
-        tecnico = Tecnico.query.get(tecnico_id)
-        if tecnico:
-            return tecnico
-
-    if current_user.is_authenticated:
-        tecnico = getattr(current_user, "tecnico", None)
-
-        if tecnico:
-            return tecnico
-
-        if getattr(current_user, "email", None):
-            tecnico = Tecnico.query.filter_by(email=current_user.email).first()
-
+    if session.get("perfil_mobile") == "tecnico":
+        tecnico_id = session.get("tecnico_id")
+        if tecnico_id:
+            tecnico = Tecnico.query.get(tecnico_id)
             if tecnico:
-                session["tecnico_id"] = tecnico.id
-                session["tecnico_nome"] = tecnico.nome
-                session["perfil_mobile"] = "tecnico"
                 return tecnico
 
     return None

@@ -170,6 +170,45 @@ def create_app():
         except Exception:
             return None
 
+    @app.before_request
+    def bloquear_tecnico_para_admin():
+        if not current_user.is_authenticated:
+            return None
+
+        if getattr(current_user, "perfil", None) != "tecnico":
+            return None
+
+        allowed_endpoints = {
+            "tecnico_mobile.login",
+            "tecnico_mobile.logout",
+            "tecnico_mobile.home",
+            "tecnico_mobile.alterar_senha",
+            "baixa_tecnico.formulario_baixa",
+            "baixa_tecnico.formulario_mobile_dedicado",
+            "baixa_tecnico.pendentes_mobile",
+            "baixa_tecnico.detalhe_pendente_mobile",
+            "baixa_tecnico.aprovar_mobile",
+            "baixa_tecnico.recusar_mobile",
+            "baixa_tecnico.portal_mobile",
+            "baixa_tecnico.login_aprovador_mobile",
+            "tecnico_mobile.login",
+            "auth.login",
+            "auth.logout",
+            "auth.login_tecnico",
+            "auth_tecnico.login_tecnico",
+            "static",
+        }
+
+        endpoint = request.endpoint or ""
+
+        if endpoint.startswith("static"):
+            return None
+
+        if endpoint in allowed_endpoints:
+            return None
+
+        return redirect(url_for("tecnico_mobile.home"))
+
     estoque_bp = _import_bp("app.routes.estoque")
     nota_fiscal_bp = _import_bp("app.routes.nota_fiscal")
 
@@ -445,6 +484,7 @@ def create_app():
                 session["tecnico_id"] = tecnico.id
                 session["tecnico_nome"] = tecnico.nome
                 session["perfil"] = usuario.perfil
+                session["perfil_mobile"] = "tecnico"
 
                 return redirect(
                     url_for("baixa_tecnico.formulario_baixa")

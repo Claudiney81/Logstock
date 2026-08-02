@@ -43,9 +43,22 @@
           <small class="text-muted">
             {{ baixa.data_hora.strftime('%d/%m/%Y %H:%M') if baixa.data_hora else '-' }}
           </small>
+          <div class="mt-2">
+            {% if baixa.origem_mobile %}
+              <span class="badge-origem origem-mobile">Portal Técnico</span>
+            {% else %}
+              <span class="badge-origem origem-desktop">Baixa Desktop</span>
+            {% endif %}
+          </div>
         </div>
 
-        <span class="badge-pendente">Pendente</span>
+        {% if baixa.status == 'revisada' %}
+          <span class="badge-pendente">Baixa Revisada</span>
+        {% elif baixa.status == 'pendente_ajuste' %}
+          <span class="badge-pendente">Técnico Revisando</span>
+        {% else %}
+          <span class="badge-pendente">Aprovação Pendente</span>
+        {% endif %}
       </div>
 
       <div class="dados-grid-lista">
@@ -192,13 +205,32 @@ body{
 }
 
 .badge-pendente{
-  background:rgba(255,193,7,.18);
-  color:#8a6d00;
-  border:1px solid rgba(255,193,7,.35);
+  background:#fd7e14;
+  color:#ffffff;
+  border:1px solid #f97316;
   border-radius:999px;
   padding:6px 12px;
   font-size:12px;
   font-weight:600;
+}
+
+.badge-origem{
+  display:inline-flex;
+  align-items:center;
+  border-radius:999px;
+  padding:4px 10px;
+  font-size:11px;
+  font-weight:700;
+}
+
+.origem-mobile{
+  background:#e7f1ff;
+  color:#084298;
+}
+
+.origem-desktop{
+  background:#fff3cd;
+  color:#664d03;
 }
 
 .btn-mobile{

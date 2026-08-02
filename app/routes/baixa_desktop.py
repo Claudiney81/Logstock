@@ -62,6 +62,7 @@ from app.utils.mailer import (
     send_baixa_recusa_email,
     send_baixa_aprovada_email
 )
+from app.utils.baixa_sobras import transferir_sobras_cliente_para_empresa
 
 bp_baixa_desktop = Blueprint(
     "baixa_desktop",
@@ -222,12 +223,23 @@ def api_ordens_servico():
     if not cliente_id:
         return {"ordens": []}
 
-    # A O.S é para REGISTRO da baixa.
-    # Por isso NÃO pode depender de saldo técnico.
-    # Lista todas as O.S cadastradas para o cliente selecionado.
+    # A O.S é para REGISTRO da baixa e não depende de saldo técnico.
+    # Porém baixa nova só deve apontar para O.S ainda aberta/em andamento.
     ordens = (
         OrdemServico.query
         .filter(OrdemServico.cliente_id == cliente_id)
+        .filter(
+            (OrdemServico.status.is_(None))
+            | (OrdemServico.status.in_(["aberta", "em_andamento"]))
+        )
+        .filter(
+            ~db.session.query(BaixaTecnica.id)
+            .filter(
+                BaixaTecnica.ordem_servico_id == OrdemServico.id,
+                BaixaTecnica.status.in_(["confirmado", "aprovada", "aprovada_parcial"])
+            )
+            .exists()
+        )
         .order_by(OrdemServico.numero_os.asc())
         .all()
     )
@@ -341,7 +353,7 @@ def nova_baixa():
         quantidades = request.form.getlist("resumo_quantidade[]")
         tipos_estoque = request.form.getlist("resumo_tipo_estoque[]")
 
-        itens_compilados = []
+        itens_por_origem = {}
 
         for item_id, qtd, tipo_estoque_item in zip(item_ids, quantidades, tipos_estoque):
             try:
@@ -356,31 +368,39 @@ def nova_baixa():
                 continue
 
             cliente_ref = cliente_id if tipo_estoque_item == "cliente" else None
-            os_ref = ordem_servico_id if tipo_estoque_item == "cliente" else None
+            chave_item = (item_id, tipo_estoque_item)
+
+            if chave_item not in itens_por_origem:
+                itens_por_origem[chave_item] = {
+                    "item_id": item_id,
+                    "quantidade": 0,
+                    "tipo_estoque": tipo_estoque_item,
+                    "cliente_estoque_id": cliente_ref
+                }
+
+            itens_por_origem[chave_item]["quantidade"] += qtd
+
+        itens_compilados = list(itens_por_origem.values())
+
+        for linha in itens_compilados:
+            ordem_ref = ordem_servico_id if linha["tipo_estoque"] == "cliente" else None
 
             saldo_total = saldo_disponivel(
                 tecnico_id=tecnico_id,
-                item_id=item_id,
+                item_id=linha["item_id"],
                 tipo_servico_id=tipo_servico_id,
-                tipo_estoque=tipo_estoque_item,
-                cliente_id=cliente_ref,
-                ordem_servico_id=os_ref
+                tipo_estoque=linha["tipo_estoque"],
+                cliente_id=linha["cliente_estoque_id"],
+                ordem_servico_id=ordem_ref
             )
 
-            if qtd > saldo_total:
-                item = Item.query.get(item_id)
+            if linha["quantidade"] > saldo_total:
+                item = Item.query.get(linha["item_id"])
                 flash(
-                    f"Quantidade maior que o saldo disponível para {item.descricao if item else item_id}.",
+                    f"Quantidade maior que o saldo disponível para {item.descricao if item else linha['item_id']}.",
                     "danger"
                 )
                 return redirect(url_for("baixa_desktop.nova_baixa"))
-
-            itens_compilados.append({
-                "item_id": item_id,
-                "quantidade": qtd,
-                "tipo_estoque": tipo_estoque_item,
-                "cliente_estoque_id": cliente_ref
-            })
 
         if not itens_compilados:
             flash("Adicione pelo menos um item ao resumo da baixa.", "warning")
@@ -422,12 +442,12 @@ def nova_baixa():
             )
             baixa.responsavel = responsavel
             baixa.observacao = observacao
-            baixa.status = "pendente"
+            baixa.status = "revisada"
             baixa.motivo_recusa = None
             baixa.visualizado_tecnico = True
             baixa.data_hora = datetime.now()
 
-            mensagem_sucesso = "Baixa corrigida e reenviada para aprovação do engenheiro/supervisor."
+            mensagem_sucesso = "Baixa revisada e reenviada para aprovação do engenheiro/supervisor."
 
         else:
             baixa = BaixaTecnica(
@@ -453,6 +473,9 @@ def nova_baixa():
             db.session.flush()
 
             mensagem_sucesso = "Baixa registrada. Aguarde aprovação do engenheiro/supervisor."
+
+        if ordem_servico and ordem_servico.status != "finalizada":
+            ordem_servico.status = "em_andamento"
 
         for linha in itens_compilados:
             valor_unitario = valor_saldo_tecnico(
@@ -541,7 +564,16 @@ def detalhe_baixa(baixa_id):
 
     itens = []
 
-    for item_baixa in baixa.itens:
+    itens_ordenados = sorted(
+        baixa.itens,
+        key=lambda item: (
+            0 if (item.tipo_estoque or "empresa") == "empresa" else 1,
+            item.item.codigo if item.item else "",
+            item.id
+        )
+    )
+
+    for item_baixa in itens_ordenados:
         cliente_ref = (
         item_baixa.cliente_estoque_id
         if item_baixa.tipo_estoque == "cliente"
@@ -635,7 +667,7 @@ def detalhe_baixa(baixa_id):
                 .filter(
                     BaixaTecnicaItem.baixa_tecnica_id == baixa.id,
                     BaixaTecnicaItem.id.in_(itens_ids),
-                    BaixaTecnicaItem.status == "pendente"
+                    BaixaTecnicaItem.status.in_(["pendente", "pendente_ajuste"])
                 )
                 .all()
             )
@@ -712,9 +744,9 @@ def detalhe_baixa(baixa_id):
 
             pendentes = (
                 BaixaTecnicaItem.query
-                .filter_by(
-                    baixa_tecnica_id=baixa.id,
-                    status="pendente"
+                .filter(
+                    BaixaTecnicaItem.baixa_tecnica_id == baixa.id,
+                    BaixaTecnicaItem.status.in_(["pendente", "pendente_ajuste"])
                 )
                 .count()
             )
@@ -725,25 +757,27 @@ def detalhe_baixa(baixa_id):
             else:
                 baixa.status = "pendente"
 
-            if baixa.cliente_id:
-                cliente_os = Empresa.query.get(baixa.cliente_id)
+            if baixa.ordem_servico_id:
+                ordem = OrdemServico.query.get(baixa.ordem_servico_id)
 
-                if cliente_os:
+                if ordem:
                     baixas_abertas = (
                         BaixaTecnica.query
                         .filter(
-                            BaixaTecnica.cliente_id == baixa.cliente_id,
-                            BaixaTecnica.tecnico_id == baixa.tecnico_id,
-                            BaixaTecnica.status.in_(["pendente", "pendente_ajuste"])
+                            BaixaTecnica.ordem_servico_id == baixa.ordem_servico_id,
+                            BaixaTecnica.status.in_(["pendente", "revisada"])
                         )
                         .count()
                     )
 
-                    cliente_os.status_os = (
-                        "finalizada"
-                        if baixas_abertas == 0
-                        else "em_andamento"
-                    )
+                    if baixas_abertas == 0:
+                        ordem.status = "finalizada"
+                        transferir_sobras_cliente_para_empresa(
+                            tecnico_id=baixa.tecnico_id,
+                            ordem_servico_id=baixa.ordem_servico_id
+                        )
+                    else:
+                        ordem.status = "em_andamento"
 
             db.session.commit()
 
@@ -782,15 +816,19 @@ def detalhe_baixa(baixa_id):
                 item_baixa.status = "pendente_ajuste"
                 item_baixa.motivo_recusa = motivo
 
-            if baixa.cliente_id:
-                cliente_os = Empresa.query.get(baixa.cliente_id)
+            if baixa.ordem_servico_id:
+                ordem = OrdemServico.query.get(baixa.ordem_servico_id)
 
-                if cliente_os:
-                    cliente_os.status_os = "em_andamento"
+                if ordem:
+                    ordem.status = "em_andamento"
 
             db.session.commit()
 
-            flash("Baixa devolvida para ajuste do técnico.", "warning")
+            if baixa.origem_mobile:
+                flash("Baixa devolvida para ajuste no portal do técnico.", "warning")
+            else:
+                flash("Baixa devolvida para correção no Baixa Desktop.", "warning")
+
             return redirect(url_for("baixa_desktop.baixas_pendentes"))
 
     return render_template(
@@ -806,7 +844,7 @@ def baixas_pendentes():
     baixas = (
         BaixaTecnica.query
         .filter(
-            BaixaTecnica.status.in_(["pendente", "pendente_ajuste"])
+            BaixaTecnica.status.in_(["pendente", "revisada"])
         )
         .order_by(BaixaTecnica.data_hora.desc())
         .all()
@@ -1583,7 +1621,9 @@ def exportar_baixa_pdf(baixa_id):
 def api_baixas_pendentes_count():
     count = (
         BaixaTecnica.query
-        .filter(BaixaTecnica.status.in_(["pendente", "pendente_ajuste"]))
+        .filter(
+            BaixaTecnica.status.in_(["pendente", "revisada"])
+        )
         .count()
     )
 

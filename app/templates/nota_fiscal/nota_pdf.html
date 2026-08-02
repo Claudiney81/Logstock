@@ -286,8 +286,8 @@ body {
           <td class="center">{{ it.categoria or 'MATERIAL' }}</td>
           <td class="center">{{ it.unidade or '—' }}</td>
           <td class="num">{{ q|int }}</td>
-          <td class="num">R$ {{ '%.2f'|format(vu)|replace('.', ',') }}</td>
-          <td class="num">R$ {{ '%.2f'|format(vt)|replace('.', ',') }}</td>
+          <td class="num">{{ vu|brl }}</td>
+          <td class="num">{{ vt|brl }}</td>
         </tr>
       {% endfor %}
     </tbody>
@@ -298,7 +298,7 @@ body {
   <tr>
     <td class="total-label">TOTAL DA NOTA:</td>
     <td class="total-valor">
-      R$ {{ '%.2f'|format(ns.total_geral|float)|replace('.', ',') }}
+      {{ (ns.total_geral|float)|brl }}
     </td>
   </tr>
 </table>

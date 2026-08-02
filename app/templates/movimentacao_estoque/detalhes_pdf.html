@@ -315,11 +315,11 @@
       </td>
 
       <td class="right">
-        R$ {{ "%.2f"|format(i.valor_unitario or 0) }}
+        {{ (i.valor_unitario or 0)|brl }}
       </td>
 
       <td class="right">
-        R$ {{ "%.2f"|format(subtotal) }}
+        {{ subtotal|brl }}
       </td>
     </tr>
 
@@ -339,7 +339,7 @@
     <tr>
       <td class="total-label">TOTAL GERAL:</td>
       <td class="total-value">
-        R$ {{ "%.2f"|format(total_geral.valor) }}
+        {{ total_geral.valor|brl }}
       </td>
     </tr>
   </table>

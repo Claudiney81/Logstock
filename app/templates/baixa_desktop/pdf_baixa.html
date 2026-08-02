@@ -272,10 +272,10 @@
             {{ item.quantidade_aprovada if item.quantidade_aprovada else item.quantidade }}
           </td>
           <td class="right">
-            R$ {{ "%.2f"|format((item.valor_unitario or 0)|float)|replace('.', ',') }}
+            {{ (item.valor_unitario or 0)|brl }}
           </td>
           <td class="right">
-            R$ {{ "%.2f"|format(valor_total)|replace('.', ',') }}
+            {{ valor_total|brl }}
           </td>
           <td class="center">
             {% if item.tipo_estoque == 'cliente' %}
@@ -293,7 +293,7 @@
     <tr>
       <td class="total-label">TOTAL GERAL DA BAIXA:</td>
       <td class="total-valor">
-        R$ {{ "%.2f"|format(total.valor)|replace('.', ',') }}
+        {{ total.valor|brl }}
       </td>
     </tr>
   </table>

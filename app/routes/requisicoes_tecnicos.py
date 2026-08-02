@@ -42,6 +42,20 @@ def get_nome_usuario():
     )
 
 
+def parse_valor_br(valor):
+    texto = str(valor or "0").replace("R$", "").strip()
+
+    if not texto:
+        return 0.0
+
+    try:
+        if "," in texto:
+            texto = texto.replace(".", "").replace(",", ".")
+        return float(texto)
+    except Exception:
+        return 0.0
+
+
 def get_tecnico_logado():
     tecnico_id = getattr(current_user, "tecnico_id", None)
 
@@ -195,10 +209,7 @@ def criar_itens_requisicao(requisicao_id):
         if quantidade <= 0:
             continue
 
-        try:
-            valor = float(str(valores[i] or "0").replace(",", "."))
-        except Exception:
-            valor = 0.0
+        valor = parse_valor_br(valores[i] if i < len(valores) else 0)
 
         item = RequisicaoTecnicoItem(
             requisicao_id=requisicao_id,

@@ -151,7 +151,8 @@
             <select name="status" class="form-select" onchange="this.form.submit()">
               <option value="">Todos</option>
               <option value="pendente" {% if status == 'pendente' %}selected{% endif %}>Pendente</option>
-              <option value="pendente_ajuste" {% if status == 'pendente_ajuste' %}selected{% endif %}>Retorno Ajuste</option>
+              <option value="pendente_ajuste" {% if status == 'pendente_ajuste' %}selected{% endif %}>Operador Revisando</option>
+              <option value="revisada" {% if status == 'revisada' %}selected{% endif %}>Baixa Revisada</option>
               <option value="confirmado" {% if status == 'confirmado' %}selected{% endif %}>Confirmado</option>
               <option value="recusado" {% if status == 'recusado' %}selected{% endif %}>Recusado</option>
               <option value="aprovada_parcial" {% if status == 'aprovada_parcial' %}selected{% endif %}>Aprovada Parcial</option>
@@ -245,7 +246,7 @@
                   {% for item in baixa.itens %}
                     {% set total.valor = total.valor + (item.valor_total or 0)|float %}
                   {% endfor %}
-                  R$ {{ '%.2f'|format(total.valor)|replace('.', ',') }}
+                  {{ total.valor|brl }}
                 </td>
 
                 <td>
@@ -254,7 +255,9 @@
                   {% elif baixa.status == 'pendente' %}
                     <span class="badge-soft badge-soft-red">Pendente</span>
                   {% elif baixa.status == 'pendente_ajuste' %}
-                    <span class="badge-soft badge-soft-yellow">Retorno Ajuste</span>
+                    <span class="badge-soft badge-soft-yellow">Operador Revisando</span>
+                  {% elif baixa.status == 'revisada' %}
+                    <span class="badge-soft badge-soft-orange">Baixa Revisada</span>
                   {% elif baixa.status == 'recusado' %}
                     <span class="badge-soft badge-soft-gray">Recusado</span>
                   {% else %}

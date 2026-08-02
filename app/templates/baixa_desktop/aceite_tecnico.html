@@ -73,7 +73,7 @@
               </td>
 
               <td class="text-end">
-                R$ {{ '%.2f' | format(item.valor_unitario or 0) }}
+                {{ (item.valor_unitario or 0)|brl }}
               </td>
             </tr>
             {% endfor %}

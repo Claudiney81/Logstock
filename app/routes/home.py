@@ -56,7 +56,7 @@ def home():
             status="pendente"
         ).scalar() or 0,
         "baixas_pendentes": db_count(BaixaTecnica.id).filter(
-            BaixaTecnica.status.in_(["pendente", "pendente_ajuste"])
+            BaixaTecnica.status.in_( ["pendente", "revisada"] )
         ).scalar() or 0,
         "notas_30_dias": db_count(NotaFiscalEntrada.id).filter(
             NotaFiscalEntrada.data_hora >= inicio_30_dias

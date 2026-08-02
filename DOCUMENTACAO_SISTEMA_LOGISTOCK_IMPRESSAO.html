@@ -1,0 +1,373 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Documentação do Sistema LogiStock</title>
+  <style>
+    :root {
+      --ink: #18202a;
+      --muted: #5e6a77;
+      --line: #d8dee6;
+      --brand: #145c9e;
+      --brand-dark: #0d3f70;
+      --soft: #f3f7fb;
+    }
+
+    * {
+      box-sizing: border-box;
+    }
+
+    body {
+      margin: 0;
+      color: var(--ink);
+      background: #eef2f6;
+      font-family: Arial, Helvetica, sans-serif;
+      font-size: 14px;
+      line-height: 1.55;
+    }
+
+    .page {
+      width: 210mm;
+      min-height: 297mm;
+      margin: 18px auto;
+      background: #fff;
+      box-shadow: 0 10px 30px rgba(20, 35, 50, .12);
+      padding: 20mm 18mm;
+    }
+
+    .cover {
+      min-height: 245mm;
+      display: flex;
+      flex-direction: column;
+      justify-content: center;
+      border: 2px solid var(--brand);
+      padding: 28mm 20mm;
+      page-break-after: always;
+    }
+
+    .system-label {
+      color: var(--brand);
+      font-size: 13px;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: .08em;
+      margin-bottom: 16px;
+    }
+
+    h1 {
+      color: var(--brand-dark);
+      font-size: 34px;
+      line-height: 1.15;
+      margin: 0 0 18px;
+    }
+
+    .subtitle {
+      color: var(--muted);
+      font-size: 18px;
+      max-width: 620px;
+      margin-bottom: 42px;
+    }
+
+    .meta {
+      border-top: 1px solid var(--line);
+      padding-top: 18px;
+      color: var(--muted);
+    }
+
+    h2 {
+      color: var(--brand-dark);
+      font-size: 21px;
+      margin: 26px 0 10px;
+      padding-bottom: 6px;
+      border-bottom: 1px solid var(--line);
+      page-break-after: avoid;
+    }
+
+    h3 {
+      color: var(--ink);
+      font-size: 16px;
+      margin: 18px 0 6px;
+      page-break-after: avoid;
+    }
+
+    p {
+      margin: 0 0 10px;
+    }
+
+    ul {
+      margin: 6px 0 14px 20px;
+      padding: 0;
+    }
+
+    li {
+      margin: 3px 0;
+    }
+
+    .toc {
+      background: var(--soft);
+      border: 1px solid var(--line);
+      padding: 14px 18px;
+      margin: 16px 0 22px;
+    }
+
+    .toc ol {
+      columns: 2;
+      margin: 0;
+      padding-left: 20px;
+    }
+
+    .section {
+      page-break-inside: avoid;
+    }
+
+    .note {
+      background: var(--soft);
+      border-left: 4px solid var(--brand);
+      padding: 10px 14px;
+      margin: 12px 0;
+    }
+
+    .two-col {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 12px 22px;
+    }
+
+    .footer-space {
+      height: 10px;
+    }
+
+    @media print {
+      body {
+        background: #fff;
+      }
+
+      .page {
+        width: auto;
+        min-height: auto;
+        margin: 0;
+        box-shadow: none;
+        padding: 14mm 13mm;
+      }
+
+      .cover {
+        min-height: 260mm;
+        padding: 25mm 18mm;
+      }
+
+      a {
+        color: inherit;
+        text-decoration: none;
+      }
+    }
+  </style>
+</head>
+<body>
+  <main class="page">
+    <section class="cover">
+      <div class="system-label">Documentação funcional</div>
+      <h1>LogiStock</h1>
+      <div class="subtitle">
+        Sistema de controle de estoque, materiais, técnicos, baixas, notas fiscais, ferramentas, EPIs, frota e operações.
+      </div>
+      <div class="meta">
+        <p><strong>Data:</strong> 15/06/2026</p>
+        <p><strong>Finalidade:</strong> apresentação técnica e entrega à empresa.</p>
+        <p><strong>Formato:</strong> documento preparado para impressão.</p>
+      </div>
+    </section>
+
+    <h2>Índice</h2>
+    <div class="toc">
+      <ol>
+        <li>Visão geral</li>
+        <li>Objetivos</li>
+        <li>Perfis de usuário</li>
+        <li>Painel inicial</li>
+        <li>Gestão de estoque</li>
+        <li>Tipos de serviço</li>
+        <li>Notas fiscais</li>
+        <li>Movimentação de estoque</li>
+        <li>Técnicos e saldo técnico</li>
+        <li>Requisições e baixas</li>
+        <li>Inventários</li>
+        <li>Ferramentas e EPIs</li>
+        <li>Clientes, fornecedores e O.S.</li>
+        <li>Frota e vistorias</li>
+        <li>Acesso mobile</li>
+        <li>Relatórios, segurança e backup</li>
+      </ol>
+    </div>
+
+    <h2>1. Visão Geral</h2>
+    <p>O LogiStock é um sistema web desenvolvido para centralizar o controle de materiais, estoque, notas fiscais, movimentações, técnicos, baixas de campo, ferramentas, EPIs, frota e registros operacionais da empresa.</p>
+    <p>Ele substitui controles dispersos por uma plataforma única, com histórico, responsáveis, evidências, exportações e telas mobile para apoiar o trabalho em campo.</p>
+
+    <div class="note">
+      <strong>Resumo executivo:</strong> o sistema aumenta a rastreabilidade dos materiais, reduz perdas, organiza pendências e oferece relatórios para conferência e tomada de decisão.
+    </div>
+
+    <h2>2. Objetivos do Sistema</h2>
+    <ul>
+      <li>Controlar estoque físico e financeiro de materiais.</li>
+      <li>Registrar entradas por notas fiscais.</li>
+      <li>Controlar movimentações entre empresa, técnicos, clientes, obras e ordens de serviço.</li>
+      <li>Dar rastreabilidade aos materiais em posse dos técnicos.</li>
+      <li>Registrar baixas de materiais usados em campo.</li>
+      <li>Controlar ferramentas, EPIs, frota, documentos e vistorias.</li>
+      <li>Gerar relatórios, termos, PDFs, planilhas e históricos.</li>
+    </ul>
+
+    <h2>3. Perfis de Usuário</h2>
+    <div class="two-col">
+      <div>
+        <h3>Administrador</h3>
+        <p>Acesso amplo ao sistema, incluindo cadastro de usuários e rotinas administrativas.</p>
+      </div>
+      <div>
+        <h3>Estoque</h3>
+        <p>Perfil voltado ao almoxarifado, com atuação sobre materiais, saldos, notas, movimentações e inventários.</p>
+      </div>
+      <div>
+        <h3>Área Técnica</h3>
+        <p>Acompanha solicitações, atendimentos e fluxos operacionais ligados aos técnicos.</p>
+      </div>
+      <div>
+        <h3>Técnico</h3>
+        <p>Usado principalmente no mobile para registrar baixas, acompanhar pendências e acessar rotinas de campo.</p>
+      </div>
+    </div>
+
+    <h2>4. Tela Inicial e Painel de Controle</h2>
+    <p>Após o login administrativo, o sistema apresenta indicadores de acompanhamento da operação.</p>
+    <ul>
+      <li>Total de itens cadastrados.</li>
+      <li>Técnicos ativos.</li>
+      <li>Itens com estoque baixo.</li>
+      <li>Requisições pendentes.</li>
+      <li>Baixas pendentes.</li>
+      <li>Notas fiscais registradas nos últimos 30 dias.</li>
+      <li>Movimentações, notas e baixas recentes.</li>
+    </ul>
+
+    <h2>5. Gestão de Estoque</h2>
+    <p>O estoque é o módulo central do LogiStock. Nele são controlados os itens, quantidades, valores, mínimos, localização e vínculo com tipo de serviço, empresa ou cliente.</p>
+    <h3>Funcionalidades</h3>
+    <ul>
+      <li>Cadastro de itens com código, descrição, unidade, valor, categoria e tipo de serviço.</li>
+      <li>Controle de quantidade disponível e quantidade mínima.</li>
+      <li>Separação entre estoque da empresa e estoque de cliente.</li>
+      <li>Controle de localização/endereço do material.</li>
+      <li>Alertas de estoque baixo.</li>
+      <li>Importação de itens via Excel.</li>
+      <li>Exportações em Excel e PDF.</li>
+    </ul>
+    <h3>Benefícios</h3>
+    <ul>
+      <li>Evita falta de materiais essenciais.</li>
+      <li>Melhora o planejamento de compras.</li>
+      <li>Facilita conferências e auditorias internas.</li>
+    </ul>
+
+    <h2>6. Tipos de Serviço</h2>
+    <p>Os tipos de serviço organizam materiais e operações por área, contrato, cliente ou natureza de atendimento. Eles permitem separar materiais da empresa e materiais vinculados a clientes.</p>
+
+    <h2>7. Notas Fiscais de Entrada</h2>
+    <p>O módulo de nota fiscal registra a entrada formal de materiais no sistema.</p>
+    <ul>
+      <li>Cadastro de nota fiscal, fornecedor, cliente, ordem de serviço e tipo de serviço.</li>
+      <li>Inclusão de vários itens com quantidade e valor unitário.</li>
+      <li>Cálculo de valor total.</li>
+      <li>Histórico e pesquisa de notas.</li>
+      <li>Exportação em PDF e Excel.</li>
+      <li>Histórico de valores de entrada.</li>
+    </ul>
+
+    <h2>8. Movimentação de Estoque</h2>
+    <p>Registra transferências e deslocamentos de materiais entre estoques, técnicos, clientes e ordens de serviço.</p>
+    <ul>
+      <li>Registro de origem e destino.</li>
+      <li>Inclusão de itens, quantidades, valores e condição do material.</li>
+      <li>Registro de responsável, observações e assinatura.</li>
+      <li>Histórico de movimentações.</li>
+      <li>Exportação em Excel e PDF.</li>
+      <li>Envio de e-mail com documento, quando configurado.</li>
+    </ul>
+
+    <h2>9. Técnicos e Saldo Técnico</h2>
+    <p>O sistema cadastra técnicos e controla os materiais sob responsabilidade de cada um.</p>
+    <ul>
+      <li>Cadastro com matrícula, CPF, telefone, e-mail, função, status e tipo de serviço.</li>
+      <li>Geração de usuário, link mobile e QR Code.</li>
+      <li>Consulta detalhada do saldo por técnico.</li>
+      <li>Filtros por tipo de serviço, cliente, ordem de serviço e tipo de estoque.</li>
+      <li>Exportação do saldo técnico em Excel.</li>
+    </ul>
+
+    <h2>10. Requisições e Baixas</h2>
+    <h3>Requisições de técnicos</h3>
+    <p>Permitem solicitar materiais, registrar itens desejados, cliente, ordem de serviço, endereço, observações e assinatura. O estoque acompanha pendências, atende requisições e consulta histórico.</p>
+    <h3>Baixas técnicas</h3>
+    <p>Controlam materiais utilizados em campo. A baixa pode ser registrada pelo administrativo ou pelo técnico no celular, passa por aprovação ou recusa e pode gerar PDF, Excel, histórico e evidências fotográficas.</p>
+
+    <h2>11. Inventários</h2>
+    <h3>Inventário de estoque</h3>
+    <p>Permite comparar o saldo do sistema com a contagem física, com filtros por tipo de estoque, cliente e tipo de serviço. O histórico pode ser detalhado e exportado.</p>
+    <h3>Inventário técnico</h3>
+    <p>Permite conferir os materiais em posse dos técnicos, registrar divergências, gerar histórico e apoiar devoluções ao estoque.</p>
+
+    <h2>12. Ferramentas e EPIs</h2>
+    <p>Controla itens entregues aos colaboradores que exigem rastreio e termo de responsabilidade.</p>
+    <ul>
+      <li>Entrega, devolução, ocorrência e transferência.</li>
+      <li>Saldo por técnico.</li>
+      <li>Histórico de movimentações.</li>
+      <li>Assinaturas do técnico e da logística.</li>
+      <li>Termo de responsabilidade em PDF.</li>
+      <li>Relatórios gerenciais em Excel.</li>
+    </ul>
+
+    <h2>13. Clientes, Fornecedores e Ordens de Serviço</h2>
+    <p>O sistema controla clientes, fornecedores/parceiros e ordens de serviço.</p>
+    <ul>
+      <li>Cadastro e listagem de clientes.</li>
+      <li>Cadastro e listagem de fornecedores.</li>
+      <li>Edição e exclusão controlada.</li>
+      <li>Criação, listagem e edição de ordens de serviço.</li>
+      <li>Exportação de cadastros e ordens de serviço em Excel.</li>
+    </ul>
+
+    <h2>14. Frota e Vistorias</h2>
+    <h3>Gestão de frota</h3>
+    <p>Controla veículos, responsáveis, status, quilometragem, documentos, abastecimentos e manutenções.</p>
+    <h3>Vistorias</h3>
+    <p>Registra inspeções com checklist, fotos, assinaturas, quilometragem, combustível, local e observações. Gera histórico e PDFs.</p>
+
+    <h2>15. Acesso Mobile</h2>
+    <p>O LogiStock possui telas adaptadas para celular, facilitando o uso em campo.</p>
+    <ul>
+      <li>Login técnico.</li>
+      <li>Página inicial mobile.</li>
+      <li>Alteração de senha.</li>
+      <li>Registro de baixas.</li>
+      <li>Requisição de materiais.</li>
+      <li>Acesso por link e QR Code.</li>
+      <li>Portal de aprovação de baixas.</li>
+    </ul>
+
+    <h2>16. Relatórios, Segurança e Backup</h2>
+    <h3>Relatórios e evidências</h3>
+    <p>O sistema gera planilhas, PDFs, termos, históricos, fotos, documentos e assinaturas digitais para conferência e auditoria.</p>
+    <h3>Segurança</h3>
+    <p>Conta com login, senha protegida por hash, perfis de acesso, recuperação de senha por token, controle de sessão e restrição de rotinas administrativas.</p>
+    <h3>Backup</h3>
+    <p>Possui rotina de backup do banco de dados e integração com Google Drive quando as credenciais estão configuradas.</p>
+
+    <h2>Conclusão</h2>
+    <p>O LogiStock reúne os principais processos operacionais ligados a estoque, materiais, técnicos, baixas, inventários, ferramentas, EPIs, notas fiscais, clientes, ordens de serviço e frota.</p>
+    <p>Com o uso do sistema, a empresa ganha rastreabilidade, organização, histórico, evidências e maior segurança para acompanhar as operações diárias.</p>
+    <div class="footer-space"></div>
+  </main>
+</body>
+</html>
