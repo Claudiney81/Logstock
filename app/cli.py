@@ -1,6 +1,7 @@
 import click
 import os
 import shutil
+import sqlite3
 from datetime import datetime
 from flask.cli import with_appcontext
 from sqlalchemy import inspect, text
@@ -301,6 +302,109 @@ PRESERVED_TABLES = {
     "token_acesso_tecnico",
     "usuarios",
 }
+
+
+# Somente registros operacionais. Cadastros mestres nunca entram nesta lista.
+OPERATIONAL_DATA_TABLES = [
+    "vistorias_veiculos_fotos",
+    "vistorias_veiculos_itens",
+    "vistorias_veiculos",
+    "abastecimentos_veiculos",
+    "manutencoes_veiculos",
+    "transferencias_internas_itens",
+    "transferencias_internas",
+    "transferencias_externas_itens",
+    "transferencias_externas",
+    "inventario_estoque_item",
+    "inventario_estoque",
+    "inventarios_tecnicos_itens",
+    "inventarios_tecnicos",
+    "notas_fiscais_itens",
+    "notas_fiscais_entrada",
+    "requisicoes_tecnicos_itens",
+    "requisicoes_tecnicos",
+    "baixas_tecnicas_fotos",
+    "baixas_tecnicas_itens",
+    "baixas_tecnicas",
+    "movimentacoes_estoque_itens",
+    "movimentacoes_estoque",
+    "historico_equipamento_itens",
+    "historico_equipamentos",
+    "equipamentos_tecnicos",
+    "saldo_tecnico",
+    "estoque",
+    "ordens_servico",
+]
+
+
+def _operational_data_tables():
+    existing = _existing_tables()
+    return [name for name in OPERATIONAL_DATA_TABLES if name in existing]
+
+
+def _backup_operational_cleanup():
+    if db.engine.url.get_backend_name() != "sqlite":
+        return None
+
+    database_path = db.engine.url.database
+    if not database_path:
+        return None
+    if not os.path.isabs(database_path):
+        database_path = os.path.abspath(database_path)
+    if not os.path.exists(database_path):
+        return None
+
+    timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
+    backup_dir = os.path.join(os.getcwd(), "backups", f"limpeza_operacional_{timestamp}")
+    os.makedirs(backup_dir, exist_ok=True)
+    backup_path = os.path.join(backup_dir, os.path.basename(database_path))
+
+    source = sqlite3.connect(database_path)
+    destination = sqlite3.connect(backup_path)
+    try:
+        source.backup(destination)
+    finally:
+        destination.close()
+        source.close()
+    return backup_path
+
+
+@click.command("auditar-limpeza-operacional")
+@with_appcontext
+def auditar_limpeza_operacional():
+    click.echo("Registros operacionais que serão excluídos:")
+    for table_name in _operational_data_tables():
+        click.echo(f"{table_name}: {_table_count(table_name)}")
+
+
+@click.command("limpar-dados-operacionais")
+@click.option("--confirm", default="")
+@with_appcontext
+def limpar_dados_operacionais(confirm):
+    if confirm != "LIMPAR_DADOS_OPERACIONAIS":
+        click.echo("Nada executado. Confirmação inválida.")
+        return
+
+    backup_path = _backup_operational_cleanup()
+    if not backup_path:
+        raise click.ClickException("Limpeza cancelada: não foi possível criar o backup SQLite.")
+
+    deleted_counts = {}
+    try:
+        for table_name in _operational_data_tables():
+            count = _table_count(table_name)
+            if count:
+                _delete_table(table_name)
+            deleted_counts[table_name] = count
+        db.session.commit()
+    except Exception:
+        db.session.rollback()
+        raise
+
+    click.echo(f"Backup criado em: {backup_path}")
+    click.echo("Limpeza operacional concluída. Cadastros preservados.")
+    for table_name, count in deleted_counts.items():
+        click.echo(f"{table_name}: {count}")
 
 
 def _existing_tables():

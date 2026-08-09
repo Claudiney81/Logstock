@@ -36,6 +36,8 @@ from app.cli import (
     auditar_preparar_empresa,
     auditar_backup_drive,
     backup_drive,
+    auditar_limpeza_operacional,
+    limpar_dados_operacionais,
 )
 
 
@@ -378,6 +380,8 @@ def create_app():
     app.cli.add_command(auditar_preparar_empresa)
     app.cli.add_command(auditar_backup_drive)
     app.cli.add_command(backup_drive)
+    app.cli.add_command(auditar_limpeza_operacional)
+    app.cli.add_command(limpar_dados_operacionais)
 
     @app.context_processor
     def inject_requisicoes_tecnicos_pendentes():
