@@ -243,6 +243,19 @@ def formulario_mobile_dedicado(tecnico_id=None):
         .all()
     )
 
+    # O filtro de novas baixas não pode ocultar o cliente da própria baixa
+    # devolvida, pois ele é necessário para carregar os saldos na correção.
+    clientes_por_id = {cliente.id: cliente for cliente in clientes}
+    for baixa in baixas_recusadas:
+        if baixa.cliente_id and baixa.cliente_id not in clientes_por_id:
+            cliente_correcao = Empresa.query.get(baixa.cliente_id)
+            if cliente_correcao:
+                clientes_por_id[cliente_correcao.id] = cliente_correcao
+    clientes = sorted(
+        clientes_por_id.values(),
+        key=lambda cliente: (cliente.razao_social or "").lower()
+    )
+
     saldos_correcao = {}
 
     for baixa in baixas_recusadas:
@@ -292,9 +305,35 @@ def formulario_mobile_dedicado(tecnico_id=None):
 def api_os_por_cliente():
     tecnico_id = request.args.get("tecnico_id", type=int)
     cliente_id = request.args.get("cliente_id", type=int)
+    baixa_id_corrigir = request.args.get("baixa_id_corrigir", type=int)
 
     if not tecnico_id or not cliente_id:
         return jsonify({"ordens": []})
+
+    filtro_baixas = db.session.query(BaixaTecnica.id).filter(
+        BaixaTecnica.ordem_servico_id == OrdemServico.id,
+        BaixaTecnica.status.in_([
+            "pendente",
+            "revisada",
+            "pendente_ajuste",
+            "recusado",
+            "confirmado",
+            "aprovada",
+            "aprovada_parcial"
+        ])
+    )
+
+    if baixa_id_corrigir:
+        baixa_correcao = BaixaTecnica.query.filter(
+            BaixaTecnica.id == baixa_id_corrigir,
+            BaixaTecnica.tecnico_id == tecnico_id,
+            BaixaTecnica.status.in_(["recusado", "pendente_ajuste"]),
+            BaixaTecnica.origem_mobile == True
+        ).first()
+        if baixa_correcao:
+            filtro_baixas = filtro_baixas.filter(
+                BaixaTecnica.id != baixa_correcao.id
+            )
 
     registros = (
         db.session.query(
@@ -308,20 +347,7 @@ def api_os_por_cliente():
                 OrdemServico.status.is_(None),
                 OrdemServico.status.in_(["aberta", "em_andamento"])
             ),
-            ~db.session.query(BaixaTecnica.id)
-            .filter(
-                BaixaTecnica.ordem_servico_id == OrdemServico.id,
-                BaixaTecnica.status.in_([
-                    "pendente",
-                    "revisada",
-                    "pendente_ajuste",
-                    "recusado",
-                    "confirmado",
-                    "aprovada",
-                    "aprovada_parcial"
-                ])
-            )
-            .exists()
+            ~filtro_baixas.exists()
         )
         .order_by(
             OrdemServico.numero_os

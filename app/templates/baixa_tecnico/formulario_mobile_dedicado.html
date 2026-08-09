@@ -831,7 +831,11 @@
           return;
         }
 
-        fetch(`/baixa_tecnico/api/os-por-cliente?tecnico_id=${tecnicoId}&cliente_id=${cliente}`)
+        const baixaIdCorrigir = document.getElementById('baixa_id_corrigir').value;
+        fetch(
+          `/baixa_tecnico/api/os-por-cliente?tecnico_id=${tecnicoId}` +
+          `&cliente_id=${cliente}&baixa_id_corrigir=${baixaIdCorrigir}`
+        )
           .then(response => response.json())
           .then(data => {
             if (!data.ordens || data.ordens.length === 0) {
