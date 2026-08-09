@@ -179,6 +179,7 @@ def create_app():
             return None
 
         allowed_endpoints = {
+            "home.home",
             "tecnico_mobile.login",
             "tecnico_mobile.logout",
             "tecnico_mobile.home",
