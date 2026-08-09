@@ -213,7 +213,15 @@ def formulario_mobile_dedicado(tecnico_id=None):
             ~db.session.query(BaixaTecnica.id)
             .filter(
                 BaixaTecnica.ordem_servico_id == OrdemServico.id,
-                BaixaTecnica.status.in_(["confirmado", "aprovada", "aprovada_parcial"])
+                BaixaTecnica.status.in_([
+                    "pendente",
+                    "revisada",
+                    "pendente_ajuste",
+                    "recusado",
+                    "confirmado",
+                    "aprovada",
+                    "aprovada_parcial"
+                ])
             )
             .exists()
         )
@@ -303,7 +311,15 @@ def api_os_por_cliente():
             ~db.session.query(BaixaTecnica.id)
             .filter(
                 BaixaTecnica.ordem_servico_id == OrdemServico.id,
-                BaixaTecnica.status.in_(["confirmado", "aprovada", "aprovada_parcial"])
+                BaixaTecnica.status.in_([
+                    "pendente",
+                    "revisada",
+                    "pendente_ajuste",
+                    "recusado",
+                    "confirmado",
+                    "aprovada",
+                    "aprovada_parcial"
+                ])
             )
             .exists()
         )
@@ -1175,5 +1191,4 @@ def login_aprovador_mobile():
         return redirect(url_for("baixa_tecnico.pendentes_mobile"))
 
     return render_template("baixas_mobile/login_aprovador.html")
-
 
