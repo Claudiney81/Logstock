@@ -355,7 +355,11 @@ def _backup_operational_cleanup():
         return None
 
     timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
-    backup_dir = os.path.join(os.getcwd(), "backups", f"limpeza_operacional_{timestamp}")
+    backup_dir = os.path.join(
+        os.path.dirname(database_path),
+        "backups",
+        f"limpeza_operacional_{timestamp}",
+    )
     os.makedirs(backup_dir, exist_ok=True)
     backup_path = os.path.join(backup_dir, os.path.basename(database_path))
 
