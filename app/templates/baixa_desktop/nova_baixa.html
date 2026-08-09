@@ -218,10 +218,21 @@
           </div>
         </div>
 
-        <h5 class="fw-bold mb-3" id="tituloItensDisponiveis">
-          Itens disponíveis para baixa
-        </h5>
+        <div class="d-flex justify-content-between align-items-center mb-3">
+          <h5 class="fw-bold mb-0" id="tituloItensDisponiveis">
+            Itens disponíveis para baixa
+          </h5>
+          <button
+            type="button"
+            class="btn btn-sm btn-outline-secondary"
+            id="btnRecolherItensDisponiveis"
+            onclick="alternarItensDisponiveis()"
+          >
+            <i class="bi bi-chevron-up"></i> Recolher
+          </button>
+        </div>
 
+        <div id="conteudoItensDisponiveis">
         <div class="table-responsive mb-4">
           <table class="table table-hover table-sm align-middle mb-0 app-table">
             <thead>
@@ -250,6 +261,7 @@
             <i class="bi bi-plus-circle"></i>
             Inserir itens com quantidade no resumo
           </button>
+        </div>
         </div>
 
         <h5 class="fw-bold mb-3">
@@ -315,6 +327,8 @@ const btnRegistrarBaixa = document.getElementById("btnRegistrarBaixa");
 
 const tbodyItensDisponiveis = document.getElementById("tbodyItensDisponiveis");
 const tituloItensDisponiveis = document.getElementById("tituloItensDisponiveis");
+const conteudoItensDisponiveis = document.getElementById("conteudoItensDisponiveis");
+const btnRecolherItensDisponiveis = document.getElementById("btnRecolherItensDisponiveis");
 const avisoListaCorrecao = document.getElementById("avisoListaCorrecao");
 const secaoItensCorrecao = document.getElementById("secaoItensCorrecao");
 const tbodyItensCorrecao = document.getElementById("tbodyItensCorrecao");
@@ -326,6 +340,19 @@ let modoCorrecaoBaixa = false;
 let baixaCorrecaoAtual = null;
 let carregamentoSaldoAtual = 0;
 let controleCarregamentoSaldo = null;
+
+function definirItensDisponiveisRecolhidos(recolhido) {
+  conteudoItensDisponiveis.classList.toggle("d-none", recolhido);
+  btnRecolherItensDisponiveis.innerHTML = recolhido
+    ? '<i class="bi bi-chevron-down"></i> Exibir'
+    : '<i class="bi bi-chevron-up"></i> Recolher';
+}
+
+function alternarItensDisponiveis() {
+  definirItensDisponiveisRecolhidos(
+    !conteudoItensDisponiveis.classList.contains("d-none")
+  );
+}
 
 function origemTexto(origem) {
   return origem === "cliente" ? "Cliente" : "Empresa";
@@ -963,6 +990,7 @@ function entrarModoCorrecao(baixa) {
   tituloItensDisponiveis.textContent = "Itens disponíveis para inclusão";
   avisoListaCorrecao.classList.remove("d-none");
   secaoItensCorrecao.classList.remove("d-none");
+  definirItensDisponiveisRecolhidos(true);
   carregarResumoDaCorrecao(baixa);
 
   baixaIdCorrigir.value = baixa.id || "";
