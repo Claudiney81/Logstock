@@ -43,7 +43,8 @@ from reportlab.platypus import (
 )
 
 from reportlab.lib import colors
-from reportlab.lib.styles import getSampleStyleSheet
+from reportlab.lib.styles import getSampleStyleSheet, ParagraphStyle
+from xml.sax.saxutils import escape
 
 from app import db
 
@@ -1248,6 +1249,20 @@ def exportar_baixa_pdf(baixa_id):
     elementos = []
 
     styles = getSampleStyleSheet()
+    estilo_campo = ParagraphStyle(
+        "CampoPDF",
+        parent=styles["Normal"],
+        fontSize=8.5,
+        leading=10.5,
+        wordWrap="CJK",
+    )
+    estilo_item = ParagraphStyle(
+        "ItemPDF",
+        parent=styles["Normal"],
+        fontSize=7.5,
+        leading=9,
+        wordWrap="CJK",
+    )
 
     azul = colors.HexColor("#002b55")
     cinza_claro = colors.HexColor("#f3f6f9")
@@ -1256,6 +1271,10 @@ def exportar_baixa_pdf(baixa_id):
 
     def moeda(valor):
         return f"R$ {float(valor or 0):,.2f}".replace(",", "X").replace(".", ",").replace("X", ".")
+
+    def texto_pdf(valor, estilo=estilo_campo):
+        conteudo = escape(str(valor if valor not in (None, "") else "-"))
+        return Paragraph(conteudo.replace("\n", "<br/>"), estilo)
 
     # ==================================================
     # LOGO + CABEÇALHO
@@ -1352,36 +1371,36 @@ def exportar_baixa_pdf(baixa_id):
 
     dados_cabecalho = [
     [
-        "Técnico:",
-        baixa.tecnico.nome if baixa.tecnico else "-",
-        "Responsável:",
-        baixa.responsavel or "-"
+        texto_pdf("Técnico:"),
+        texto_pdf(baixa.tecnico.nome if baixa.tecnico else "-"),
+        texto_pdf("Responsável:"),
+        texto_pdf(baixa.responsavel or "-")
     ],
 
     [
-        "Cliente:",
-        cliente_nome,
-        "O.S:",
-        numero_os
+        texto_pdf("Cliente:"),
+        texto_pdf(cliente_nome),
+        texto_pdf("O.S:"),
+        texto_pdf(numero_os)
     ],
 
     [
-        "Tipo Serviço:",
-        baixa.tipo_servico.nome if baixa.tipo_servico else "-",
-        "Status:",
-        status
+        texto_pdf("Tipo Serviço:"),
+        texto_pdf(baixa.tipo_servico.nome if baixa.tipo_servico else "-"),
+        texto_pdf("Status:"),
+        texto_pdf(status)
     ],
 
     [
-        "Tipo de Estoque:",
-        tipo_estoque_pdf,
-        "Endereço:",
-        baixa.endereco or "-"
+        texto_pdf("Tipo de Estoque:"),
+        texto_pdf(tipo_estoque_pdf),
+        texto_pdf("Endereço:"),
+        texto_pdf(baixa.endereco or "-")
     ],
 
     [
-        "Observação:",
-        baixa.observacao or "-",
+        texto_pdf("Observação:"),
+        texto_pdf(baixa.observacao or "-"),
         "",
         ""
     ],
@@ -1422,6 +1441,8 @@ def exportar_baixa_pdf(baixa_id):
         ("TOPPADDING", (0, 0), (-1, -1), 7),
         ("BOTTOMPADDING", (0, 0), (-1, -1), 7),
         ("LEFTPADDING", (0, 0), (-1, -1), 8),
+        ("RIGHTPADDING", (0, 0), (-1, -1), 8),
+        ("SPAN", (1, 4), (3, 4)),
     ]))
 
     elementos.append(tabela_cab)
@@ -1461,13 +1482,13 @@ def exportar_baixa_pdf(baixa_id):
         origem = "Cliente" if item.tipo_estoque == "cliente" else "Empresa"
 
         dados_itens.append([
-            item.item.codigo if item.item else "-",
-            Paragraph(item.item.descricao if item.item else "-", styles["Normal"]),
-            item.item.unidade if item.item else "-",
+            texto_pdf(item.item.codigo if item.item else "-", estilo_item),
+            texto_pdf(item.item.descricao if item.item else "-", estilo_item),
+            texto_pdf(item.item.unidade if item.item else "-", estilo_item),
             str(item.quantidade_aprovada or item.quantidade or 0),
             moeda(valor_unit),
             moeda(valor_total),
-            origem
+            texto_pdf(origem, estilo_item)
         ])
 
     tabela_itens = Table(
@@ -1565,7 +1586,9 @@ def exportar_baixa_pdf(baixa_id):
         '<para align="center"><b>Assinatura física</b></para>',
         styles["Normal"]
     )
-    assinatura_nome = baixa.responsavel or "Responsável / Operador"
+    assinatura_nome = texto_pdf(
+        baixa.responsavel or "Responsável / Operador"
+    )
     tabela_assinatura = Table(
         [[assinatura_fisica], [assinatura_nome]],
         colWidths=[360],
