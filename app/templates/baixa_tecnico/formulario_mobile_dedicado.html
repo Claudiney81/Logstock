@@ -943,6 +943,25 @@
           alert('Você precisa clicar em "+ Adicionar à Baixa" antes de enviar.');
           return false;
         }
+
+        const btn = document.getElementById('btnEnviarBaixa');
+        if (btn.disabled) {
+          e.preventDefault();
+          return false;
+        }
+
+        btn.dataset.textoOriginal = btn.innerHTML;
+        btn.disabled = true;
+        btn.innerHTML = '⏳ Enviando baixa...';
+
+        let alerta = document.getElementById('alertaEnvioBaixa');
+        if (!alerta) {
+          alerta = document.createElement('div');
+          alerta.id = 'alertaEnvioBaixa';
+          alerta.className = 'alert alert-info mt-3 text-center fw-bold';
+          alerta.innerHTML = 'Aguarde alguns segundos...<br>Não feche esta tela.';
+          btn.parentNode.insertBefore(alerta, btn);
+        }
       });
 
       document.getElementById('btnAdicionarFoto').addEventListener('click', function () {
@@ -1115,27 +1134,16 @@
         carregarItens();
       }
 
-      document.getElementById('formBaixa').addEventListener('submit', function () {
-
+      window.addEventListener('pageshow', function () {
         const btn = document.getElementById('btnEnviarBaixa');
-
-        btn.disabled = true;
-
-        btn.innerHTML = `
-          ⏳ Enviando baixa...
-        `;
-
-        const alerta = document.createElement('div');
-
-        alerta.className = 'alert alert-info mt-3 text-center fw-bold';
-
-        alerta.innerHTML = `
-          Aguarde alguns segundos...<br>
-          Não feche esta tela.
-        `;
-
-        btn.parentNode.insertBefore(alerta, btn);
-
+        const alerta = document.getElementById('alertaEnvioBaixa');
+        if (btn) {
+          btn.disabled = false;
+          if (btn.dataset.textoOriginal) {
+            btn.innerHTML = btn.dataset.textoOriginal;
+          }
+        }
+        alerta?.remove();
       });
       </script>
       {% endblock %}
