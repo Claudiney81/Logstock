@@ -327,7 +327,7 @@
     </button>
 
     <div class="collapse navbar-collapse" id="navbarNav">
-      <ul class="navbar-nav me-auto">
+      <ul class="navbar-nav me-auto" id="menuModulos">
 
             <!-- Gestão de Estoque -->
           <li class="nav-item dropdown">
@@ -1032,6 +1032,13 @@
     </script>
     <script>
     document.addEventListener("DOMContentLoaded", function () {
+      document.querySelectorAll("#menuModulos .dropdown-item[href]").forEach(function(link) {
+        if (link.getAttribute("href") && link.getAttribute("href") !== "#") {
+          link.setAttribute("target", "_blank");
+          link.setAttribute("rel", "noopener");
+        }
+      });
+
       document.querySelectorAll(".flash-toast").forEach(function(toastEl) {
         const toast = new bootstrap.Toast(toastEl, {
           delay: Number(toastEl.dataset.bsDelay || 4000),
