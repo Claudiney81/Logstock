@@ -1032,6 +1032,11 @@
     </script>
     <script>
     document.addEventListener("DOMContentLoaded", function () {
+      const tituloPagina = document.querySelector("h1, .app-page-title, .app-page-kicker");
+      if (tituloPagina && tituloPagina.textContent.trim()) {
+        document.title = tituloPagina.textContent.trim() + " | LogiStock";
+      }
+
       document.querySelectorAll("#menuModulos .dropdown-item[href]").forEach(function(link) {
         if (link.getAttribute("href") && link.getAttribute("href") !== "#") {
           link.setAttribute("target", "_blank");
