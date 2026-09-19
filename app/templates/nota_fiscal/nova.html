@@ -142,7 +142,26 @@
     background: #f8fafc;
     border: 1px dashed #cbd5e1;
     border-radius: 10px;
-    padding: 9px 10px;
+    padding: 12px;
+  }
+
+  .nf-import-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 12px;
+    flex-wrap: wrap;
+  }
+
+  .nf-import-title {
+    color: #073763;
+    font-weight: 800;
+  }
+
+  .nf-import-description {
+    color: #64748b;
+    font-size: .8rem;
+    margin-top: 2px;
   }
 
   .nf-quick-grid {
@@ -558,23 +577,34 @@
               </div>
 
               <div class="nf-import-box mt-3">
-                <div class="row align-items-center g-2">
-                  <div class="col-md-4">
-                    <div class="fw-bold text-dark">
+                <div class="nf-import-header">
+                  <div>
+                    <div class="nf-import-title">
                       <i class="bi bi-file-earmark-excel me-1"></i>
                       Importar Excel
                     </div>
+                    <div class="nf-import-description">
+                      Importe, confira e desmarque os itens que não devem entrar na nota.
+                    </div>
                   </div>
 
-                  <div class="col-md-8">
+                  <div class="d-flex align-items-center gap-2 flex-wrap">
+                    <label for="importarExcel" class="btn btn-outline-success btn-sm mb-0">
+                      <i class="bi bi-paperclip me-1"></i>
+                      Anexar planilha
+                    </label>
                     <input
                       type="file"
                       id="importarExcel"
-                      accept=".xlsx"
-                      class="form-control"
+                      accept=".xlsx,.xls"
+                      class="visually-hidden"
                     >
+                    <span id="nomeArquivoExcel" class="text-muted small">
+                      Nenhum arquivo selecionado
+                    </span>
                   </div>
                 </div>
+                <div id="itensImportadosPendentes" class="mt-3" hidden></div>
               </div>
 
               <hr class="my-3">
@@ -720,11 +750,57 @@
     border: 2px solid #0d6efd;
     box-shadow: 0 0 6px rgba(13,110,253,.25);
   }
+  .nf-import-preview {
+    border: 1px solid #b7d7c1;
+    border-radius: 8px;
+    background: #fff;
+    overflow: hidden;
+  }
+
+  .nf-import-preview table {
+    font-size: .82rem;
+  }
+
+  .nf-import-preview-toolbar {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 10px;
+    flex-wrap: wrap;
+    padding: 10px;
+    background: #eef8f1;
+    border-bottom: 1px solid #cfe5d5;
+  }
+
+  .nf-import-preview .table-responsive {
+    max-height: 320px;
+  }
+
+  .nf-import-preview thead th {
+    position: sticky;
+    top: 0;
+    z-index: 1;
+    background: #f8fafc;
+    white-space: nowrap;
+  }
+
+  .nf-import-row:not(.nf-import-row-selected) {
+    color: #94a3b8;
+    background: #f8fafc;
+  }
+
+  .nf-import-check {
+    width: 1.05rem;
+    height: 1.05rem;
+    cursor: pointer;
+  }
+
 </style>
 
 <script>
 
 let itensNotaLote = [];
+let itensImportadosPendentes = [];
 
 function normalizarTextoNF(valor) {
   return String(valor || "")
@@ -1273,82 +1349,293 @@ function validarItens() {
 }
 
 
-document
-  .getElementById("importarExcel")
-  .addEventListener("change", function (e) {
+function normalizarCabecalhoExcel(valor) {
+  return normalizarTextoNF(valor)
+    .replace(/[^a-z0-9]+/g, "_")
+    .replace(/^_|_$/g, "");
+}
 
-    const reader = new FileReader();
+function valorColunaExcel(linha, nomes, valorPadrao = "") {
+  const colunas = Object.keys(linha);
 
-    reader.onload = function (e) {
+  for (const nome of nomes) {
+    const coluna = colunas.find((item) => (
+      normalizarCabecalhoExcel(item) === normalizarCabecalhoExcel(nome)
+    ));
 
-      const data = new Uint8Array(e.target.result);
+    if (coluna && linha[coluna] !== "" && linha[coluna] !== null && linha[coluna] !== undefined) {
+      return linha[coluna];
+    }
+  }
 
+  return valorPadrao;
+}
+
+function numeroExcel(valor, valorPadrao = 0) {
+  if (typeof valor === "number") {
+    return Number.isFinite(valor) ? valor : valorPadrao;
+  }
+
+  let texto = String(valor ?? "")
+    .replace(/R\$/gi, "")
+    .replace(/\s/g, "")
+    .trim();
+
+  if (!texto) {
+    return valorPadrao;
+  }
+
+  if (texto.includes(",")) {
+    texto = texto.replace(/\./g, "").replace(",", ".");
+  }
+
+  let numero = Number(texto);
+
+  if (!Number.isFinite(numero)) {
+    const numeroComUnidade = texto.match(/^[+-]?\d+(?:\.\d+)?/);
+    numero = numeroComUnidade ? Number(numeroComUnidade[0]) : valorPadrao;
+  }
+
+  return Number.isFinite(numero) ? numero : valorPadrao;
+}
+
+function normalizarDescricaoImportacao(valor) {
+  return normalizarTextoNF(valor)
+    .replace(/[^a-z0-9]+/g, " ")
+    .trim();
+}
+
+function encontrarItemImportado(descricao) {
+  const descricaoNormalizada = normalizarDescricaoImportacao(descricao);
+
+  if (!descricaoNormalizada) {
+    return null;
+  }
+
+  return itensNotaLote.find((item) => (
+    normalizarDescricaoImportacao(item.descricao) === descricaoNormalizada
+  )) || null;
+}
+
+function gerarCodigoImportado(descricao) {
+  const texto = normalizarDescricaoImportacao(descricao);
+  let hash = 0;
+
+  for (let indice = 0; indice < texto.length; indice += 1) {
+    hash = ((hash << 5) - hash) + texto.charCodeAt(indice);
+    hash |= 0;
+  }
+
+  return `IMP-${Math.abs(hash).toString(36).toUpperCase()}`;
+}
+
+function renderizarImportadosPendentes() {
+  const container = document.getElementById("itensImportadosPendentes");
+
+  if (!container) {
+    return;
+  }
+
+  if (!itensImportadosPendentes.length) {
+    container.hidden = true;
+    container.innerHTML = "";
+    return;
+  }
+
+  const totalSelecionados = itensImportadosPendentes.filter((item) => item.selecionado !== false).length;
+  const todosSelecionados = totalSelecionados === itensImportadosPendentes.length;
+
+  container.hidden = false;
+  container.innerHTML = `
+    <div class="nf-import-preview">
+      <div class="nf-import-preview-toolbar">
+        <div>
+          <strong>${itensImportadosPendentes.length} item(ns) importado(s)</strong>
+          <span class="text-muted small ms-1">— ${totalSelecionados} selecionado(s)</span>
+        </div>
+        <div class="d-flex gap-2 flex-wrap">
+          <button type="button" class="btn btn-sm btn-outline-success" onclick="marcarTodosImportados(true)">
+            Marcar todos
+          </button>
+          <button type="button" class="btn btn-sm btn-outline-secondary" onclick="marcarTodosImportados(false)">
+            Desmarcar todos
+          </button>
+          <button type="button" class="btn btn-sm btn-success" onclick="adicionarImportadosSelecionados()" ${totalSelecionados ? "" : "disabled"}>
+            <i class="bi bi-plus-circle me-1"></i>Adicionar selecionados
+          </button>
+        </div>
+      </div>
+      <div class="table-responsive">
+        <table class="table table-sm table-bordered mb-0 align-middle">
+          <thead>
+            <tr>
+              <th class="text-center" style="width:42px">
+                <input type="checkbox" class="form-check-input nf-import-check" title="Selecionar todos" onchange="marcarTodosImportados(this.checked)" ${todosSelecionados ? "checked" : ""}>
+              </th>
+              <th>Código</th>
+              <th>Descrição</th>
+              <th>Qtd.</th>
+              <th>Valor</th>
+            </tr>
+          </thead>
+          <tbody>
+            ${itensImportadosPendentes.map((item, indice) => `
+              <tr class="nf-import-row ${item.selecionado !== false ? "nf-import-row-selected" : ""}">
+                <td class="text-center">
+                  <input type="checkbox" class="form-check-input nf-import-check" aria-label="Selecionar item" onchange="alternarImportadoPendente(${indice}, this.checked)" ${item.selecionado !== false ? "checked" : ""}>
+                </td>
+                <td>${escaparHtmlNF(item.codigo)}</td>
+                <td>${escaparHtmlNF(item.descricao)}</td>
+                <td>${escaparHtmlNF(item.quantidade)}</td>
+                <td>R$ ${escaparHtmlNF(item.valor.replace(".", ","))}</td>
+              </tr>
+            `).join("")}
+          </tbody>
+        </table>
+      </div>
+    </div>
+  `;
+}
+
+function alternarImportadoPendente(indice, selecionado) {
+  if (itensImportadosPendentes[indice]) {
+    itensImportadosPendentes[indice].selecionado = selecionado;
+  }
+  renderizarImportadosPendentes();
+}
+
+function marcarTodosImportados(selecionado) {
+  itensImportadosPendentes.forEach((item) => {
+    item.selecionado = selecionado;
+  });
+  renderizarImportadosPendentes();
+}
+
+function adicionarImportadosSelecionados() {
+  const itensParaAdicionar = itensImportadosPendentes.filter((item) => item.selecionado !== false);
+
+  if (!itensParaAdicionar.length) {
+    alert("Marque ao menos um item para adicionar à nota.");
+    return;
+  }
+
+  let adicionados = 0;
+
+  itensParaAdicionar.forEach((item) => {
+    if (!itemJaNaNota(item.codigo)) {
+      adicionarItemImportado(item.codigo, item.descricao, item.quantidade, item.valor);
+      adicionados += 1;
+    }
+  });
+
+  itensImportadosPendentes = itensImportadosPendentes.filter((item) => item.selecionado === false);
+  renderizarImportadosPendentes();
+
+  if (adicionados) {
+    document.querySelector(".nf-itens-card")?.scrollIntoView({
+      behavior: "smooth",
+      block: "center"
+    });
+  }
+}
+
+document.getElementById("importarExcel")?.addEventListener("change", function (e) {
+  const arquivo = e.target.files?.[0];
+  const nomeArquivo = document.getElementById("nomeArquivoExcel");
+
+  if (!arquivo) {
+    return;
+  }
+
+  if (nomeArquivo) {
+    nomeArquivo.textContent = arquivo.name;
+  }
+
+  const reader = new FileReader();
+
+  reader.onload = function (evento) {
+    try {
+      const data = new Uint8Array(evento.target.result);
       const workbook = XLSX.read(data, { type: "array" });
+      const primeiraAba = workbook.SheetNames[0];
 
-      const sheet = workbook.Sheets[workbook.SheetNames[0]];
+      if (!primeiraAba) {
+        throw new Error("A planilha não possui abas.");
+      }
 
-      const rows = XLSX.utils.sheet_to_json(sheet, {
+      const matriz = XLSX.utils.sheet_to_json(workbook.Sheets[primeiraAba], {
+        header: 1,
         defval: ""
       });
-
-      console.log("📊 Dados do Excel:", rows);
-
-      rows.forEach((row, index) => {
-
-        let codigo = (row["codigo"] || row["Código"] || "").toString().trim();
-
-        let descricao = (row["descricao"] || row["Descrição"] || "").toString().trim();
-
-        let quantidade = row["quantidade"] || row["Quantidade"];
-
-        let valor = row["valor_unitario"] || row["Valor Unitário"] || row["valor"];
-
-        if (codigo === "") codigo = row["codigo"];
-
-        if (descricao === "") descricao = row["descricao"];
-
-        if (!quantidade) quantidade = row["quantidade"];
-
-        if (!valor) valor = row["valor"];
-
-        if (!codigo) {
-          console.warn(`Linha ${index + 2} ignorada: código vazio`, row);
-          return;
-        }
-
-        quantidade = parseFloat(quantidade);
-
-        if (isNaN(quantidade) || quantidade <= 0) {
-          console.warn(`Linha ${index + 2} ignorada: quantidade inválida`);
-          return;
-        }
-
-        valor = (valor || "0").toString();
-
-        valor = valor.replace("R$", "").trim();
-
-        valor = valor.replace(/\./g, "").replace(",", ".");
-
-        valor = parseFloat(valor);
-
-        if (isNaN(valor)) valor = 0;
-
-        adicionarItemImportado(
-          String(codigo),
-          descricao,
-          String(parseInt(quantidade)),
-          valor.toFixed(2)
+      const indiceCabecalho = matriz.findIndex((linha) => {
+        const cabecalhos = linha.map(normalizarCabecalhoExcel);
+        return ["item", "descricao"].some((nome) => cabecalhos.includes(nome)) && (
+          ["qtd", "quantidade", "quant"].some((nome) => cabecalhos.includes(nome))
         );
-
       });
 
-      alert("Importação concluída com sucesso!");
+      if (indiceCabecalho < 0) {
+        throw new Error("Cabeçalho da planilha não encontrado.");
+      }
 
-    };
+      const cabecalhos = matriz[indiceCabecalho];
+      const rows = matriz.slice(indiceCabecalho + 1).map((linha) => (
+        Object.fromEntries(cabecalhos.map((cabecalho, coluna) => [cabecalho, linha[coluna]]))
+      ));
+      itensImportadosPendentes = [];
+      let inseridos = 0;
+      let ignorados = 0;
 
-    reader.readAsArrayBuffer(e.target.files[0]);
+      rows.forEach((row, index) => {
+        const descricao = String(valorColunaExcel(row, ["descricao", "descrição", "item"]))
+          .trim();
+        const quantidade = numeroExcel(
+          valorColunaExcel(row, ["quantidade", "qtd", "quant"])
+        );
+        const valor = numeroExcel(
+          valorColunaExcel(row, ["valor_unitario", "valor unitario", "valor estimado", "valor", "preco", "preço"])
+        );
+        const itemCadastrado = encontrarItemImportado(descricao);
+        const codigoPlanilha = String(valorColunaExcel(row, ["codigo", "código", "cod"])).trim();
+        const codigo = codigoPlanilha || itemCadastrado?.codigo || gerarCodigoImportado(descricao);
 
-  });
+        if (normalizarDescricaoImportacao(descricao) === "total") {
+          return;
+        }
+
+        if (!descricao || !codigo || !Number.isInteger(quantidade) || quantidade <= 0 || itemJaNaNota(codigo)) {
+          ignorados += 1;
+          console.warn(`Linha ${index + 2} ignorada: dados inválidos ou item duplicado`, row);
+          return;
+        }
+
+        itensImportadosPendentes.push({
+          codigo,
+          descricao,
+          quantidade: String(quantidade),
+          valor: valor.toFixed(2),
+          selecionado: true
+        });
+        inseridos += 1;
+      });
+
+      renderizarImportadosPendentes();
+
+      if (!inseridos) {
+        alert("Nenhum item válido foi encontrado. Use colunas Código, Descrição, Quantidade e Valor Unitário.");
+      } else {
+        alert(`${inseridos} item(ns) carregado(s). Confira a seleção antes de adicionar à nota.${ignorados ? ` ${ignorados} linha(s) ignorada(s).` : ""}`);
+      }
+    } catch (erro) {
+      console.error("Erro ao importar planilha:", erro);
+      alert("Não foi possível ler a planilha. Selecione um arquivo Excel .xlsx ou .xls válido.");
+    } finally {
+      e.target.value = "";
+    }
+  };
+
+  reader.readAsArrayBuffer(arquivo);
+});
 
 
 function adicionarItemImportado(codigo, descricao, quantidade, valor) {
@@ -1361,18 +1648,18 @@ function adicionarItemImportado(codigo, descricao, quantidade, valor) {
 
   row.innerHTML = `
     <td>
-      <input type="hidden" name="codigo[]" value="${codigo}">
-      ${codigo}
+      <input type="hidden" name="codigo[]" value="${escaparHtmlNF(codigo)}">
+      ${escaparHtmlNF(codigo)}
     </td>
 
     <td>
-      <input type="hidden" name="descricao[]" value="${descricao}">
-      ${descricao}
+      <input type="hidden" name="descricao[]" value="${escaparHtmlNF(descricao)}">
+      ${escaparHtmlNF(descricao)}
     </td>
 
     <td>
-      <input type="hidden" name="quantidade[]" value="${quantidade}">
-      ${quantidade}
+      <input type="hidden" name="quantidade[]" value="${escaparHtmlNF(quantidade)}">
+      ${escaparHtmlNF(quantidade)}
     </td>
 
     <td>
