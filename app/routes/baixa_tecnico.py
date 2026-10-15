@@ -27,6 +27,7 @@ from werkzeug.security import (
 )
 
 from app import db
+from app.drafts import draft_saved
 
 from app.models import (
     Tecnico,
@@ -1144,6 +1145,7 @@ def recusar_mobile(baixa_id):
             flash("Baixa devolvida para ajuste no portal do técnico.", "warning")
         else:
             flash("Baixa devolvida para correção no Baixa Desktop.", "warning")
+        draft_saved()
 
     except Exception as e:
         db.session.rollback()

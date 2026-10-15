@@ -129,7 +129,8 @@ def _import_bp(
     )
 
 
-def create_app():
+def create_app(test_config=None):
+    from app.drafts import init_drafts
     app = Flask(__name__, instance_relative_config=True)
 
     if os.getenv("RENDER"):
@@ -147,6 +148,8 @@ def create_app():
     )
 
     app.config.from_pyfile(config_path)
+    if test_config:
+        app.config.update(test_config)
 
     db.init_app(app)
     mail.init_app(app)
@@ -202,6 +205,11 @@ def create_app():
             "auth.logout",
             "auth.login_tecnico",
             "auth_tecnico.login_tecnico",
+            "requisicao_mobile.login",
+            "requisicao_mobile.logout",
+            "requisicao_mobile.nova",
+            "requisicao_mobile.api_itens_empresa_padrao",
+            "requisicao_mobile.api_itens_por_estoque",
             "static",
         }
 
@@ -527,4 +535,5 @@ def create_app():
         response.headers.setdefault("Referrer-Policy", "strict-origin-when-cross-origin")
         return response
 
+    init_drafts(app)
     return app

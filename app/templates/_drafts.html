@@ -1,0 +1,6 @@
+<style>[data-draft-ui][hidden] { display: none !important; }</style>
+<script id="logistock-draft-config" type="application/json">{{ {
+  'user': draft_user,
+  'completed': consume_completed_drafts()
+}|tojson }}</script>
+<script src="{{ url_for('static', filename='js/drafts.js', v='2') }}"></script>

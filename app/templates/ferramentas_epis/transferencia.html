@@ -288,7 +288,7 @@
                     <th width="80">Ação</th>
                   </tr>
                 </thead>
-                <tbody id="tabelaItens"></tbody>
+                <tbody id="tabelaItens" data-draft-region="tabelaItens"></tbody>
               </table>
             </div>
 
@@ -814,4 +814,16 @@ document.querySelector("form")
 });
 </script>
 
+
+<script>
+
+window.logistockDraftAdapter = {
+  capture: () => ({tecnico: signaturePadTecnico.toData(), logistica: signaturePadLogistica.toData()}),
+  restore: data => {
+    signaturePadTecnico.fromData(data?.tecnico || []);
+    signaturePadLogistica.fromData(data?.logistica || []);
+  }
+};
+
+</script>
 {% endblock %}

@@ -1110,4 +1110,21 @@ function corrigirBaixa{{ baixa.id }}() {
 
 </script>
 
+
+<script>
+
+window.logistockDraftAdapter = {
+  capture: () => ({resumo: resumoBaixa, correcao: modoCorrecaoBaixa ? baixaCorrecaoAtual : null}),
+  restore: async data => {
+    if (data?.correcao) {
+      entrarModoCorrecao(data.correcao);
+      await selecionarOrdemServicoPorId(data.correcao.ordem_servico_id, data.correcao.numero_os || '', data.correcao.endereco || '');
+    }
+    resumoBaixa = data?.resumo || [];
+    renderizarResumo();
+    await carregarSaldo();
+  }
+};
+
+</script>
 {% endblock %}

@@ -315,6 +315,21 @@ const assinaturaInput = document.getElementById("assinaturaInput");
 
 let desenhando = false;
 let hasSignature = false;
+window.logistockDraftAdapter = {
+  capture: () => ({assinatura: hasSignature ? canvas.toDataURL('image/png') : ''}),
+  restore: data => new Promise(resolve => {
+    if (!data?.assinatura) return resolve();
+    const img = new Image();
+    img.onload = () => {
+      canvas.getContext('2d').drawImage(img, 0, 0, canvas.width, canvas.height);
+      hasSignature = true;
+      assinaturaInput.value = data.assinatura;
+      resolve();
+    };
+    img.onerror = resolve;
+    img.src = data.assinatura;
+  })
+};
 
 function ajustarCanvas() {
     canvas.width = canvas.offsetWidth;

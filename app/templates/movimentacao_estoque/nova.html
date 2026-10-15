@@ -351,7 +351,7 @@
                   </tr>
                 </thead>
 
-                <tbody>
+                <tbody data-draft-region="tabela-itens">
                   <tr>
                     <td>
                       <input type="text" name="codigo[]" class="form-control form-control-sm codigo-input" placeholder="Código ou descrição">
@@ -1476,6 +1476,21 @@ if (canvas) {
 
   let drawing = false;
   let hasSignature = false;
+  window.logistockDraftAdapter = {
+    capture: () => ({assinatura: hasSignature ? canvas.toDataURL('image/png') : ''}),
+    restore: data => new Promise(resolve => {
+      if (!data?.assinatura) return resolve();
+      const img = new Image();
+      img.onload = () => {
+        ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
+        hasSignature = true;
+        document.getElementById('assinatura').value = data.assinatura;
+        resolve();
+      };
+      img.onerror = resolve;
+      img.src = data.assinatura;
+    })
+  };
 
   canvas.addEventListener("mousedown", function () {
     drawing = true;
@@ -1532,4 +1547,18 @@ if (canvas) {
 }
 </script>
 
+
+<script>
+
+document.querySelector('form').addEventListener('draft:restored', () => {
+  preencherTodosSelects();
+  document.querySelectorAll('#tabela-itens tbody tr').forEach(tr => {
+    const select = tr.querySelector('.descricao-select');
+    const item = itensDisponiveis.find(i => String(i.codigo) === select?.value);
+    if (item) aplicarItemNaLinha(tr, item, tr.querySelector('.quantidade-input').value);
+  });
+  configurarMinimoTecnico();
+});
+
+</script>
 {% endblock %}

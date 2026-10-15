@@ -490,7 +490,7 @@
                       <th style="width: 12%;">Ação</th>
                     </tr>
                   </thead>
-                  <tbody id="tabela-itens"></tbody>
+                  <tbody id="tabela-itens" data-draft-region="tabela-itens"></tbody>
                 </table>
               </div>
 
@@ -699,7 +699,7 @@
 </div>
 
 
-<script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
+<script src="{{ url_for('static', filename='vendor/xlsx.full.min.js', v='0.18.5') }}"></script>
 
 <link
   href="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/css/select2.min.css"
@@ -984,6 +984,8 @@ function renderizarItensNotaLote() {
           type="text"
           class="form-control form-control-sm nf-lote-valor"
           value="${valor}"
+          readonly
+          title="Para alterar o valor, edite o item no cadastro."
         >
       </td>
     `;
@@ -1265,7 +1267,8 @@ function adicionarItem() {
   let valor =
     document.getElementById("valor").value.trim();
 
-  valor = formatarValorNF(valor);
+  const cadastrado = itensNotaLote.find(item => String(item.codigo) === codigo);
+  valor = formatarValorNF(cadastrado?.valor ?? valor);
 
   if (!codigo || !descricao || !quantidade) {
     alert("Selecione um item e informe a quantidade.");
@@ -1280,23 +1283,24 @@ function adicionarItem() {
 
   row.innerHTML = `
     <td>
-      <input type="hidden" name="codigo[]" value="${codigo}">
-      ${codigo}
+      <input type="hidden" name="codigo[]" value="${escaparHtmlNF(codigo)}">
+      ${escaparHtmlNF(codigo)}
     </td>
 
     <td>
-      <input type="hidden" name="descricao[]" value="${descricao}">
-      ${descricao}
+      <input type="hidden" name="descricao[]" value="${escaparHtmlNF(descricao)}">
+      ${escaparHtmlNF(descricao)}
     </td>
 
     <td>
-      <input type="hidden" name="quantidade[]" value="${quantidade}">
-      ${quantidade}
+      <input type="number" name="quantidade[]" value="${escaparHtmlNF(quantidade)}"
+             class="form-control form-control-sm nf-quantidade-final" min="1" step="1" required
+             aria-label="Quantidade de ${escaparHtmlNF(codigo)}">
     </td>
 
     <td>
       <input type="hidden" name="valor[]" value="${valor}">
-      ${formatarReal(valor)}
+      <span class="nf-valor-cadastrado">${formatarReal(valor)}</span>
     </td>
 
     <td>
@@ -1347,6 +1351,66 @@ function validarItens() {
   return true;
 
 }
+
+function prepararEdicaoItensNF() {
+  document.querySelectorAll('#tabela-itens tr').forEach(tr => {
+    const codigo = tr.querySelector('input[name="codigo[]"]')?.value || '';
+    const quantidade = tr.querySelector('input[name="quantidade[]"]');
+    if (quantidade) {
+      quantidade.type = 'number';
+      quantidade.min = '1';
+      quantidade.step = '1';
+      quantidade.required = true;
+      quantidade.className = 'form-control form-control-sm nf-quantidade-final';
+      quantidade.setAttribute('aria-label', `Quantidade de ${codigo}`);
+      quantidade.parentElement.replaceChildren(quantidade);
+    }
+    const valor = tr.querySelector('input[name="valor[]"]');
+    if (valor && !tr.querySelector('.nf-valor-cadastrado')) {
+      const label = document.createElement('span');
+      label.className = 'nf-valor-cadastrado';
+      label.textContent = formatarReal(valor.value);
+      valor.parentElement.replaceChildren(valor, label);
+    }
+  });
+  sincronizarValoresCadastradosNF();
+}
+
+function sincronizarValoresCadastradosNF() {
+  const cadastro = new Map(itensNotaLote.map(item => [String(item.codigo), item]));
+  const auxiliar = cadastro.get(document.getElementById('codigo')?.value);
+  const campoValor = document.getElementById('valor');
+  if (campoValor && auxiliar?.valor != null) campoValor.value = formatarValorNF(auxiliar.valor);
+  document.querySelectorAll('#tabela-itens tr').forEach(tr => {
+    const codigo = tr.querySelector('input[name="codigo[]"]')?.value;
+    const item = cadastro.get(codigo);
+    const valor = tr.querySelector('input[name="valor[]"]');
+    if (valor && item?.valor != null) valor.value = formatarValorNF(item.valor);
+    const label = tr.querySelector('.nf-valor-cadastrado');
+    if (label && valor) label.textContent = formatarReal(valor.value);
+  });
+  let alterou = false;
+  itensImportadosPendentes.forEach(item => {
+    const original = cadastro.get(String(item.codigo));
+    if (original?.valor != null && item.valor !== formatarValorNF(original.valor)) {
+      item.valor = formatarValorNF(original.valor);
+      alterou = true;
+    }
+  });
+  if (alterou) renderizarImportadosPendentes();
+  atualizarTotalNotaFiscal();
+}
+
+document.getElementById('tabela-itens')?.addEventListener('input', atualizarTotalNotaFiscal);
+document.getElementById('formNotaFiscal')?.addEventListener('draft:restored', prepararEdicaoItensNF);
+document.addEventListener('DOMContentLoaded', () => {
+  const valor = document.getElementById('valor');
+  if (valor) {
+    valor.readOnly = true;
+    valor.title = 'Para alterar o valor, edite o item no cadastro.';
+  }
+  prepararEdicaoItensNF();
+});
 
 
 function normalizarCabecalhoExcel(valor) {
@@ -1547,6 +1611,12 @@ document.getElementById("importarExcel")?.addEventListener("change", function (e
     return;
   }
 
+  if (typeof XLSX === "undefined") {
+    alert("O leitor de Excel não carregou. Atualize a página e tente novamente.");
+    e.target.value = "";
+    return;
+  }
+
   if (nomeArquivo) {
     nomeArquivo.textContent = arquivo.name;
   }
@@ -1570,7 +1640,7 @@ document.getElementById("importarExcel")?.addEventListener("change", function (e
       const indiceCabecalho = matriz.findIndex((linha) => {
         const cabecalhos = linha.map(normalizarCabecalhoExcel);
         return ["item", "descricao"].some((nome) => cabecalhos.includes(nome)) && (
-          ["qtd", "quantidade", "quant"].some((nome) => cabecalhos.includes(nome))
+          ["qtd", "quantidade", "quant", "qtde"].some((nome) => cabecalhos.includes(nome))
         );
       });
 
@@ -1590,14 +1660,15 @@ document.getElementById("importarExcel")?.addEventListener("change", function (e
         const descricao = String(valorColunaExcel(row, ["descricao", "descrição", "item"]))
           .trim();
         const quantidade = numeroExcel(
-          valorColunaExcel(row, ["quantidade", "qtd", "quant"])
+          valorColunaExcel(row, ["quantidade", "qtd", "quant", "qtde"])
         );
         const valor = numeroExcel(
-          valorColunaExcel(row, ["valor_unitario", "valor unitario", "valor estimado", "valor", "preco", "preço"])
+          valorColunaExcel(row, ["valor_unitario", "valor unitario", "valor unit.", "vl unitario", "vlr unitario", "preco unitario", "valor estimado", "valor", "preco", "preço"])
         );
         const itemCadastrado = encontrarItemImportado(descricao);
         const codigoPlanilha = String(valorColunaExcel(row, ["codigo", "código", "cod"])).trim();
         const codigo = codigoPlanilha || itemCadastrado?.codigo || gerarCodigoImportado(descricao);
+        const cadastro = itensNotaLote.find(item => String(item.codigo) === codigo);
 
         if (normalizarDescricaoImportacao(descricao) === "total") {
           return;
@@ -1613,7 +1684,7 @@ document.getElementById("importarExcel")?.addEventListener("change", function (e
           codigo,
           descricao,
           quantidade: String(quantidade),
-          valor: valor.toFixed(2),
+          valor: formatarValorNF(cadastro?.valor ?? valor),
           selecionado: true
         });
         inseridos += 1;
@@ -1628,10 +1699,22 @@ document.getElementById("importarExcel")?.addEventListener("change", function (e
       }
     } catch (erro) {
       console.error("Erro ao importar planilha:", erro);
-      alert("Não foi possível ler a planilha. Selecione um arquivo Excel .xlsx ou .xls válido.");
+      const motivo = erro?.message;
+      if (motivo === "Cabeçalho da planilha não encontrado.") {
+        alert("Cabeçalho não encontrado na primeira aba. Use as colunas Descrição (ou Item), Quantidade (ou Qtd.) e Valor Unitário. Código é opcional.");
+      } else if (motivo === "A planilha não possui abas.") {
+        alert("A planilha não possui abas para importar.");
+      } else {
+        alert("Não foi possível ler a planilha. Verifique se o arquivo é um Excel .xlsx ou .xls válido e não está protegido por senha.");
+      }
     } finally {
       e.target.value = "";
     }
+  };
+
+  reader.onerror = function () {
+    e.target.value = "";
+    alert("Não foi possível abrir o arquivo selecionado. Baixe ou salve a planilha neste computador e tente novamente.");
   };
 
   reader.readAsArrayBuffer(arquivo);
@@ -1640,7 +1723,8 @@ document.getElementById("importarExcel")?.addEventListener("change", function (e
 
 function adicionarItemImportado(codigo, descricao, quantidade, valor) {
 
-  valor = formatarValorNF(valor);
+  const cadastrado = itensNotaLote.find(item => String(item.codigo) === String(codigo));
+  valor = formatarValorNF(cadastrado?.valor ?? valor);
 
   const tabela = document.getElementById("tabela-itens");
 
@@ -1658,13 +1742,14 @@ function adicionarItemImportado(codigo, descricao, quantidade, valor) {
     </td>
 
     <td>
-      <input type="hidden" name="quantidade[]" value="${escaparHtmlNF(quantidade)}">
-      ${escaparHtmlNF(quantidade)}
+      <input type="number" name="quantidade[]" value="${escaparHtmlNF(quantidade)}"
+             class="form-control form-control-sm nf-quantidade-final" min="1" step="1" required
+             aria-label="Quantidade de ${escaparHtmlNF(codigo)}">
     </td>
 
     <td>
       <input type="hidden" name="valor[]" value="${valor}">
-      ${formatarReal(valor)}
+      <span class="nf-valor-cadastrado">${formatarReal(valor)}</span>
     </td>
 
     <td>
@@ -1721,6 +1806,7 @@ document.addEventListener("DOMContentLoaded", function () {
 
         itensNotaLote = data || [];
         renderizarItensNotaLote();
+        sincronizarValoresCadastradosNF();
 
         selectDescricao.innerHTML =
           '<option value="">Selecione um item...</option>';
@@ -1984,4 +2070,17 @@ document.addEventListener("DOMContentLoaded", function () {
 });
 </script>
 
+
+<script>
+
+window.logistockDraftAdapter = {
+  capture: () => ({pendentes: itensImportadosPendentes}),
+  restore: data => {
+    itensImportadosPendentes = data?.pendentes || [];
+    renderizarImportadosPendentes();
+  }
+};
+document.getElementById('formNotaFiscal').addEventListener('draft:restored', atualizarTotalNotaFiscal);
+
+</script>
 {% endblock %}

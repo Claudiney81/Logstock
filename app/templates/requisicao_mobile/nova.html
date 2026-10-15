@@ -123,7 +123,7 @@
             <th style="width:48px;"></th>
           </tr>
         </thead>
-        <tbody>
+        <tbody data-draft-region="tabela-itens">
           <tr id="linhaVaziaItens">
             <td colspan="4" class="text-center text-muted py-4">
               Nenhum item adicionado.
@@ -377,4 +377,25 @@ document
   });
 </script>
 
+
+<script>
+
+document.getElementById('formRequisicao').addEventListener('draft:restored', () => {
+  tipoSelecionado = document.getElementById('tipo-servico-select').value;
+  document.querySelectorAll('select[name="item_id[]"]').forEach(async select => {
+    const value = select.value;
+    const response = await fetch(`/requisicao_mobile/api/itens/${tipoSelecionado}/${tipoEstoqueSelecionado}`);
+    const data = await response.json();
+    select.replaceChildren(new Option('Selecione...', ''));
+    for (const item of data.itens || []) {
+      const option = new Option(`${item.codigo} - ${item.descricao} (Saldo: ${item.saldo})`, item.id);
+      Object.assign(option.dataset, {codigo: item.codigo, unidade: item.unidade, saldo: item.saldo});
+      select.appendChild(option);
+    }
+    select.value = value;
+    if (select.value) preencherCampos(select);
+  });
+});
+
+</script>
 {% endblock %}

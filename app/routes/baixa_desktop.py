@@ -11,6 +11,7 @@ from flask import (
 )
 
 from flask_login import login_required, current_user
+from app.drafts import draft_saved
 
 from datetime import datetime
 from types import SimpleNamespace
@@ -829,6 +830,7 @@ def detalhe_baixa(baixa_id):
                 flash("Baixa devolvida para ajuste no portal do técnico.", "warning")
             else:
                 flash("Baixa devolvida para correção no Baixa Desktop.", "warning")
+            draft_saved()
 
             return redirect(url_for("baixa_desktop.baixas_pendentes"))
 

@@ -16,6 +16,7 @@ function element(id) {
 let matrix = [];
 const alerts = [];
 const context = vm.createContext({
+  window: {},
   console: { warn() {}, error() {} }, Uint8Array,
   alert: message => alerts.push(message),
   document: {
@@ -70,4 +71,8 @@ assert.equal(run('itensImportadosPendentes.length'), 0);
 assert.equal(element('itensImportadosPendentes').hidden, true);
 assert.equal(run('numeroExcel("R$ 1.234,56")'), 1234.56);
 assert.equal(run('numeroExcel(12.5)'), 12.5);
+importRows([['Cód.', 'Descrição', 'Qtde.', 'Valor Unit.'], ['ALIAS-01', 'Item abreviado', 2, 18.75]]);
+assert.equal(run('itensImportadosPendentes[0].codigo'), 'ALIAS-01');
+assert.equal(run('itensImportadosPendentes[0].quantidade'), '2');
+assert.equal(run('itensImportadosPendentes[0].valor'), '18.75');
 console.log('OK: prévia, seleção, cabeçalhos QA e Start, valores, descrição cadastrada, código gerado, duplicados e escape HTML.');

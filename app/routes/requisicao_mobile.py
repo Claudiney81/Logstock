@@ -268,6 +268,7 @@ def nova():
 
             db.session.commit()
 
+            flash('Requisição enviada com sucesso.', 'success')
             return redirect(
                 url_for(
                     "tecnico_mobile.home",

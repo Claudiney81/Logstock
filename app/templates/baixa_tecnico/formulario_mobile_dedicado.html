@@ -472,7 +472,7 @@
                     </tr>
                   </thead>
 
-                  <tbody id="tbodyResumo">
+                  <tbody id="tbodyResumo" data-draft-region="tbodyResumo">
                     <tr id="linhaVaziaResumo">
                       <td colspan="6" class="text-center text-muted">
                         Nenhum item adicionado
@@ -483,7 +483,7 @@
               </div>
             </div>
 
-            <div id="hiddenInputs"></div>
+            <div id="hiddenInputs" data-draft-region="hiddenInputs"></div>
 
       <!-- FOTOS -->
       <div class="mt-4">
@@ -492,7 +492,7 @@
           <span>Fotos do Serviço</span>
         </div>
 
-        <div id="containerFotos">
+        <div id="containerFotos" data-draft-region="containerFotos">
 
           <div class="card border mb-2 p-2 foto-item">
 
@@ -1146,4 +1146,27 @@
         alerta?.remove();
       });
       </script>
-      {% endblock %}
+
+<script>
+
+window.logistockDraftAdapter = {
+  capture: () => ({correcao: modoCorrecaoBaixa,
+    resumo: [...hiddenInputs.querySelectorAll('.hidden-item')].map(div => {
+      const get = name => div.querySelector(`input[name="${name}[]"]`)?.value;
+      const linha = [...tbodyResumo.rows].find(tr => tr.dataset.resumoKey === div.dataset.resumoKey);
+      return {id: get('item_id'), qtd: Number(get('quantidade')), tipoEstoque: get('tipo_estoque'),
+        clienteId: get('cliente_estoque_id'), codigo: linha?.cells[1]?.textContent.trim(),
+        descricao: linha?.cells[2]?.textContent.trim(), saldo: Number(linha?.querySelector('.resumo-saldo')?.textContent || 0)};
+    })}),
+  restore: data => {
+    modoCorrecaoBaixa = !!data?.correcao;
+    if (modoCorrecaoBaixa) document.getElementById('btnEnviarBaixa').textContent = 'Reenviar correção';
+    hiddenInputs.replaceChildren();
+    tbodyResumo.replaceChildren();
+    (data?.resumo || []).forEach(adicionarItemResumo);
+    carregarItens();
+  }
+};
+
+</script>
+{% endblock %}

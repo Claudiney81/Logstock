@@ -398,8 +398,8 @@ def nova_nota():
                 if descricao_item and descricao_item != item.descricao:
                     item.descricao = descricao_item
 
-                if tipo_estoque == 'empresa':
-                    item.valor = valor_convertido
+                # Existing prices are maintained exclusively in the item registry.
+                valor_convertido = float(item.valor or 0)
 
                 item.categoria = categoria_entrada
 

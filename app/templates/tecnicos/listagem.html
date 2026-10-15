@@ -133,7 +133,11 @@
         <tbody>
           {% for tecnico in tecnicos %}
           <tr>
-            <td class="fw-semibold">{{ tecnico.nome }}</td>
+            <td class="fw-semibold">{{ tecnico.nome }}
+              {% if current_user.is_authenticated and current_user.perfil in ['admin', 'estoque'] %}
+              <a class="btn btn-sm btn-outline-primary ms-2" href="{{ url_for('tecnicos.editar_tecnico', tecnico_id=tecnico.id) }}" title="Editar técnico"><i class="bi bi-pencil"></i> Editar</a>
+              {% endif %}
+            </td>
             <td>{{ tecnico.matricula }}</td>
             <td>{{ tecnico.cpf }}</td>
             <td>{{ tecnico.telefone or '-' }}</td>
