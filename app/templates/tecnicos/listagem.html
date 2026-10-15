@@ -30,6 +30,22 @@
 
   .btn-acesso {
     min-width: 40px;
+    min-height: 32px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+  }
+
+  .tecnico-nome {
+    min-width: 180px;
+    max-width: 320px;
+    white-space: normal;
+    overflow-wrap: anywhere;
+  }
+
+  .tecnico-editar {
+    width: 64px;
+    white-space: nowrap;
   }
 </style>
 
@@ -125,6 +141,7 @@
             <th>Email</th>
             <th>Função</th>
             <th>Status</th>
+            <th class="text-center tecnico-editar">Editar</th>
             <th class="text-center">Acesso</th>
             <th class="text-center">Senha</th>
           </tr>
@@ -133,11 +150,7 @@
         <tbody>
           {% for tecnico in tecnicos %}
           <tr>
-            <td class="fw-semibold">{{ tecnico.nome }}
-              {% if current_user.is_authenticated and current_user.perfil in ['admin', 'estoque'] %}
-              <a class="btn btn-sm btn-outline-primary ms-2" href="{{ url_for('tecnicos.editar_tecnico', tecnico_id=tecnico.id) }}" title="Editar técnico"><i class="bi bi-pencil"></i> Editar</a>
-              {% endif %}
-            </td>
+            <td class="fw-semibold tecnico-nome">{{ tecnico.nome }}</td>
             <td>{{ tecnico.matricula }}</td>
             <td>{{ tecnico.cpf }}</td>
             <td>{{ tecnico.telefone or '-' }}</td>
@@ -150,6 +163,17 @@
                   <option value="Inativo" {% if tecnico.status == 'Inativo' %}selected{% endif %}>Inativo</option>
                 </select>
               </form>
+            </td>
+            <td class="text-center tecnico-editar">
+              {% if current_user.is_authenticated and current_user.perfil in ['admin', 'estoque'] %}
+              <a class="btn btn-sm btn-outline-primary btn-acesso"
+                 href="{{ url_for('tecnicos.editar_tecnico', tecnico_id=tecnico.id) }}"
+                 title="Editar técnico" aria-label="Editar {{ tecnico.nome }}">
+                <i class="bi bi-pencil"></i>
+              </a>
+              {% else %}
+              -
+              {% endif %}
             </td>
             <td class="text-center">
               <a href="{{ url_for('tecnicos.qrcode_tecnico', tecnico_id=tecnico.id) }}"
@@ -181,7 +205,7 @@
           </tr>
           {% else %}
           <tr>
-            <td colspan="9" class="text-center text-muted py-4">
+            <td colspan="10" class="text-center text-muted py-4">
               Nenhum técnico cadastrado.
             </td>
           </tr>
