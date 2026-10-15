@@ -984,8 +984,6 @@ function renderizarItensNotaLote() {
           type="text"
           class="form-control form-control-sm nf-lote-valor"
           value="${valor}"
-          readonly
-          title="Para alterar o valor, edite o item no cadastro."
         >
       </td>
     `;
@@ -1268,7 +1266,7 @@ function adicionarItem() {
     document.getElementById("valor").value.trim();
 
   const cadastrado = itensNotaLote.find(item => String(item.codigo) === codigo);
-  valor = formatarValorNF(cadastrado?.valor ?? valor);
+  valor = formatarValorNF(valor);
 
   if (!codigo || !descricao || !quantidade) {
     alert("Selecione um item e informe a quantidade.");
@@ -1299,8 +1297,7 @@ function adicionarItem() {
     </td>
 
     <td>
-      <input type="hidden" name="valor[]" value="${valor}">
-      <span class="nf-valor-cadastrado">${formatarReal(valor)}</span>
+      <input type="number" name="valor[]" value="${valor}" class="form-control form-control-sm" min="0" step="0.01" required aria-label="Valor unitario">
     </td>
 
     <td>
@@ -1366,49 +1363,22 @@ function prepararEdicaoItensNF() {
       quantidade.parentElement.replaceChildren(quantidade);
     }
     const valor = tr.querySelector('input[name="valor[]"]');
-    if (valor && !tr.querySelector('.nf-valor-cadastrado')) {
-      const label = document.createElement('span');
-      label.className = 'nf-valor-cadastrado';
-      label.textContent = formatarReal(valor.value);
-      valor.parentElement.replaceChildren(valor, label);
+    if (valor) {
+      valor.type = 'number';
+      valor.min = '0';
+      valor.step = '0.01';
+      valor.required = true;
+      valor.className = 'form-control form-control-sm';
+      valor.setAttribute('aria-label', `Valor unitario de ${codigo}`);
+      valor.parentElement.replaceChildren(valor);
     }
   });
-  sincronizarValoresCadastradosNF();
-}
-
-function sincronizarValoresCadastradosNF() {
-  const cadastro = new Map(itensNotaLote.map(item => [String(item.codigo), item]));
-  const auxiliar = cadastro.get(document.getElementById('codigo')?.value);
-  const campoValor = document.getElementById('valor');
-  if (campoValor && auxiliar?.valor != null) campoValor.value = formatarValorNF(auxiliar.valor);
-  document.querySelectorAll('#tabela-itens tr').forEach(tr => {
-    const codigo = tr.querySelector('input[name="codigo[]"]')?.value;
-    const item = cadastro.get(codigo);
-    const valor = tr.querySelector('input[name="valor[]"]');
-    if (valor && item?.valor != null) valor.value = formatarValorNF(item.valor);
-    const label = tr.querySelector('.nf-valor-cadastrado');
-    if (label && valor) label.textContent = formatarReal(valor.value);
-  });
-  let alterou = false;
-  itensImportadosPendentes.forEach(item => {
-    const original = cadastro.get(String(item.codigo));
-    if (original?.valor != null && item.valor !== formatarValorNF(original.valor)) {
-      item.valor = formatarValorNF(original.valor);
-      alterou = true;
-    }
-  });
-  if (alterou) renderizarImportadosPendentes();
   atualizarTotalNotaFiscal();
 }
 
 document.getElementById('tabela-itens')?.addEventListener('input', atualizarTotalNotaFiscal);
 document.getElementById('formNotaFiscal')?.addEventListener('draft:restored', prepararEdicaoItensNF);
 document.addEventListener('DOMContentLoaded', () => {
-  const valor = document.getElementById('valor');
-  if (valor) {
-    valor.readOnly = true;
-    valor.title = 'Para alterar o valor, edite o item no cadastro.';
-  }
   prepararEdicaoItensNF();
 });
 
@@ -1551,7 +1521,9 @@ function renderizarImportadosPendentes() {
                 <td>${escaparHtmlNF(item.codigo)}</td>
                 <td>${escaparHtmlNF(item.descricao)}</td>
                 <td>${escaparHtmlNF(item.quantidade)}</td>
-                <td>R$ ${escaparHtmlNF(item.valor.replace(".", ","))}</td>
+                <td><input type="number" class="form-control form-control-sm" min="0" step="0.01"
+                  value="${escaparHtmlNF(item.valor)}" aria-label="Valor unitario"
+                  oninput="itensImportadosPendentes[${indice}].valor = this.value"></td>
               </tr>
             `).join("")}
           </tbody>
@@ -1684,7 +1656,7 @@ document.getElementById("importarExcel")?.addEventListener("change", function (e
           codigo,
           descricao,
           quantidade: String(quantidade),
-          valor: formatarValorNF(cadastro?.valor ?? valor),
+          valor: formatarValorNF(valor),
           selecionado: true
         });
         inseridos += 1;
@@ -1724,7 +1696,7 @@ document.getElementById("importarExcel")?.addEventListener("change", function (e
 function adicionarItemImportado(codigo, descricao, quantidade, valor) {
 
   const cadastrado = itensNotaLote.find(item => String(item.codigo) === String(codigo));
-  valor = formatarValorNF(cadastrado?.valor ?? valor);
+  valor = formatarValorNF(valor);
 
   const tabela = document.getElementById("tabela-itens");
 
@@ -1748,8 +1720,7 @@ function adicionarItemImportado(codigo, descricao, quantidade, valor) {
     </td>
 
     <td>
-      <input type="hidden" name="valor[]" value="${valor}">
-      <span class="nf-valor-cadastrado">${formatarReal(valor)}</span>
+      <input type="number" name="valor[]" value="${valor}" class="form-control form-control-sm" min="0" step="0.01" required aria-label="Valor unitario">
     </td>
 
     <td>
@@ -1806,7 +1777,7 @@ document.addEventListener("DOMContentLoaded", function () {
 
         itensNotaLote = data || [];
         renderizarItensNotaLote();
-        sincronizarValoresCadastradosNF();
+        atualizarTotalNotaFiscal();
 
         selectDescricao.innerHTML =
           '<option value="">Selecione um item...</option>';

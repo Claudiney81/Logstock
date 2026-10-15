@@ -39,17 +39,17 @@ class NoteRegisteredPriceTests(unittest.TestCase):
         note = NotaFiscalEntrada.query.filter_by(numero_nf='PRICE-TEST').one()
         return NotaFiscalItem.query.filter_by(nota_fiscal_id=note.id).one()
 
-    def test_company_note_uses_registry_price_and_submitted_quantity(self):
+    def test_company_note_uses_submitted_price_and_quantity(self):
         line = self.save_note()
         self.assertEqual(line.quantidade, 7)
-        self.assertEqual(line.valor_unitario, 12.5)
+        self.assertEqual(line.valor_unitario, 999.0)
         self.assertEqual(db.session.get(Item, 1).valor, 12.5)
-        self.assertTrue(all(stock.valor_unitario == 12.5 for stock in Estoque.query.filter_by(item_id=1).all()))
-        self.assertTrue(all(balance.valor_unitario == 12.5 for balance in SaldoTecnico.query.filter_by(item_id=1).all()))
+        self.assertTrue(all(stock.valor_unitario == 999.0 for stock in Estoque.query.filter_by(item_id=1).all()))
+        self.assertTrue(all(balance.valor_unitario == 999.0 for balance in SaldoTecnico.query.filter_by(item_id=1).all()))
 
-    def test_client_note_cannot_override_existing_item_price(self):
+    def test_client_note_preserves_invoice_price(self):
         line = self.save_note(kind='cliente', submitted_price='0.01')
-        self.assertEqual(line.valor_unitario, 12.5)
+        self.assertEqual(line.valor_unitario, 0.01)
         self.assertEqual(db.session.get(Item, 1).valor, 12.5)
 
     def test_new_imported_item_keeps_its_initial_registration_price(self):

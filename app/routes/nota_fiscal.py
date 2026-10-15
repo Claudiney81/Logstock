@@ -398,8 +398,7 @@ def nova_nota():
                 if descricao_item and descricao_item != item.descricao:
                     item.descricao = descricao_item
 
-                # Existing prices are maintained exclusively in the item registry.
-                valor_convertido = float(item.valor or 0)
+                # Preserve the unit price entered for this invoice.
 
                 item.categoria = categoria_entrada
 

@@ -76,3 +76,10 @@ assert.equal(run('itensImportadosPendentes[0].codigo'), 'ALIAS-01');
 assert.equal(run('itensImportadosPendentes[0].quantidade'), '2');
 assert.equal(run('itensImportadosPendentes[0].valor'), '18.75');
 console.log('OK: prévia, seleção, cabeçalhos QA e Start, valores, descrição cadastrada, código gerado, duplicados e escape HTML.');
+
+run('itensNotaLote = [{codigo: "PRICE", descricao: "Teste", valor: 99}]; itemJaNaNota = () => false');
+importRows([['Codigo', 'Descricao', 'Quantidade', 'Valor'], ['PRICE', 'Teste', 2, 15.5]]);
+assert.equal(run('itensImportadosPendentes[0].valor'), '15.50');
+assert.match(element('itensImportadosPendentes').innerHTML, /oninput=/);
+run('itensImportadosPendentes[0].valor = "17.25"; adicionarImportadosSelecionados()');
+assert.match(element('tabela-itens').children.at(-1).innerHTML, /type="number" name="valor\[\]" value="17.25"/);
