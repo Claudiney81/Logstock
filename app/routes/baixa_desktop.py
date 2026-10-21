@@ -837,7 +837,12 @@ def detalhe_baixa(baixa_id):
     return render_template(
         "baixa_desktop/detalhe_baixa.html",
         baixa=baixa,
-        itens=itens
+        itens=itens,
+        grupos_itens=[
+            (tipo, [linha for linha in itens if (linha[0].tipo_estoque or 'empresa') == tipo])
+            for tipo in ('cliente', 'empresa')
+            if any((linha[0].tipo_estoque or 'empresa') == tipo for linha in itens)
+        ]
     )
     
 @bp_baixa_desktop.route("/pendentes")

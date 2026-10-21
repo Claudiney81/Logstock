@@ -59,7 +59,7 @@
           <small class="text-muted fw-semibold">Tipo de Estoque</small>
           <div class="fw-semibold">
             {% if 'empresa' in tipos and 'cliente' in tipos %}
-              Empresa / Cliente
+              Cliente / Empresa
             {% elif 'empresa' in tipos %}
               Empresa
             {% elif 'cliente' in tipos %}
@@ -302,7 +302,7 @@
         font-weight: 600;
       }
 
-      .linha-grupo-estoque td {
+      .linha-grupo-estoque {
         background: #eaf3ff;
         border-top: 2px solid #0d6efd;
         border-bottom: 1px solid #b6d4fe;
@@ -313,7 +313,7 @@
         text-transform: uppercase;
       }
 
-      .linha-grupo-estoque.cliente td {
+      .linha-grupo-estoque.cliente {
         background: #e9f8ef;
         border-top-color: #198754;
         border-bottom-color: #badbcc;
@@ -327,22 +327,28 @@
       }
     </style>
 
+    {% for tipo_grupo, itens_grupo in grupos_itens %}
     <div class="tabela-container shadow-sm mb-3">
+      <div class="linha-grupo-estoque {{ tipo_grupo }} p-3">
+        {% if tipo_grupo == 'cliente' %}
+          Material baixado do saldo do cliente/O.S
+        {% else %}
+          Material baixado do saldo da empresa
+        {% endif %}
+      </div>
 
       <table class="table table-hover align-middle mb-0 app-table">
 
         <thead>
           <tr>
             <th style="width:50px;">
-              <input type="checkbox" id="checkAll">
+              {% if loop.first %}<input type="checkbox" id="checkAll" aria-label="Selecionar todos os itens">{% endif %}
             </th>
             <th>Tipo Estoque</th>
             <th>Código</th>
             <th>Descrição</th>
             <th>Un.</th>
             <th>Qtd.</th>
-            <th>Valor Unit.</th>
-            <th>Valor Total</th>
             <th>Saldo Técnico</th>
             <th style="width:150px;">Qtd. Aprovar</th>
             <th>Status Item</th>
@@ -351,25 +357,8 @@
 
         <tbody>
 
-          {% set grupo = namespace(tipo='') %}
-
-          {% for item, saldo in itens %}
-
+          {% for item, saldo in itens_grupo %}
             {% set sal = saldo or 0 %}
-            {% set tipo_atual = item.tipo_estoque or 'empresa' %}
-
-            {% if tipo_atual != grupo.tipo %}
-              {% set grupo.tipo = tipo_atual %}
-              <tr class="linha-grupo-estoque {{ 'cliente' if tipo_atual == 'cliente' else 'empresa' }}">
-                <td colspan="11">
-                  {% if tipo_atual == 'cliente' %}
-                    Material baixado do saldo do cliente/O.S
-                  {% else %}
-                    Material baixado do saldo da empresa
-                  {% endif %}
-                </td>
-              </tr>
-            {% endif %}
 
             {% if item.status == 'confirmado' %}
               {% set req = item.quantidade_aprovada or 0 %}
@@ -417,18 +406,6 @@
             </td>
 
             <td class="text-center">
-              <span class="fw-semibold text-primary">
-                {{ (item.valor_unitario or 0)|brl }}
-              </span>
-            </td>
-
-            <td class="text-center">
-              <span class="fw-bold text-success">
-                {{ (item.valor_total or 0)|brl }}
-              </span>
-            </td>
-
-            <td class="text-center">
               <span class="saldo-ok">
                 {{ sal }} disponível
               </span>
@@ -467,7 +444,7 @@
           {% else %}
 
           <tr>
-            <td colspan="11" class="text-center text-muted py-4">
+            <td colspan="9" class="text-center text-muted py-4">
               Nenhum item encontrado.
             </td>
           </tr>
@@ -479,7 +456,10 @@
       </table>
 
     </div>
-    
+    {% else %}
+    <div class="text-center text-muted py-4">Nenhum item encontrado.</div>
+    {% endfor %}
+
 <div class="d-flex justify-content-end mt-3 pe-3">
 
   <div class="card shadow-sm border-0"
