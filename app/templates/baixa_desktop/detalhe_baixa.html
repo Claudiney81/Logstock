@@ -348,9 +348,9 @@
             <th>Código</th>
             <th>Descrição</th>
             <th>Un.</th>
-            <th>Qtd.</th>
+            <th>Qtd. Utilizada</th>
             <th>Saldo Técnico</th>
-            <th style="width:150px;">Qtd. Aprovar</th>
+            <th style="width:150px;">Qtd. a Aprovar</th>
             <th>Status Item</th>
           </tr>
         </thead>
@@ -402,7 +402,7 @@
             </td>
 
             <td class="text-center fw-semibold">
-              {{ req }}
+              {{ (item.quantidade or 0) + (item.quantidade_aprovada or 0) }}
             </td>
 
             <td class="text-center">
