@@ -160,7 +160,11 @@
       </form>
     </div>
 
-    <form method="post">
+    <form method="post" action="{{ url_for('estoque.atualizar_minimos') }}">
+      <div class="d-flex gap-2 align-items-center flex-wrap p-3 border-bottom">
+        <button type="submit" class="btn btn-primary">Salvar Mínimos</button>
+        <span class="text-muted">Informe o mínimo e salve antes de exportar. O saldo disponível fica vermelho ao atingir o mínimo.</span>
+      </div>
       <input type="hidden" name="tipo_estoque" value="{{ tipo_estoque or '' }}">
       <input type="hidden" name="cliente_id" value="{{ cliente_id or '' }}">
       <input type="hidden" name="tipo_servico_id" value="{{ tipo_servico_id or '' }}">
@@ -211,7 +215,7 @@
                 <td class="text-end">{{ r.novo_defeito or 0 }}</td>
                 <td class="text-end">{{ r.usado_defeito or 0 }}</td>
 
-                <td class="text-end fw-bold">
+                <td class="text-end fw-bold {% if alerta_minimo %}text-danger{% endif %}">
                   {{ r.total or 0 }}
                 </td>
 
