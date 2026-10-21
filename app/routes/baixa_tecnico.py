@@ -858,7 +858,7 @@ def detalhe_pendente_mobile(baixa_id):
     itens_ordenados = sorted(
         baixa.itens,
         key=lambda item: (
-            0 if (item.tipo_estoque or "empresa") == "empresa" else 1,
+            0 if (item.tipo_estoque or "empresa") == "cliente" else 1,
             item.item.codigo if item.item else "",
             item.id
         )

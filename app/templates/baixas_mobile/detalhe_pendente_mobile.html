@@ -75,7 +75,7 @@
       <span class="label-info">Tipo de Estoque</span>
       <strong>
         {% if 'empresa' in tipos and 'cliente' in tipos %}
-          Empresa / Cliente
+          Cliente / Empresa
         {% elif 'empresa' in tipos %}
           Empresa
         {% elif 'cliente' in tipos %}
@@ -255,9 +255,9 @@
       <div class="text-end">
         <div class="fw-bold">{{ total_geral|brl }}</div>
         <div class="text-muted" style="font-size:0.90rem;">
-          Empresa: {{ total_empresa|brl }}
-          &nbsp;|&nbsp;
           Cliente: {{ total_cliente|brl }}
+          &nbsp;|&nbsp;
+          Empresa: {{ total_empresa|brl }}
         </div>
       </div>
     </div>
