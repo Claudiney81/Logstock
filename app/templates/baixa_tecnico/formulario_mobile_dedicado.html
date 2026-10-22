@@ -249,6 +249,7 @@
         modoCorrecaoBaixa = true;
 
         document.getElementById('baixa_id_corrigir').value = '{{ baixa.id }}';
+        document.querySelector('#formBaixa textarea[name="observacao"]').value = {{ (baixa.observacao or '')|tojson }};
 
         clienteId.value = '{{ baixa.cliente_id or "" }}';
 

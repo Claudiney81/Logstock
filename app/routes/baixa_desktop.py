@@ -443,7 +443,8 @@ def nova_baixa():
                 else None
             )
             baixa.responsavel = responsavel
-            baixa.observacao = observacao
+            if observacao.upper() != "N/D":
+                baixa.observacao = observacao
             baixa.status = "revisada"
             baixa.motivo_recusa = None
             baixa.visualizado_tecnico = True

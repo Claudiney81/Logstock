@@ -674,7 +674,10 @@ def registrar():
             baixa.ordem_servico_id = ordem_servico_id
             baixa.os_cliente = nome_cliente_os
             baixa.endereco = endereco
-            baixa.observacao = observacao
+            # O formulário mobile pode enviar N/D quando o campo não foi preenchido.
+            # Na correção, preserve o texto registrado em vez de apagá-lo.
+            if observacao.upper() != "N/D":
+                baixa.observacao = observacao
             baixa.status = "revisada"
             baixa.motivo_recusa = None
             baixa.visualizado_tecnico = False
