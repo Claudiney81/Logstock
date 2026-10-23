@@ -161,10 +161,6 @@
     </div>
 
     <form method="post" action="{{ url_for('estoque.atualizar_minimos') }}">
-      <div class="d-flex gap-2 align-items-center flex-wrap p-3 border-bottom">
-        <button type="submit" class="btn btn-primary">Salvar Mínimos</button>
-        <span class="text-muted">Informe o mínimo e salve antes de exportar. O saldo disponível fica vermelho ao atingir o mínimo.</span>
-      </div>
       <input type="hidden" name="tipo_estoque" value="{{ tipo_estoque or '' }}">
       <input type="hidden" name="cliente_id" value="{{ cliente_id or '' }}">
       <input type="hidden" name="tipo_servico_id" value="{{ tipo_servico_id or '' }}">
@@ -184,7 +180,7 @@
               <th class="text-end">Novo Def.</th>
               <th class="text-end">Usado Def.</th>
               <th class="text-end">Total</th>
-              <th>Estoque Mínimo</th>
+              <th title="Disponível em vermelho quando atinge o mínimo.">Estoque Mínimo <i class="bi bi-info-circle" aria-label="Disponível em vermelho quando atinge o mínimo."></i></th>
               <th>Endereço</th>
             </tr>
           </thead>
@@ -259,7 +255,8 @@
         </table>
       </div>
 
-      <div class="d-flex gap-2 justify-content-end flex-wrap p-3 border-top">
+      <div class="d-flex gap-2 align-items-center justify-content-end flex-wrap p-3 border-top">
+        <small class="text-muted me-auto">Salve os mínimos antes de exportar.</small>
         <button type="submit" class="btn btn-primary" formaction="{{ url_for('estoque.atualizar_enderecos') }}">
           <i class="bi bi-geo-alt me-1"></i>
           Salvar Endereços

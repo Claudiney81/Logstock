@@ -96,7 +96,7 @@
           {% set item_mov = linha.item_mov %}
           <tr>
             <td class="fw-semibold">{{ mov.id }}</td>
-            <td class="text-nowrap">{{ mov.data_hora.strftime('%d/%m/%Y %H:%M') if mov.data_hora else '-' }}</td>
+            <td class="text-nowrap">{{ mov.data_hora|horario_local('%d/%m/%Y %H:%M') if mov.data_hora else '-' }}</td>
             <td>{{ empresas_dict.get(mov.origem_id|int, '-') }}</td>
             <td>{{ tecnicos_dict.get(mov.destino_id|int, '-') }}</td>
             <td class="fw-semibold">{{ item_mov.item.codigo if item_mov.item else item_mov.item_id }}</td>

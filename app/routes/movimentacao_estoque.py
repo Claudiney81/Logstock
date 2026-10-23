@@ -1,3 +1,4 @@
+from app.utils.datas import formatar_horario
 from flask import Blueprint, render_template, request, redirect, url_for, flash, jsonify, send_file
 from flask_login import login_required, current_user
 from datetime import datetime
@@ -555,7 +556,7 @@ def _consumir_estoque_empresa(
                 )
             )
 
-    registros = query.order_by(Estoque.id.asc()).all()
+    registros = query.order_by(Estoque.id.asc()).populate_existing().with_for_update().all()
 
     saldo_total = sum(int(e.quantidade or 0) for e in registros)
 
@@ -1035,7 +1036,7 @@ def nova_movimentacao():
                     tipo_servico_id=tipo_servico_saldo,
                     tipo_estoque='cliente',
                     cliente_id=int(cliente_os_id) if cliente_os_id else None
-                ).first()
+                ).populate_existing().with_for_update().first()
 
                 if not estoque_origem:
                     flash(f'Item {item.codigo} sem saldo no estoque do Cliente.', 'danger')
@@ -1346,7 +1347,7 @@ def exportar_historico_excel():
         linhas.append({
             'ID': mov.id,
             'Data/Hora': (
-                mov.data_hora.strftime('%d/%m/%Y %H:%M')
+                formatar_horario(mov.data_hora, '%d/%m/%Y %H:%M')
                 if mov.data_hora else '-'
             ),
             'Origem': (mov.origem_tipo or '-').capitalize(),
@@ -1876,7 +1877,7 @@ def api_notas_cliente_movimentacao():
         resultados.append({
             'id': nota.id,
             'numero_nf': nota.numero_nf,
-            'data_hora': nota.data_hora.strftime('%d/%m/%Y %H:%M') if nota.data_hora else '',
+            'data_hora': formatar_horario(nota.data_hora, '%d/%m/%Y %H:%M') if nota.data_hora else '',
             'fornecedor': nota.fornecedor,
             'total_pendente': total_pendente
         })

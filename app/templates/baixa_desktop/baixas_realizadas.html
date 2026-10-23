@@ -114,7 +114,7 @@
             {% for baixa in baixas %}
 
             {% set tipos_estoque = [] %}
-            {% for item in baixa.itens %}
+            {% for item in baixa.itens|cliente_primeiro %}
               {% if item.tipo_estoque and item.tipo_estoque not in tipos_estoque %}
                 {% set _ = tipos_estoque.append(item.tipo_estoque) %}
               {% endif %}
@@ -151,7 +151,7 @@
               <td>
                 {% if 'empresa' in tipos_estoque and 'cliente' in tipos_estoque %}
                   <span class="badge-tipo-estoque badge-empresa">
-                    Empresa / Cliente
+                    Cliente / Empresa
                   </span>
                 {% elif 'empresa' in tipos_estoque %}
                   <span class="badge-tipo-estoque badge-empresa">

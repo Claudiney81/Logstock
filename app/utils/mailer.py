@@ -1,3 +1,4 @@
+from app.utils.datas import formatar_horario
 # app/utils/mailer.py
 
 from io import BytesIO
@@ -1005,7 +1006,7 @@ def _build_movimentacao_pdf(movimentacao) -> bytes:
     elems.append(Spacer(1, 16))
 
     data_hora = (
-        movimentacao.data_hora.strftime("%d/%m/%Y %H:%M")
+        formatar_horario(movimentacao.data_hora)
         if movimentacao.data_hora else "-"
     )
 

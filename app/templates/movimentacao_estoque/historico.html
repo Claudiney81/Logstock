@@ -104,7 +104,9 @@
             </td>
 
             <td>
-              {% if m.destino_tipo == 'empresa' %}
+              {% if m.tipo_movimentacao == 'retorno_sobra_os' %}
+                <span class="app-status-pill">Saldo geral do técnico</span>
+              {% elif m.destino_tipo == 'empresa' %}
                 <span class="app-status-pill">Empresa</span>
               {% elif m.destino_tipo == 'tecnico' %}
                 <span class="app-status-pill">Técnico</span>
@@ -145,7 +147,9 @@
             <td>{{ m.tipo_servico.nome if m.tipo_servico else '-' }}</td>
 
             <td>
-              {% if m.origem_tipo == 'tecnico' and m.destino_tipo == 'empresa' %}
+              {% if m.tipo_movimentacao == 'retorno_sobra_os' %}
+                <span class="app-status-pill">Sobra transferida</span>
+              {% elif m.origem_tipo == 'tecnico' and m.destino_tipo == 'empresa' %}
                 {% if m.condicao_material_resumo == 'NOVO_DEF' %}
                   <span class="app-status-pill">Novo Def.</span>
                 {% elif m.condicao_material_resumo == 'USADO_DEF' %}
@@ -166,10 +170,12 @@
               {% endif %}
             </td>
 
-            <td class="text-nowrap">{{ m.data_hora.strftime('%d/%m/%Y %H:%M') if m.data_hora else '-' }}</td>
+            <td class="text-nowrap">{{ m.data_hora|horario_local('%d/%m/%Y %H:%M') if m.data_hora else '-' }}</td>
 
             <td>
-              {% if m.assinatura %}
+              {% if m.tipo_movimentacao == 'retorno_sobra_os' %}
+                <span class="badge bg-secondary">Automática</span>
+              {% elif m.assinatura %}
                 <span class="badge bg-success">Assinado</span>
               {% else %}
                 <span class="badge bg-secondary">Documento físico</span>
@@ -179,6 +185,8 @@
             <td>
               {% if m.email_enviado %}
                 <span class="badge bg-success">Enviado</span>
+              {% elif m.tipo_movimentacao == 'retorno_sobra_os' %}
+                <span class="badge bg-secondary" title="Transferência automática sem envio de e-mail">Não se aplica</span>
               {% else %}
                 <span class="badge bg-warning text-dark">Pendente</span>
               {% endif %}

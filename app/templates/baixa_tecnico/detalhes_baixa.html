@@ -51,7 +51,7 @@
           </tr>
         </thead>
         <tbody>
-          {% for item in baixa.itens %}
+          {% for item in baixa.itens|cliente_primeiro %}
           <tr>
             <td>{{ item.item.codigo }}</td>
             <td>{{ item.item.descricao }}</td>

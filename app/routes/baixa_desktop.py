@@ -985,35 +985,44 @@ def exportar_baixa_excel(baixa_id):
 
     baixa = BaixaTecnica.query.get_or_404(baixa_id)
 
+    colunas = ["Código", "Descrição", "Unidade", "Quantidade", "Valor Unitário", "Valor Total", "Tipo Estoque"]
     dados = []
-
+    linhas_titulos = []
+    linhas_cabecalhos = []
+    subtotais = []
     total_geral = 0
-    total_empresa = 0
-    total_cliente = 0
-
+    grupos = {"cliente": [], "empresa": []}
     for item in baixa.itens:
+        tipo = "cliente" if (item.tipo_estoque or "").lower() == "cliente" else "empresa"
+        grupos[tipo].append(item)
 
-        valor_unit = float(item.valor_unitario or 0)
-        valor_total = float(item.valor_total or 0)
+    for tipo, nome, titulo in (
+        ("cliente", "Cliente", "MATERIAIS APLICADOS DO CLIENTE"),
+        ("empresa", "Empresa", "MATERIAIS APLICADOS DO SALDO DA EMPRESA"),
+    ):
+        if not grupos[tipo]:
+            continue
+        linhas_titulos.append(10 + len(dados))
+        dados.append([titulo] + [None] * 6)
+        linhas_cabecalhos.append(10 + len(dados))
+        dados.append(colunas)
+        total_grupo = 0
+        for item in grupos[tipo]:
+            valor_total = float(item.valor_total or 0)
+            total_grupo += valor_total
+            total_geral += valor_total
+            dados.append([
+                item.item.codigo if item.item else "",
+                item.item.descricao if item.item else "",
+                item.item.unidade if item.item else "",
+                item.quantidade_aprovada or item.quantidade,
+                float(item.valor_unitario or 0), valor_total, nome,
+            ])
+        subtotais.append((10 + len(dados), f"TOTAL {nome.upper()}", total_grupo))
+        dados.append([None] * 7)
+        dados.append([None] * 7)
 
-        total_geral += valor_total
-
-        if (item.tipo_estoque or "").lower() == "empresa":
-            total_empresa += valor_total
-        elif (item.tipo_estoque or "").lower() == "cliente":
-            total_cliente += valor_total
-
-        dados.append({
-            "Código": item.item.codigo if item.item else "",
-            "Descrição": item.item.descricao if item.item else "",
-            "Unidade": item.item.unidade if item.item else "",
-            "Quantidade": item.quantidade_aprovada or item.quantidade,
-            "Valor Unitário": valor_unit,
-            "Valor Total": valor_total,
-            "Tipo Estoque": (item.tipo_estoque or "").title()
-        })
-
-    df = pd.DataFrame(dados)
+    df = pd.DataFrame(dados, columns=colunas)
 
     output = io.BytesIO()
 
@@ -1024,7 +1033,8 @@ def exportar_baixa_excel(baixa_id):
         df.to_excel(
             writer,
             index=False,
-            startrow=10,
+            startrow=9,
+            header=False,
             sheet_name=sheet_name
         )
 
@@ -1032,7 +1042,7 @@ def exportar_baixa_excel(baixa_id):
         worksheet = writer.sheets[sheet_name]
 
         worksheet.sheet_view.showGridLines = False
-        worksheet.freeze_panes = "A11"
+        worksheet.freeze_panes = "A12"
 
         worksheet.page_setup.orientation = "landscape"
         worksheet.page_setup.paperSize = worksheet.PAPERSIZE_A4
@@ -1128,7 +1138,7 @@ def exportar_baixa_excel(baixa_id):
         worksheet.row_dimensions[header_row].height = 22
 
         primeira_linha = 12
-        ultima_linha = 11 + len(df)
+        ultima_linha = 9 + len(df)
 
         for row in worksheet.iter_rows(
             min_row=primeira_linha,
@@ -1165,15 +1175,22 @@ def exportar_baixa_excel(baixa_id):
         for col, largura in larguras.items():
             worksheet.column_dimensions[get_column_letter(col)].width = largura
 
-        linha_total_empresa = ultima_linha + 3
-        linha_total_cliente = ultima_linha + 4
-        linha_total_geral = ultima_linha + 6
+        for linha in linhas_titulos:
+            worksheet.merge_cells(start_row=linha, start_column=1, end_row=linha, end_column=7)
+            worksheet.cell(linha, 1).fill = azul_claro
+            worksheet.cell(linha, 1).font = label_font
+            worksheet.cell(linha, 1).alignment = left
+            worksheet.row_dimensions[linha].height = 24
+        for linha in linhas_cabecalhos:
+            for cell in worksheet[linha]:
+                cell.fill = azul
+                cell.font = branco
+                cell.alignment = center
+                cell.border = borda
+            worksheet.row_dimensions[linha].height = 22
 
-        totais = [
-            (linha_total_empresa, "TOTAL EMPRESA", total_empresa),
-            (linha_total_cliente, "TOTAL CLIENTE", total_cliente),
-            (linha_total_geral, "TOTAL GERAL DA BAIXA", total_geral),
-        ]
+        linha_total_geral = ultima_linha + 2
+        totais = subtotais + [(linha_total_geral, "TOTAL GERAL DA BAIXA", total_geral)]
 
         for linha, titulo, valor in totais:
             worksheet.merge_cells(
@@ -1369,7 +1386,7 @@ def exportar_baixa_pdf(baixa_id):
             tipos_estoque.add(item.tipo_estoque)
 
     if "empresa" in tipos_estoque and "cliente" in tipos_estoque:
-        tipo_estoque_pdf = "Empresa / Cliente"
+        tipo_estoque_pdf = "Cliente / Empresa"
     elif "empresa" in tipos_estoque:
         tipo_estoque_pdf = "Empresa"
     elif "cliente" in tipos_estoque:
@@ -1460,100 +1477,98 @@ def exportar_baixa_pdf(baixa_id):
     # ITENS
     # ==================================================
 
-    dados_itens = [[
-        "Código",
-        "Descrição",
-        "Un.",
-        "Qtd.",
-        "Valor Unit.",
-        "Valor Total",
-        "Origem"
-    ]]
-
     total_geral = 0
-    total_empresa = 0
-    total_cliente = 0
-
+    grupos = {"cliente": [], "empresa": []}
     for item in baixa.itens:
+        origem = "cliente" if (item.tipo_estoque or "").lower() == "cliente" else "empresa"
+        grupos[origem].append(item)
 
-        valor_unit = float(item.valor_unitario or 0)
-        valor_total = float(item.valor_total or 0)
+    for tipo, origem, titulo_grupo in (
+        ("cliente", "Cliente", "MATERIAIS APLICADOS DO CLIENTE"),
+        ("empresa", "Empresa", "MATERIAIS APLICADOS DO SALDO DA EMPRESA"),
+    ):
+        itens_grupo = grupos[tipo]
+        if not itens_grupo:
+            continue
+        total_grupo = 0
+        titulo_bloco = Paragraph(f"<b>{titulo_grupo}</b>", styles["Normal"])
+        titulo_bloco.keepWithNext = True
+        elementos.append(titulo_bloco)
+        elementos.append(Spacer(1, 8))
 
-        total_geral += valor_total
+        dados_itens = [[
+            "Código",
+            "Descrição",
+            "Un.",
+            "Qtd.",
+            "Valor Unit.",
+            "Valor Total",
+            "Origem"
+        ]]
 
-        if (item.tipo_estoque or "").lower() == "empresa":
-            total_empresa += valor_total
+        for item in itens_grupo:
 
-        elif (item.tipo_estoque or "").lower() == "cliente":
-            total_cliente += valor_total
+            valor_unit = float(item.valor_unitario or 0)
+            valor_total = float(item.valor_total or 0)
 
-        origem = "Cliente" if item.tipo_estoque == "cliente" else "Empresa"
+            total_geral += valor_total
 
-        dados_itens.append([
-            texto_pdf(item.item.codigo if item.item else "-", estilo_item),
-            texto_pdf(item.item.descricao if item.item else "-", estilo_item),
-            texto_pdf(item.item.unidade if item.item else "-", estilo_item),
-            str(item.quantidade_aprovada or item.quantidade or 0),
-            moeda(valor_unit),
-            moeda(valor_total),
-            texto_pdf(origem, estilo_item)
-        ])
+            total_grupo += valor_total
 
-    tabela_itens = Table(
-        dados_itens,
-        colWidths=[62, 205, 38, 38, 70, 75, 52],
-        repeatRows=1
-    )
+            dados_itens.append([
+                texto_pdf(item.item.codigo if item.item else "-", estilo_item),
+                texto_pdf(item.item.descricao if item.item else "-", estilo_item),
+                texto_pdf(item.item.unidade if item.item else "-", estilo_item),
+                str(item.quantidade_aprovada or item.quantidade or 0),
+                moeda(valor_unit),
+                moeda(valor_total),
+                texto_pdf(origem, estilo_item)
+            ])
 
-    tabela_itens.setStyle(TableStyle([
-        ("BACKGROUND", (0, 0), (-1, 0), azul),
-        ("TEXTCOLOR", (0, 0), (-1, 0), colors.white),
-        ("FONTNAME", (0, 0), (-1, 0), "Helvetica-Bold"),
-        ("FONTSIZE", (0, 0), (-1, 0), 8),
-        ("ALIGN", (0, 0), (-1, 0), "CENTER"),
+        dados_itens.append([f"TOTAL {origem.upper()}:", "", "", "", "", moeda(total_grupo), ""])
 
-        ("GRID", (0, 0), (-1, -1), 0.5, cinza_borda),
-        ("FONTSIZE", (0, 1), (-1, -1), 7.5),
-        ("VALIGN", (0, 0), (-1, -1), "MIDDLE"),
-        ("TOPPADDING", (0, 0), (-1, -1), 6),
-        ("BOTTOMPADDING", (0, 0), (-1, -1), 6),
+        tabela_itens = Table(
+            dados_itens,
+            colWidths=[62, 205, 38, 38, 70, 75, 52],
+            repeatRows=1
+        )
 
-        ("ALIGN", (0, 1), (0, -1), "CENTER"),
-        ("ALIGN", (2, 1), (3, -1), "CENTER"),
-        ("ALIGN", (4, 1), (5, -1), "RIGHT"),
-        ("ALIGN", (6, 1), (6, -1), "CENTER"),
+        tabela_itens.setStyle(TableStyle([
+            ("BACKGROUND", (0, 0), (-1, 0), azul),
+            ("TEXTCOLOR", (0, 0), (-1, 0), colors.white),
+            ("FONTNAME", (0, 0), (-1, 0), "Helvetica-Bold"),
+            ("FONTSIZE", (0, 0), (-1, 0), 8),
+            ("ALIGN", (0, 0), (-1, 0), "CENTER"),
 
-        ("ROWBACKGROUNDS", (0, 1), (-1, -1), [colors.white, cinza_claro]),
-    ]))
+            ("GRID", (0, 0), (-1, -1), 0.5, cinza_borda),
+            ("FONTSIZE", (0, 1), (-1, -1), 7.5),
+            ("VALIGN", (0, 0), (-1, -1), "MIDDLE"),
+            ("TOPPADDING", (0, 0), (-1, -1), 6),
+            ("BOTTOMPADDING", (0, 0), (-1, -1), 6),
 
-    elementos.append(tabela_itens)
-    elementos.append(Spacer(1, 18))
+            ("ALIGN", (0, 1), (0, -1), "CENTER"),
+            ("ALIGN", (2, 1), (3, -1), "CENTER"),
+            ("ALIGN", (4, 1), (5, -1), "RIGHT"),
+            ("ALIGN", (6, 1), (6, -1), "CENTER"),
+
+            ("ROWBACKGROUNDS", (0, 1), (-1, -2), [colors.white, cinza_claro]),
+            ("SPAN", (0, -1), (4, -1)),
+            ("SPAN", (5, -1), (6, -1)),
+            ("BACKGROUND", (0, -1), (-1, -1), azul),
+            ("TEXTCOLOR", (0, -1), (-1, -1), colors.white),
+            ("FONTNAME", (0, -1), (-1, -1), "Helvetica-Bold"),
+            ("ALIGN", (0, -1), (-1, -1), "RIGHT"),
+            ("NOSPLIT", (0, -2), (-1, -1)),
+        ]))
+
+        elementos.append(tabela_itens)
+        elementos.append(Spacer(1, 18))
 
 # ==================================================
 # TOTAIS
 # ==================================================
 
     dados_totais = [
-        [
-            Paragraph(
-                '<para align="right"><b>TOTAL EMPRESA:</b></para>',
-                styles["Normal"]
-            ),
-            Paragraph(
-                f'<para align="center"><font color="white"><b>{moeda(total_empresa)}</b></font></para>',
-                styles["Normal"]
-            )
-        ],
-        [
-            Paragraph(
-                '<para align="right"><b>TOTAL CLIENTE:</b></para>',
-                styles["Normal"]
-            ),
-            Paragraph(
-                f'<para align="center"><font color="white"><b>{moeda(total_cliente)}</b></font></para>',
-                styles["Normal"]
-            )
-        ],
         [
             Paragraph(
                 '<para align="right"><b>TOTAL GERAL DA BAIXA:</b></para>',

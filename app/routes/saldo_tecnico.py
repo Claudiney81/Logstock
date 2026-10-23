@@ -1,5 +1,5 @@
 from flask import Blueprint, render_template, request, send_file
-from sqlalchemy import func
+from sqlalchemy import func, case
 from app.models import Tecnico, SaldoTecnico, TipoServico, Item, Empresa
 from app.extensions import db
 import pandas as pd
@@ -155,6 +155,7 @@ def saldo_detalhado(id_tecnico):
         query
         .group_by(*group_by_campos)
         .order_by(
+            *([case((Empresa.razao_social.isnot(None), 0), else_=1)] if tipo_estoque != 'empresa' else []),
             Item.descricao
         )
         .all()
@@ -314,7 +315,7 @@ def exportar_saldo_tecnico(id_tecnico):
     saldos = (
         query
         .group_by(*group_by_campos)
-        .order_by(Item.descricao)
+        .order_by(*([case((Empresa.razao_social.isnot(None), 0), else_=1)] if tipo_estoque != 'empresa' else []), Item.descricao)
         .all()
     )
 

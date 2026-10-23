@@ -120,7 +120,8 @@
         <thead style="position:sticky; top:0; z-index:10;">
           <tr>
             <th>Número NF</th>
-            <th>Data/Hora</th>
+            <th>Recebimento</th>
+            <th>Registro</th>
             <th>Fornecedor</th>
             <th>Categoria</th>
             <th>Tipo Estoque</th>
@@ -145,7 +146,8 @@
                 <span class="badge bg-secondary ms-1">Cancelada</span>
               {% endif %}
             </td>
-            <td class="text-nowrap">{{ nota.data_hora.strftime('%d/%m/%Y %H:%M') if nota.data_hora else '-' }}</td>
+            <td class="text-nowrap">{{ nota.data_recebimento.strftime('%d/%m/%Y') if nota.data_recebimento else 'Não informado' }}</td>
+            <td class="text-nowrap">{{ nota.data_hora|horario_local('%d/%m/%Y %H:%M') if nota.data_hora else '-' }}</td>
             <td>{{ nota.fornecedor or '-' }}</td>
             <td><span class="app-status-pill">{{ 'EPI' if categoria_nota == 'EPI' else categoria_nota.capitalize() }}</span></td>
             <td>{{ nota.tipo_estoque|capitalize if nota.tipo_estoque else '-' }}</td>
@@ -169,6 +171,11 @@
                 <a href="{{ url_for('nota_fiscal.detalhes', id=nota.id) }}" class="btn btn-sm btn-outline-primary" title="Visualizar">
                   <i class="bi bi-eye"></i>
                 </a>
+                {% if not nota.cancelada and current_user.perfil in ['admin', 'estoque'] %}
+                <a href="{{ url_for('nota_fiscal.editar', id=nota.id) }}" class="btn btn-sm btn-outline-warning" title="Editar nota fiscal" aria-label="Editar nota fiscal">
+                  <i class="bi bi-pencil-square"></i>
+                </a>
+                {% endif %}
                 <a href="{{ url_for('nota_fiscal.exportar_pdf', id=nota.id) }}" class="btn btn-sm btn-outline-danger" title="PDF">
                   <i class="bi bi-file-earmark-pdf"></i>
                 </a>
@@ -194,7 +201,7 @@
           </tr>
           {% else %}
           <tr>
-            <td colspan="9" class="text-center text-muted py-5">
+            <td colspan="10" class="text-center text-muted py-5">
               Nenhuma nota fiscal encontrada.
             </td>
           </tr>

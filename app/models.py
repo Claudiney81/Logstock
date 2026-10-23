@@ -248,6 +248,8 @@ class NotaFiscalEntrada(db.Model):
         nullable=False
     )
 
+    data_recebimento = db.Column(db.Date, nullable=True)
+
     fornecedor = db.Column(
         db.String(150),
         nullable=False
@@ -329,6 +331,19 @@ class NotaFiscalEntrada(db.Model):
             item.quantidade * item.valor_unitario
             for item in self.itens
         )
+
+
+class NotaFiscalEdicao(db.Model):
+    __tablename__ = 'notas_fiscais_edicoes'
+
+    id = db.Column(db.Integer, primary_key=True)
+    nota_fiscal_id = db.Column(db.Integer, db.ForeignKey('notas_fiscais_entrada.id'), nullable=False, index=True)
+    usuario_id = db.Column(db.Integer, db.ForeignKey('usuarios.id'), nullable=False)
+    data_hora = db.Column(db.DateTime, default=datetime.utcnow, nullable=False)
+    motivo = db.Column(db.Text, nullable=False)
+    antes = db.Column(db.JSON, nullable=False)
+    depois = db.Column(db.JSON, nullable=False)
+    usuario = db.relationship('Usuario')
 
 
 class NotaFiscalItem(db.Model):

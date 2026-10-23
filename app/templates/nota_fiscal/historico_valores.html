@@ -124,7 +124,6 @@
     <div class="app-panel-header">
       <div>
         <h2>Valores encontrados</h2>
-        <p>Entradas registradas para os filtros selecionados.</p>
       </div>
     </div>
 
@@ -132,7 +131,8 @@
       <table class="table table-hover align-middle mb-0 app-table">
         <thead style="position:sticky; top:0; z-index:10;">
           <tr>
-            <th>Data</th>
+            <th>Registro</th>
+            <th>Recebimento</th>
             <th>NF</th>
             <th>Fornecedor</th>
             <th>Código</th>
@@ -147,7 +147,8 @@
         <tbody>
           {% for r in resultados %}
           <tr>
-            <td class="text-nowrap">{{ r.data_hora.strftime('%d/%m/%Y %H:%M') if r.data_hora else '' }}</td>
+            <td class="text-nowrap">{{ r.data_hora|horario_local('%d/%m/%Y %H:%M') if r.data_hora else '' }}</td>
+            <td class="text-nowrap">{{ r.data_recebimento.strftime('%d/%m/%Y') if r.data_recebimento else 'Não informado' }}</td>
             <td class="fw-semibold">{{ r.numero_nf }}</td>
             <td>{{ r.fornecedor }}</td>
             <td class="text-nowrap">{{ r.codigo }}</td>
@@ -159,7 +160,7 @@
           </tr>
           {% else %}
           <tr>
-            <td colspan="9" class="text-center text-muted py-5">
+            <td colspan="10" class="text-center text-muted py-5">
               Nenhum histórico encontrado.
             </td>
           </tr>

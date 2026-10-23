@@ -14,7 +14,7 @@
       <p class="app-page-kicker">Movimentação de Estoque</p>
       <h1>Documento da Movimentação</h1>
       <p class="app-page-subtitle">
-        Movimentação {{ movimentacao.id }} registrada em {{ movimentacao.data_hora.strftime('%d/%m/%Y %H:%M') if movimentacao.data_hora else '-' }}.
+        Movimentação {{ movimentacao.id }} registrada em {{ movimentacao.data_hora|horario_local('%d/%m/%Y %H:%M') if movimentacao.data_hora else '-' }}.
       </p>
     </div>
 
@@ -65,7 +65,6 @@
     <div class="app-panel-header">
       <div>
         <h2>Dados da movimentação</h2>
-        <p>Origem, destino e informações do documento gerado.</p>
       </div>
     </div>
 
@@ -107,17 +106,17 @@
 
         <div class="col-md-3">
           <label class="form-label fw-semibold">Data / Hora</label>
-          <input class="form-control" readonly value="{{ movimentacao.data_hora.strftime('%d/%m/%Y %H:%M') if movimentacao.data_hora else '-' }}">
+          <input class="form-control" readonly value="{{ movimentacao.data_hora|horario_local('%d/%m/%Y %H:%M') if movimentacao.data_hora else '-' }}">
         </div>
 
         <div class="col-md-3">
           <label class="form-label fw-semibold">E-mail</label>
-          <input class="form-control" readonly value="{% if movimentacao.email_enviado %}Enviado{% else %}Pendente{% endif %}">
+          <input class="form-control" readonly value="{% if movimentacao.email_enviado %}Enviado{% elif movimentacao.tipo_movimentacao == 'retorno_sobra_os' %}Não se aplica — transferência automática{% else %}Pendente{% endif %}">
         </div>
 
         <div class="col-md-3">
           <label class="form-label fw-semibold">Assinatura</label>
-          <input class="form-control" readonly value="{% if movimentacao.assinatura %}Assinado{% else %}Documento físico{% endif %}">
+          <input class="form-control" readonly value="{% if movimentacao.tipo_movimentacao == 'retorno_sobra_os' %}Registro automático{% elif movimentacao.assinatura %}Assinado{% else %}Documento físico{% endif %}">
         </div>
 
         <div class="col-12">
@@ -181,7 +180,6 @@
             Assinatura do técnico
           {% endif %}
         </h2>
-        <p>Registro capturado no momento da movimentação ou assinatura em documento físico.</p>
       </div>
     </div>
 

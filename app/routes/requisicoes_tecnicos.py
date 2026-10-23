@@ -123,7 +123,7 @@ def get_tecnico_requisicao(requisicao):
     ).first()
 
 
-def buscar_estoque(item_db, tipo_servico_id, tipo_estoque="empresa", cliente_id=None):
+def buscar_estoque(item_db, tipo_servico_id, tipo_estoque="empresa", cliente_id=None, bloquear=False):
     query = Estoque.query.filter(
         Estoque.item_id == item_db.id,
         Estoque.tipo_servico_id == tipo_servico_id
@@ -138,6 +138,8 @@ def buscar_estoque(item_db, tipo_servico_id, tipo_estoque="empresa", cliente_id=
         else:
             query = query.filter(Estoque.cliente_id.is_(None))
 
+    if bloquear:
+        query = query.populate_existing().with_for_update()
     return query.first()
 
 
@@ -254,7 +256,8 @@ def movimentar_para_saldo_tecnico(requisicao):
             item_db=item_db,
             tipo_servico_id=tipo_servico_saldo_id,
             tipo_estoque=tipo_estoque,
-            cliente_id=cliente_id
+            cliente_id=cliente_id,
+            bloquear=True
         )
 
         if not estoque:
@@ -270,7 +273,8 @@ def movimentar_para_saldo_tecnico(requisicao):
             item_db=item_db,
             tipo_servico_id=tipo_servico_saldo_id,
             tipo_estoque=tipo_estoque,
-            cliente_id=cliente_id
+            cliente_id=cliente_id,
+            bloquear=True
         )
 
         estoque.quantidade -= item_req.quantidade

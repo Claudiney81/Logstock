@@ -48,7 +48,7 @@
         <div class="collapse mt-2" id="painelBaixasDevolvidas">
           <div class="bg-white border border-danger rounded p-3 shadow-sm">
             <small class="text-muted d-block mb-3">
-              Você pode criar nova baixa normalmente ou escolher uma pendência para corrigir.
+              Escolha uma pendência para corrigir uma baixa.
             </small>
 
           <div class="row g-2 align-items-end">
@@ -186,8 +186,7 @@
 
         <div id="avisoListaCorrecao" class="alert alert-warning d-none">
           <strong>Modo correção ativo:</strong>
-          ajuste os itens devolvidos pelo aprovador. Se precisar acrescentar material novo, use a tabela
-          de itens disponíveis logo abaixo, que inicia com <strong>Qtd. Baixa = 0</strong>.
+          revise os itens devolvidos. Adicione materiais pela tabela de itens disponíveis.
         </div>
 
         <div id="secaoItensCorrecao" class="d-none">
@@ -666,7 +665,7 @@ function adicionarLinhasAoResumo(linhas, mensagemSemItens) {
     return;
   }
 
-  const ordemTipoEstoque = { empresa: 0, cliente: 1 };
+  const ordemTipoEstoque = { cliente: 0, empresa: 1 };
   resumoBaixa.sort((a, b) => {
     const ordemA = ordemTipoEstoque[a.tipo_estoque] ?? 2;
     const ordemB = ordemTipoEstoque[b.tipo_estoque] ?? 2;
@@ -1089,7 +1088,7 @@ function corrigirBaixa{{ baixa.id }}() {
     endereco: {{ (baixa.endereco or '')|tojson }},
     observacao: {{ (baixa.observacao or '')|tojson }},
     itens: [
-      {% for item_baixa in baixa.itens %}
+      {% for item_baixa in baixa.itens|cliente_primeiro %}
         {% if item_baixa.status in ['pendente_ajuste', 'recusado', 'pendente'] %}
         {
           item_id: {{ item_baixa.item_id }},

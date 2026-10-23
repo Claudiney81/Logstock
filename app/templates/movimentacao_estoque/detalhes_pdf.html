@@ -223,7 +223,7 @@
 
       <td class="label">Data/Hora:</td>
       <td class="valor">
-        {{ movimentacao.data_hora.strftime('%d/%m/%Y %H:%M') if movimentacao.data_hora else '-' }}
+        {{ movimentacao.data_hora|horario_local('%d/%m/%Y %H:%M') if movimentacao.data_hora else '-' }}
       </td>
     </tr>
 

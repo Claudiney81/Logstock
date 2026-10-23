@@ -475,7 +475,7 @@
 
         {% set total = namespace(valor=0.0) %}
 
-        {% for item in baixa.itens %}
+        {% for item in baixa.itens|cliente_primeiro %}
           {% set valor_item = (item.valor_total|string)|replace(',', '.')|float %}
           {% set total.valor = total.valor + valor_item %}
         {% endfor %}
@@ -484,7 +484,7 @@
               </h4>
 
       {% set totais_origem = namespace(empresa=0.0, cliente=0.0) %}
-      {% for item in baixa.itens %}
+      {% for item in baixa.itens|cliente_primeiro %}
         {% set valor_item = (item.valor_total or 0)|float %}
         {% if (item.tipo_estoque or 'empresa') == 'cliente' %}
           {% set totais_origem.cliente = totais_origem.cliente + valor_item %}
@@ -493,9 +493,9 @@
         {% endif %}
       {% endfor %}
       <div class="small text-muted mt-2">
-        Empresa: {{ totais_origem.empresa|brl }}
-        &nbsp;|&nbsp;
         Cliente/O.S: {{ totais_origem.cliente|brl }}
+        &nbsp;|&nbsp;
+        Empresa: {{ totais_origem.empresa|brl }}
       </div>
 
     </div>

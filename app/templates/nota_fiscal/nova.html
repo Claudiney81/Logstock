@@ -375,6 +375,11 @@
                   >
                 </div>
 
+                <div class="col-md-3">
+                  <label class="nf-label" for="data_recebimento">Data de recebimento</label>
+                  <input type="date" id="data_recebimento" name="data_recebimento" class="form-control"
+                    value="{{ hoje_local().isoformat() }}" max="{{ hoje_local().isoformat() }}" required>
+                </div>
                 <div class="col-12 nf-field-fornecedor">
                   <label class="nf-label">Fornecedor</label>
                   <select name="fornecedor" class="form-select" required>
@@ -465,7 +470,7 @@
                     name="observacao"
                     class="form-control"
                     rows="3"
-                    placeholder="Informe observações relevantes para esta entrada, se houver."
+                    placeholder="Observação (opcional)"
                   >N/D</textarea>
                 </div>
               </div>
@@ -584,7 +589,7 @@
                       Importar Excel
                     </div>
                     <div class="nf-import-description">
-                      Importe, confira e desmarque os itens que não devem entrar na nota.
+                      Confira os itens antes de inserir.
                     </div>
                   </div>
 

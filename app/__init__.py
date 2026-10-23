@@ -70,6 +70,9 @@ def _ensure_runtime_schema_columns():
     inspector = inspect(db.engine)
 
     required_columns = {
+        "notas_fiscais_entrada": {
+            "data_recebimento": "DATE",
+        },
         "estoque": {
             "valor_unitario": "FLOAT",
             "condicao_material": "VARCHAR(30)",
@@ -148,6 +151,11 @@ def create_app(test_config=None):
     )
 
     app.config.from_pyfile(config_path)
+    from app.utils.datas import formatar_horario, hoje_local
+    app.jinja_env.filters['horario_local'] = formatar_horario
+    from app.utils.ordenacao import cliente_primeiro
+    app.jinja_env.filters['cliente_primeiro'] = cliente_primeiro
+    app.jinja_env.globals['hoje_local'] = hoje_local
     if test_config:
         app.config.update(test_config)
 

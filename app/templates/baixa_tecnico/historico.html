@@ -55,7 +55,7 @@
       <tbody>
         {% if baixas %}
           {% for baixa in baixas %}
-            {% for item in baixa.itens %}
+            {% for item in baixa.itens|cliente_primeiro %}
             <tr>
               <td>{{ baixa.data.strftime('%d/%m/%Y %H:%M') }}</td>
               <td>{{ baixa.tecnico.nome }}</td>

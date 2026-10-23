@@ -58,7 +58,7 @@
           </thead>
 
           <tbody>
-            {% for item in baixa.itens %}
+            {% for item in baixa.itens|cliente_primeiro %}
             <tr>
               <td class="text-center">
                 {{ item.item.codigo if item.item else '' }}

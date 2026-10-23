@@ -20,7 +20,7 @@
           <td>{{ baixa.endereco }}</td>
           <td>
             <ul class="mb-0">
-              {% for item in baixa.itens %}
+              {% for item in baixa.itens|cliente_primeiro %}
               <li>{{ item.codigo }} - {{ item.quantidade }} un.</li>
               {% endfor %}
             </ul>

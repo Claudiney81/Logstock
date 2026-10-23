@@ -198,7 +198,7 @@
                     </thead>
 
                     <tbody>
-                      {% for item_baixa in baixa.itens %}
+                      {% for item_baixa in baixa.itens|cliente_primeiro %}
                         {% if item_baixa.status in ['recusado', 'pendente_ajuste'] %}
                         <tr>
                           <td class="text-center">
@@ -288,7 +288,7 @@
           </tr>
         `;
 
-        {% for item_baixa in baixa.itens %}
+        {% for item_baixa in baixa.itens|cliente_primeiro %}
           {% if item_baixa.status in ['recusado', 'pendente_ajuste'] %}
             {% set tipo_item_correcao = item_baixa.tipo_estoque or 'empresa' %}
             {% set cliente_item_correcao = item_baixa.cliente_estoque_id or baixa.cliente_id or '' if tipo_item_correcao == 'cliente' else '' %}
@@ -682,6 +682,14 @@
             <input type="hidden" name="cliente_estoque_id[]" value="${clienteItem}">
           </div>
         `;
+
+        // Reorder visible rows only; submitted item fields remain paired.
+        Array.from(tbodyResumo.querySelectorAll('tr[data-resumo-key]'))
+          .sort((a, b) => {
+            const prioridade = linha => linha.dataset.resumoKey.split('|')[1] === 'cliente' ? 0 : 1;
+            return prioridade(a) - prioridade(b);
+          })
+          .forEach(linha => tbodyResumo.appendChild(linha));
 
         return true;
       }

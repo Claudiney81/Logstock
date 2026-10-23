@@ -215,7 +215,7 @@
           {% set tipos = baixa.itens | map(attribute='tipo_estoque') | list %}
 
           {% if 'empresa' in tipos and 'cliente' in tipos %}
-            Empresa / Cliente
+            Cliente / Empresa
           {% elif 'empresa' in tipos %}
             Empresa
           {% elif 'cliente' in tipos %}
@@ -259,7 +259,7 @@
     </thead>
 
     <tbody>
-      {% for item in baixa.itens %}
+      {% for item in baixa.itens|cliente_primeiro %}
 
         {% set valor_total = (item.valor_total or 0)|float %}
         {% set total.valor = total.valor + valor_total %}
