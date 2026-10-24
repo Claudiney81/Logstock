@@ -761,6 +761,44 @@ def nova_movimentacao():
             flash('Origem e destino não podem ser iguais.', 'danger')
             return redirect(url_for('movimentacao_estoque.nova_movimentacao'))
 
+        if destino_tipo == 'cliente':
+            from app.utils.retorno_material_cliente import registrar_retorno_cliente
+            try:
+                if categoria_movimentacao != 'MATERIAL' or origem_tipo != 'tecnico' or saldo_tecnico_tipo != 'cliente':
+                    raise ValueError('O retorno ao cliente deve sair do saldo cliente do técnico e conter somente materiais.')
+                if condicao_material:
+                    raise ValueError('O retorno ao cliente recompõe o estoque comum. Confira a condição do material.')
+                tecnico_retorno_id = int(tecnico_id or 0)
+                cliente_retorno_id = int(cliente_os_id or 0)
+                servico_retorno_id = int(tipo_servico_id or 0)
+                if not TipoServico.query.filter_by(id=servico_retorno_id).first():
+                    raise ValueError('Selecione um tipo de serviço válido.')
+                nova_mov = registrar_retorno_cliente(
+                    tecnico_id=tecnico_retorno_id, cliente_id=cliente_retorno_id,
+                    ordem_servico_id=ordem_servico_id, tipo_servico_id=servico_retorno_id,
+                    codigos=codigos, quantidades=quantidades,
+                    usuario_id=current_user.id, observacao=observacao, assinatura=assinatura,
+                )
+                db.session.commit()
+            except (ValueError, OverflowError) as erro:
+                db.session.rollback()
+                flash(f'Retorno não realizado: {erro}', 'danger')
+                return redirect(url_for('movimentacao_estoque.nova_movimentacao'))
+            except Exception:
+                db.session.rollback()
+                from flask import current_app
+                current_app.logger.exception('Falha no retorno de material ao cliente')
+                flash('Não foi possível registrar o retorno. Nenhum saldo foi alterado.', 'danger')
+                return redirect(url_for('movimentacao_estoque.nova_movimentacao'))
+            try:
+                if send_movimentacao_email(nova_mov, attach_pdf=True):
+                    nova_mov.email_enviado = True
+                    db.session.commit()
+            except Exception:
+                db.session.rollback()
+            flash('Retorno registrado. Material devolvido ao estoque do mesmo cliente, sem entrada no estoque empresa.', 'success')
+            return redirect(url_for('movimentacao_estoque.detalhes', id=nova_mov.id))
+
         # ==================================================
         # REGRAS MATERIAL
         # ==================================================
@@ -1309,6 +1347,9 @@ def exportar_historico_excel():
 
         if mov.origem_tipo == 'cliente':
             cliente_os = empresas_dict.get(int(mov.origem_id or 0), '-')
+
+        elif mov.destino_tipo == 'cliente':
+            cliente_os = empresas_dict.get(int(mov.destino_id or 0), '-')
 
         elif (
             mov.origem_tipo == 'empresa'

@@ -1019,6 +1019,17 @@ def _build_movimentacao_pdf(movimentacao) -> bytes:
          movimentacao.observacao or "-"],
     ]
 
+    if movimentacao.destino_tipo == 'cliente':
+        from app.models import Empresa
+        from xml.sax.saxutils import escape
+        cliente_retorno = Empresa.query.get(movimentacao.destino_id)
+        nome_cliente = cliente_retorno.razao_social if cliente_retorno else '-'
+        numero_os = movimentacao.ordem_servico.numero_os if movimentacao.ordem_servico else '-'
+        dados.append([
+            'Cliente de retorno:', Paragraph(escape(nome_cliente), styles['Normal']),
+            'O.S.:', Paragraph(escape(numero_os), styles['Normal']),
+        ])
+
     titulo_dados = Table(
         [["DADOS DA MOVIMENTAÇÃO"]],
         colWidths=[17.5 * cm]

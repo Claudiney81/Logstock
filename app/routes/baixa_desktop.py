@@ -57,7 +57,9 @@ from app.models import (
     BaixaTecnicaItem,
     Item,
     Empresa,
-    OrdemServico
+    OrdemServico,
+    MovimentacaoEstoque,
+    MovimentacaoEstoqueItem
 )
 
 from app.utils.mailer import (
@@ -979,6 +981,33 @@ def baixas_realizadas():
         data_fim=data_fim
     )       
 
+def grupos_relatorio_baixa(baixa):
+    """Consulta a sobra histórica do cliente, sem usar o saldo atual do técnico.
+
+    A sobra pertence ao fechamento da O.S./técnico, não a uma baixa individual.
+    """
+    grupos = {"cliente": [], "empresa": [], "sobra": []}
+    for item in baixa.itens:
+        tipo = "cliente" if (item.tipo_estoque or "").lower() == "cliente" else "empresa"
+        grupos[tipo].append(item)
+    if baixa.ordem_servico_id and baixa.tecnico_id:
+        sobras = (MovimentacaoEstoqueItem.query.join(MovimentacaoEstoque).filter(
+            MovimentacaoEstoque.ordem_servico_id == baixa.ordem_servico_id,
+            MovimentacaoEstoque.destino_tipo == "tecnico",
+            MovimentacaoEstoque.destino_id == baixa.tecnico_id,
+            MovimentacaoEstoque.origem_tipo == "cliente",
+            MovimentacaoEstoque.tipo_movimentacao == "retorno_sobra_os",
+        ).order_by(MovimentacaoEstoque.id, MovimentacaoEstoqueItem.id).all())
+        for item in sobras:
+            grupos["sobra"].append(SimpleNamespace(
+                item=item.item, quantidade=item.quantidade,
+                quantidade_aprovada=item.quantidade,
+                valor_unitario=item.valor_unitario,
+                valor_total=item.quantidade * float(item.valor_unitario or 0),
+            ))
+    return grupos
+
+
 @bp_baixa_desktop.route("/detalhe/<int:baixa_id>/excel")
 @login_required
 def exportar_baixa_excel(baixa_id):
@@ -991,26 +1020,26 @@ def exportar_baixa_excel(baixa_id):
     linhas_cabecalhos = []
     subtotais = []
     total_geral = 0
-    grupos = {"cliente": [], "empresa": []}
-    for item in baixa.itens:
-        tipo = "cliente" if (item.tipo_estoque or "").lower() == "cliente" else "empresa"
-        grupos[tipo].append(item)
+    grupos = grupos_relatorio_baixa(baixa)
 
     for tipo, nome, titulo in (
         ("cliente", "Cliente", "MATERIAIS APLICADOS DO CLIENTE"),
         ("empresa", "Empresa", "MATERIAIS APLICADOS DO SALDO DA EMPRESA"),
+        ("sobra", "Sobra cliente", "SOBRA DO MATERIAL DO CLIENTE - FECHAMENTO DA O.S."),
     ):
-        if not grupos[tipo]:
-            continue
         linhas_titulos.append(10 + len(dados))
         dados.append([titulo] + [None] * 6)
         linhas_cabecalhos.append(10 + len(dados))
         dados.append(colunas)
         total_grupo = 0
+        if not grupos[tipo]:
+            mensagem = "Nenhuma sobra registrada no fechamento da O.S." if tipo == "sobra" else "Nenhum material aplicado."
+            dados.append([None, mensagem] + [None] * 5)
         for item in grupos[tipo]:
             valor_total = float(item.valor_total or 0)
             total_grupo += valor_total
-            total_geral += valor_total
+            if tipo != "sobra":
+                total_geral += valor_total
             dados.append([
                 item.item.codigo if item.item else "",
                 item.item.descricao if item.item else "",
@@ -1478,18 +1507,14 @@ def exportar_baixa_pdf(baixa_id):
     # ==================================================
 
     total_geral = 0
-    grupos = {"cliente": [], "empresa": []}
-    for item in baixa.itens:
-        origem = "cliente" if (item.tipo_estoque or "").lower() == "cliente" else "empresa"
-        grupos[origem].append(item)
+    grupos = grupos_relatorio_baixa(baixa)
 
     for tipo, origem, titulo_grupo in (
         ("cliente", "Cliente", "MATERIAIS APLICADOS DO CLIENTE"),
         ("empresa", "Empresa", "MATERIAIS APLICADOS DO SALDO DA EMPRESA"),
+        ("sobra", "Sobra cliente", "SOBRA DO MATERIAL DO CLIENTE - FECHAMENTO DA O.S."),
     ):
         itens_grupo = grupos[tipo]
-        if not itens_grupo:
-            continue
         total_grupo = 0
         titulo_bloco = Paragraph(f"<b>{titulo_grupo}</b>", styles["Normal"])
         titulo_bloco.keepWithNext = True
@@ -1506,12 +1531,17 @@ def exportar_baixa_pdf(baixa_id):
             "Origem"
         ]]
 
+        if not itens_grupo:
+            mensagem = "Nenhuma sobra registrada no fechamento da O.S." if tipo == "sobra" else "Nenhum material aplicado."
+            dados_itens.append(["", texto_pdf(mensagem, estilo_item), "", "", "", "", ""])
+
         for item in itens_grupo:
 
             valor_unit = float(item.valor_unitario or 0)
             valor_total = float(item.valor_total or 0)
 
-            total_geral += valor_total
+            if tipo != "sobra":
+                total_geral += valor_total
 
             total_grupo += valor_total
 

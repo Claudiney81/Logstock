@@ -83,6 +83,7 @@ def editar(id):
     from app.models import NotaFiscalEdicao
     from app.utils.edicao_nota import (
         retrato, assinatura, conferir_assinatura, bloqueio_quantidades, ajustar_quantidades,
+        corrigir_cliente,
     )
     if current_user.perfil not in ('admin', 'estoque'):
         abort(403)
@@ -126,17 +127,25 @@ def editar(id):
                 else:
                     quantidades[item.id] = int(recebido)
             antes = retrato(nota)
-            if any(quantidades[i.id] != i.quantidade for i in nota.itens):
+            novo_cliente_raw = request.form.get('novo_cliente_id', '').strip()
+            if novo_cliente_raw and (not novo_cliente_raw.isascii() or not novo_cliente_raw.isdigit() or len(novo_cliente_raw) > 10):
+                raise ValueError('Selecione um cliente válido para o novo destino.')
+            novo_cliente_id = int(novo_cliente_raw) if novo_cliente_raw else nota.cliente_id
+            if novo_cliente_id != nota.cliente_id:
+                corrigir_cliente(nota, novo_cliente_id, quantidades,
+                                 request.form.get('confirmar_destino') == '1')
+            elif any(quantidades[i.id] != i.quantidade for i in nota.itens):
                 ajustar_quantidades(nota, quantidades)
             nota.numero_nf, nota.fornecedor, nota.observacao = numero, fornecedor, observacao
             nota.data_recebimento = data_recebimento
+            db.session.flush()
             depois = retrato(nota)
             if antes == depois:
                 raise ValueError('Nenhuma alteração foi informada.')
             db.session.add(NotaFiscalEdicao(nota_fiscal_id=nota.id, usuario_id=current_user.id,
                                            motivo=motivo, antes=antes, depois=depois))
             db.session.commit()
-            flash('Nota corrigida e histórico registrado. Saldo atualizado pela diferença quando necessário.', 'success')
+            flash('Nota corrigida e histórico registrado. Saldo atualizado conforme a correção.', 'success')
             return redirect(url_for('nota_fiscal.detalhes', id=id))
         except ValueError as erro:
             db.session.rollback()
@@ -148,8 +157,9 @@ def editar(id):
         return redirect(url_for('nota_fiscal.editar', id=id))
     historico = NotaFiscalEdicao.query.filter_by(nota_fiscal_id=id).order_by(NotaFiscalEdicao.id.desc()).all()
     fornecedores = Empresa.query.filter_by(tipo_empresa='fornecedor').order_by(Empresa.razao_social).all()
+    clientes = Empresa.query.filter_by(tipo_empresa='cliente').order_by(Empresa.razao_social).all()
     return render_template('nota_fiscal/editar.html', nota=nota, fornecedores=fornecedores,
-                           bloqueio=bloqueio_quantidades(nota), versao=assinatura(nota), historico=historico)
+                           clientes=clientes, bloqueio=bloqueio_quantidades(nota), versao=assinatura(nota), historico=historico)
 
 
 def _nota_ativa_com_numero(numero_nf):

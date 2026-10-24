@@ -145,6 +145,7 @@
                 <select id="destino_tipo" name="destino_tipo" class="form-select" required>
                   <option value="">Selecione</option>
                   <option value="empresa">Empresa</option>
+                  <option value="cliente">Cliente (retorno à origem)</option>
                   <option value="tecnico">Técnico</option>
                 </select>
               </div>
@@ -540,8 +541,13 @@ function ajustarDestinoAutomatico() {
   }
 
   if (origemTipo === "tecnico") {
-    destinoTipo.value = "empresa";
+    if (!["empresa", "cliente"].includes(destinoTipo.value)) destinoTipo.value = "empresa";
   }
+  destinoTipo.querySelector('option[value="cliente"]').disabled = origemTipo !== "tecnico";
+  const retornoCliente = origemTipo === "tecnico" && destinoTipo.value === "cliente";
+  const saldoTipo = document.getElementById("saldo_tecnico_tipo");
+  saldoTipo.querySelector('option[value="empresa"]').disabled = retornoCliente;
+  if (retornoCliente) saldoTipo.value = "cliente";
 }
 
 function atualizarCamposDinamicos() {
@@ -578,7 +584,8 @@ function atualizarCamposDinamicos() {
 
   const mostrarDevolucaoTecnico =
     origemTipo === "tecnico" &&
-    destinoTipo === "empresa";
+    ["empresa", "cliente"].includes(destinoTipo);
+  const retornoCliente = origemTipo === "tecnico" && destinoTipo === "cliente";
 
     const mostrarUsadoBom =
       origemTipo === "empresa" &&
@@ -603,7 +610,8 @@ function atualizarCamposDinamicos() {
   tecnicoDiv.style.display = mostrarTecnico ? "block" : "none";
   destinoMaterialDiv.style.display = mostrarDestinoMaterial ? "block" : "none";
   saldoTecnicoTipoDiv.style.display = mostrarDevolucaoTecnico ? "block" : "none";
-  condicaoMaterialDiv.style.display = mostrarDevolucaoTecnico ? "block" : "none";
+  condicaoMaterialDiv.style.display = mostrarDevolucaoTecnico && !retornoCliente ? "block" : "none";
+  if (retornoCliente) document.getElementById("condicao_material").value = "";
   usadoBomDiv.style.display =
   mostrarUsadoBom ? "block" : "none";
   clienteDiv.style.display = mostrarClienteOs ? "block" : "none";
@@ -615,8 +623,8 @@ function atualizarCamposDinamicos() {
       : "none";
 
   tecnico.required = mostrarTecnico;
-  cliente.required = origemTipo === "cliente" && destinoTipo === "tecnico";
-  osInput.required = origemTipo === "cliente" && destinoTipo === "tecnico";
+  cliente.required = (origemTipo === "cliente" && destinoTipo === "tecnico") || retornoCliente;
+  osInput.required = (origemTipo === "cliente" && destinoTipo === "tecnico") || retornoCliente;
   notaFiscal.required = origemTipo === "cliente" && destinoTipo === "tecnico";
 
   if (!mostrarTecnico) {
@@ -744,7 +752,9 @@ function preencherTodosSelects(filtro = "") {
   });
 }
 
+let consultaItensAtual = 0;
 function atualizarListaDeItens() {
+  const consultaAtual = ++consultaItensAtual;
   const tipoServicoId = document.getElementById("tipo_servico_id")?.value;
   const origemTipo = document.getElementById("origem_tipo")?.value;
   const destinoTipo = document.getElementById("destino_tipo")?.value;
@@ -796,6 +806,12 @@ function atualizarListaDeItens() {
     const osId = document.getElementById("os_id")?.value;
 
     if (saldoTecnicoTipo === "cliente") {
+      if (destinoTipo === "cliente" && (!clienteId || !osId)) {
+        itensDisponiveis = [];
+        renderizarTabelaLote();
+        preencherTodosSelects();
+        return;
+      }
       if (clienteId) {
         url += `&cliente_id=${clienteId}`;
       }
@@ -809,11 +825,13 @@ function atualizarListaDeItens() {
   fetch(url)
     .then((res) => res.json())
     .then((data) => {
+      if (consultaAtual !== consultaItensAtual) return;
       itensDisponiveis = data || [];
       preencherTodosSelects();
       renderizarTabelaLote();
     })
     .catch(() => {
+      if (consultaAtual !== consultaItensAtual) return;
       itensDisponiveis = [];
       preencherTodosSelects();
       renderizarTabelaLote();
@@ -1257,9 +1275,15 @@ document.querySelector("form")?.addEventListener("submit", function (e) {
     return false;
   }
 
-  if (origemTipo === "tecnico" && destinoTipo !== "empresa") {
+  if (origemTipo === "tecnico" && !["empresa", "cliente"].includes(destinoTipo)) {
     e.preventDefault();
-    alert("Quando a origem for Técnico, o destino deve ser Empresa.");
+    alert("Quando a origem for Técnico, o destino deve ser Empresa ou Cliente.");
+    return false;
+  }
+
+  if (destinoTipo === "cliente" && (origemTipo !== "tecnico" || !clienteId || !osId || document.getElementById("saldo_tecnico_tipo").value !== "cliente")) {
+    e.preventDefault();
+    alert("Selecione o saldo cliente do técnico e o cliente/O.S. de origem para devolver.");
     return false;
   }
 

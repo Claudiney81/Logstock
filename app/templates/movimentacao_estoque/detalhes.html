@@ -77,7 +77,7 @@
 
         <div class="col-md-3">
           <label class="form-label fw-semibold">Destino</label>
-          <input class="form-control" readonly value="{% if movimentacao.destino_tipo == 'empresa' %}Empresa{% elif movimentacao.destino_tipo == 'tecnico' %}Técnico{% else %}-{% endif %}">
+          <input class="form-control" readonly value="{% if movimentacao.destino_tipo == 'empresa' %}Empresa{% elif movimentacao.destino_tipo == 'cliente' %}Cliente{% elif movimentacao.destino_tipo == 'tecnico' %}Técnico{% else %}-{% endif %}">
         </div>
 
         <div class="col-md-3">
@@ -94,6 +94,13 @@
         <div class="col-md-4">
           <label class="form-label fw-semibold">Cliente</label>
           <input class="form-control" readonly value="{{ empresas_dict.get(movimentacao.origem_id|int, '-') }}">
+        </div>
+        {% endif %}
+
+        {% if movimentacao.destino_tipo == 'cliente' %}
+        <div class="col-md-4">
+          <label class="form-label fw-semibold">Cliente de retorno</label>
+          <input class="form-control" readonly value="{{ empresas_dict.get(movimentacao.destino_id|int, '-') }}">
         </div>
         {% endif %}
 
