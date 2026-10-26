@@ -8,7 +8,7 @@ sys.path.insert(0, str(Path(__file__).parent))
 import test_estoque_minimos as fixtures
 from app.extensions import db
 from app.models import (Empresa, Estoque, MovimentacaoEstoque, NotaFiscalEntrada,
-                        NotaFiscalItem, OrdemServico, SaldoTecnico)
+                        NotaFiscalItem, OrdemServico, SaldoTecnico, MovimentacaoEstoqueItem)
 from openpyxl import load_workbook
 
 
@@ -80,6 +80,117 @@ class RetornoMaterialClienteTests(unittest.TestCase):
         self.assertEqual(self.estoque.quantidade, 3)
         self.assertEqual(empresa.quantidade, 100)
         self.assertEqual([s.quantidade for s in self.outros], [20, 20, 20])
+
+    def criar_nota_transferida(self, numero='NF-CICLO', quantidade=10):
+        nota = NotaFiscalEntrada(numero_nf=numero, fornecedor='Teste',
+            tipo_estoque='cliente', cliente_id=1, tipo_servico_id=1)
+        nota.itens.append(NotaFiscalItem(item_id=1, quantidade=quantidade, valor_unitario=2))
+        db.session.add(nota)
+        db.session.flush()
+        mov = MovimentacaoEstoque(origem_tipo='cliente', origem_id=1,
+            destino_tipo='tecnico', destino_id=1, tipo_servico_id=1,
+            ordem_servico_id=1, nota_fiscal_id=nota.id)
+        mov.itens.append(MovimentacaoEstoqueItem(item_id=1, quantidade=quantidade, valor_unitario=2))
+        db.session.add(mov)
+        db.session.commit()
+        return nota
+
+    def notas_disponiveis(self):
+        return self.client.get('/movimentacao_estoque/api/notas-cliente?cliente_id=1&tipo_servico_id=1&ordem_servico_id=1').get_json()
+
+    def test_return_releases_invoice_and_retransfer_consumes_credit(self):
+        self.preparar()
+        nota = self.criar_nota_transferida()
+        self.assertEqual(self.notas_disponiveis(), [])
+        self.enviar(self.dados(**{'quantidade[]': ['4']}))
+        self.assertEqual(self.notas_disponiveis()[0]['total_pendente'], 4)
+        self.enviar(self.dados(origem_tipo='cliente', destino_tipo='tecnico',
+            nota_fiscal_id=str(nota.id), **{'quantidade[]': ['4']}))
+        self.assertEqual(self.saldo.quantidade, 10)
+        self.assertEqual(self.estoque.quantidade, 3)
+        self.assertEqual(self.notas_disponiveis(), [])
+
+    def test_full_return_then_cancel_removes_invoice_stock_once(self):
+        self.preparar()
+        nota = self.criar_nota_transferida()
+        self.enviar()
+        self.assertEqual(self.notas_disponiveis()[0]['total_pendente'], 10)
+        self.client.post(f'/nota/excluir/{nota.id}')
+        db.session.expire_all()
+        self.assertEqual(self.estoque.quantidade, 3)
+        self.assertEqual(self.saldo.quantidade, 0)
+        self.assertEqual(self.notas_disponiveis(), [])
+        self.client.post(f'/nota/excluir/{nota.id}')
+        db.session.expire_all()
+        self.assertEqual(self.estoque.quantidade, 3)
+
+    def test_return_cannot_credit_multiple_invoices(self):
+        self.preparar()
+        primeira = self.criar_nota_transferida('NF-A')
+        self.criar_nota_transferida('NF-B')
+        self.enviar(self.dados(**{'quantidade[]': ['4']}))
+        self.assertEqual([(n['id'], n['total_pendente']) for n in self.notas_disponiveis()], [(primeira.id, 4)])
+
+    def test_cancel_after_full_return_zeros_stock_when_no_other_entry_exists(self):
+        self.preparar()
+        self.estoque.quantidade = 0
+        db.session.commit()
+        nota = self.criar_nota_transferida()
+        self.enviar()
+        self.assertEqual(self.estoque.quantidade, 10)
+        self.client.post(f'/nota/excluir/{nota.id}')
+        db.session.expire_all()
+        self.assertIn('[NF_CANCELADA]', nota.observacao)
+        self.assertEqual(self.estoque.quantidade, 0)
+        self.assertEqual(self.saldo.quantidade, 0)
+        self.assertEqual(self.notas_disponiveis(), [])
+        params = (f'/movimentacao_estoque/api/itens?origem_tipo=cliente'
+                  f'&cliente_id=1&tipo_servico_id=1&ordem_servico_id=1'
+                  f'&nota_fiscal_id={nota.id}')
+        self.assertEqual(self.client.get(params).get_json(), [])
+        self.enviar(self.dados(origem_tipo='cliente', destino_tipo='tecnico',
+            nota_fiscal_id=str(nota.id), **{'quantidade[]': ['1']}))
+        self.assertEqual(self.estoque.quantidade, 0)
+        self.assertEqual(self.saldo.quantidade, 0)
+
+    def test_other_technician_or_os_return_does_not_release_invoice(self):
+        self.preparar()
+        self.criar_nota_transferida()
+        self.enviar(self.dados(tecnico_id='2', **{'quantidade[]': ['4']}))
+        self.enviar(self.dados(ordem_servico_id='2', **{'quantidade[]': ['4']}))
+        self.assertEqual(self.notas_disponiveis(), [])
+
+    def test_return_before_transfer_cannot_credit_future_transfer(self):
+        self.preparar()
+        self.enviar()
+        self.criar_nota_transferida()
+        self.assertEqual(self.notas_disponiveis(), [])
+
+    def test_retransfer_above_return_or_available_stock_is_blocked(self):
+        self.preparar()
+        nota = self.criar_nota_transferida()
+        self.enviar(self.dados(**{'quantidade[]': ['4']}))
+        self.enviar(self.dados(origem_tipo='cliente', destino_tipo='tecnico',
+            nota_fiscal_id=str(nota.id), **{'quantidade[]': ['5']}))
+        self.assertEqual(self.saldo.quantidade, 6)
+        self.assertEqual(self.estoque.quantidade, 7)
+        self.estoque.quantidade = 2
+        db.session.commit()
+        self.assertEqual(self.notas_disponiveis()[0]['total_pendente'], 2)
+        self.enviar(self.dados(origem_tipo='cliente', destino_tipo='tecnico',
+            nota_fiscal_id=str(nota.id), **{'quantidade[]': ['3']}))
+        self.assertEqual(self.estoque.quantidade, 2)
+        self.assertEqual(self.saldo.quantidade, 6)
+
+    def test_unlinked_earlier_transfer_absorbs_its_own_return(self):
+        self.preparar()
+        antiga = self.criar_nota_transferida('NF-ANTIGA')
+        MovimentacaoEstoque.query.filter_by(nota_fiscal_id=antiga.id).one().nota_fiscal_id = None
+        antiga.observacao = '[NF_CANCELADA]'
+        db.session.commit()
+        self.criar_nota_transferida('NF-NOVA')
+        self.enviar()
+        self.assertEqual(self.notas_disponiveis(), [])
 
     def test_partial_return_and_creation_of_missing_client_stock(self):
         self.preparar()

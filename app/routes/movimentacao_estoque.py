@@ -137,21 +137,58 @@ def _tipo_servico_saldo_nota(nota):
 
 
 def _quantidade_movimentada_da_nota(nota_id, item_id):
-    return (
-        db.session.query(func.coalesce(func.sum(MovimentacaoEstoqueItem.quantidade), 0))
-        .join(
-            MovimentacaoEstoque,
-            MovimentacaoEstoque.id == MovimentacaoEstoqueItem.movimentacao_id
-        )
+    """Saídas líquidas da NF, abatendo retornos uma única vez em ordem FIFO.
+
+    Retornos antigos não guardam NF. Distribuímos entre saídas anteriores
+    do mesmo cliente, técnico, O.S. e grupo de serviço, incluindo saídas
+    sem NF para que sua devolução não libere indevidamente outra nota.
+    """
+    nota = db.session.get(NotaFiscalEntrada, nota_id)
+    if not nota:
+        return 0
+
+    eventos = (
+        db.session.query(MovimentacaoEstoque, MovimentacaoEstoqueItem.quantidade)
+        .join(MovimentacaoEstoqueItem,
+              MovimentacaoEstoqueItem.movimentacao_id == MovimentacaoEstoque.id)
         .filter(
-            MovimentacaoEstoque.nota_fiscal_id == nota_id,
-            MovimentacaoEstoque.origem_tipo == 'cliente',
-            MovimentacaoEstoque.destino_tipo == 'tecnico',
-            MovimentacaoEstoqueItem.item_id == item_id
+            MovimentacaoEstoqueItem.item_id == item_id,
+            or_(
+                db.and_(MovimentacaoEstoque.origem_tipo == 'cliente',
+                        MovimentacaoEstoque.origem_id == nota.cliente_id,
+                        MovimentacaoEstoque.destino_tipo == 'tecnico'),
+                db.and_(MovimentacaoEstoque.origem_tipo == 'tecnico',
+                        MovimentacaoEstoque.destino_tipo == 'cliente',
+                        MovimentacaoEstoque.destino_id == nota.cliente_id,
+                        MovimentacaoEstoque.tipo_movimentacao == 'retorno_cliente'),
+            ),
         )
-        .scalar()
-        or 0
+        .order_by(MovimentacaoEstoque.data_hora, MovimentacaoEstoque.id,
+                  MovimentacaoEstoqueItem.id)
+        .all()
     )
+    lotes = {}
+    for mov, quantidade in eventos:
+        saida = mov.origem_tipo == 'cliente'
+        chave = (
+            mov.destino_id if saida else mov.origem_id,
+            mov.ordem_servico_id,
+            _tipo_servico_saldo_movimentacao(mov),
+        )
+        fila = lotes.setdefault(chave, [])
+        restante = max(int(quantidade or 0), 0)
+        if saida:
+            fila.append([mov.nota_fiscal_id, restante])
+            continue
+        for lote in fila:
+            abatido = min(lote[1], restante)
+            lote[1] -= abatido
+            restante -= abatido
+            if not restante:
+                break
+        # Excesso sem saída anterior comprovada não vira crédito futuro.
+
+    return sum(qtd for fila in lotes.values() for nf, qtd in fila if nf == nota_id)
 
 
 def _itens_pendentes_nota_cliente(nota):
