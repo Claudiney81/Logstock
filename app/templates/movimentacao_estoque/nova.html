@@ -993,6 +993,14 @@ function inserirSelecionadosLote() {
     return;
   }
 
+  if (document.getElementById("destino_tipo").value === "cliente") {
+    // Na devolução, a seleção atual substitui o lote anterior.
+    const tbody = document.querySelector("#tabela-itens tbody");
+    tbody.replaceChildren();
+    tbody.dataset.loteRetorno = "true";
+    inserirLinha();
+  }
+
   let inseridos = 0;
   let duplicados = 0;
 
@@ -1345,6 +1353,34 @@ document.querySelector("form")?.addEventListener("submit", function (e) {
     e.preventDefault();
     alert("Existe item duplicado na movimentação. Remova ou altere o item repetido antes de salvar.");
     return false;
+  }
+
+  if (destinoTipo === "cliente") {
+    const marcados = Array.from(document.querySelectorAll("#tabela-lote .lote-check:checked"));
+    const linhas = Array.from(document.querySelectorAll("#tabela-itens tbody tr"))
+      .filter(tr => tr.querySelector(".codigo-input")?.value.trim());
+    const selecao = marcados.map(check => {
+      const tr = check.closest("tr");
+      return [tr.dataset.codigo, Number(tr.querySelector(".lote-qtd").value)];
+    });
+    const coincide = selecao.length === linhas.length && selecao.every(([codigo, quantidade]) =>
+      linhas.some(tr => tr.querySelector(".codigo-input").value.trim() === codigo &&
+        Number(tr.querySelector(".quantidade-input").value) === quantidade));
+    const usaLote = document.querySelector("#tabela-itens tbody").dataset.loteRetorno === "true";
+    if ((marcados.length || usaLote) && !coincide) {
+      e.preventDefault();
+      alert("A seleção marcada difere dos itens da devolução. Clique em Inserir Selecionados para atualizar e confira a lista final.");
+      return false;
+    }
+    const resumo = linhas.map(tr => {
+      const codigo = tr.querySelector(".codigo-input").value.trim();
+      const descricao = tr.querySelector(".descricao-select").selectedOptions[0]?.textContent || "";
+      return `${codigo} - ${descricao}: ${tr.querySelector(".quantidade-input").value}`;
+    }).join("\n");
+    if (!confirm(`Devolver ao cliente somente estes ${linhas.length} itens?\n\n${resumo}`)) {
+      e.preventDefault();
+      return false;
+    }
   }
 });
 
