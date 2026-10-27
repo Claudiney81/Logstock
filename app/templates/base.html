@@ -230,7 +230,7 @@
 
       /* Laranja da marca START nos controles da conta e dos temas. */
       #themeToggleIcon,
-      .logged-user-name > .bi-person-circle {
+      .user-avatar > .bi-person-fill {
         color: #ff8a00;
         font-size: 1.05rem;
         line-height: 1;
@@ -248,6 +248,19 @@
         outline: 2px solid #ff8a00;
         outline-offset: 3px;
       }
+
+      .user-avatar {
+        width: 19px;
+        height: 19px;
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        border: 1px solid #fff;
+        border-radius: 50%;
+        background: var(--ls-navbar);
+      }
+
+      .user-avatar > .bi-person-fill { font-size: .8rem; }
 
       .navbar-collapse > .nav-item,
       .navbar-collapse > li {
@@ -939,7 +952,7 @@
   </button>
 
   <span class="logged-user-name">
-    <i class="bi bi-person-circle" style="font-size:1rem;"></i>
+    <span class="user-avatar" aria-hidden="true"><i class="bi bi-person-fill"></i></span>
     {{ current_user.nome.split(' ')[0] }}
   </span>
 
