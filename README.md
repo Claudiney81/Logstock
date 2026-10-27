@@ -3,8 +3,13 @@
 ## Demonstração pública (branch homologacao)
 
 Esta branch permite navegação automática, sem formulário de login, com uma
-identidade de visitante separada dos usuários cadastrados. Use somente dados
-fictícios no banco da homologação antes de divulgar o endereço publicamente.
+identidade de visitante separada dos usuários cadastrados. No modo público,
+a aplicação ignora o banco operacional (`DATABASE_URL`), cria um banco SQLite
+novo e isolado a cada inicialização e preenche somente dados fictícios:
+materiais, estoques, técnicos, cliente, notas, OS, baixa, requisição e veículo.
+O banco anterior não é lido, copiado, apagado nem alterado. Dados e indicadores
+de exemplo são recriados quando o serviço reinicia. Nenhum usuário real é
+criado ou importado para a demonstração.
 O visitante pode consultar módulos e relatórios; gravações, exclusões,
 gerenciamento de contas e acesso a backups ficam bloqueados.
 

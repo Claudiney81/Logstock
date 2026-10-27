@@ -7,6 +7,7 @@ from app.models import Usuario, Tecnico, TipoServico, Item, Estoque, Empresa, Or
 
 def build_app(database_path):
     app = create_app({
+        'LOGISTOCK_DEMO_PUBLICO': False,
         'SQLALCHEMY_DATABASE_URI': 'sqlite:///' + str(database_path).replace('\\', '/'),
         'TESTING': True, 'SECRET_KEY': 'draft-tests-only',
         'SESSION_COOKIE_SECURE': False, 'MAIL_SUPPRESS_SEND': True,

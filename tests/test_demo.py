@@ -1,4 +1,7 @@
 import unittest
+import sqlite3
+from pathlib import Path
+from tempfile import TemporaryDirectory
 
 from flask import Flask
 from flask_login import LoginManager, current_user, login_required
@@ -81,6 +84,29 @@ class PublicDemoTests(unittest.TestCase):
                 self.assertEqual(client.get(str(rule)).status_code, 200, str(rule))
         self.assertEqual(client.get('/auth/login').status_code, 302)
         self.assertEqual(client.get('/backup/download').status_code, 403)
+
+    def test_demo_ignores_existing_database_and_seeds_only_synthetic_data(self):
+        from app import create_app
+        from app.models import Empresa, Item, Tecnico, NotaFiscalEntrada
+        with TemporaryDirectory() as directory:
+            original = Path(directory) / 'company.db'
+            with sqlite3.connect(original) as connection:
+                connection.execute('CREATE TABLE private_data (name TEXT)')
+                connection.execute("INSERT INTO private_data VALUES ('PRIVATE SENTINEL')")
+            connection.close()
+            original_bytes = original.read_bytes()
+            app = create_app({'TESTING': True, 'SECRET_KEY': 'test',
+                              'SQLALCHEMY_DATABASE_URI': 'sqlite:///' + original.as_posix(),
+                              'LOGISTOCK_DEMO_PUBLICO': True})
+            with app.app_context():
+                self.assertNotEqual(Path(db.engine.url.database), original)
+                self.assertEqual(Usuario.query.count(), 0)
+                self.assertEqual(Item.query.count(), 6)
+                self.assertEqual(Tecnico.query.count(), 3)
+                self.assertEqual(NotaFiscalEntrada.query.count(), 3)
+                self.assertTrue(all('example.invalid' in row.email for row in Empresa.query.all()))
+            self.assertEqual(original.read_bytes(), original_bytes)
+            self.assertNotIn('PRIVATE SENTINEL', app.test_client().get('/').text)
 
 
 if __name__ == '__main__':

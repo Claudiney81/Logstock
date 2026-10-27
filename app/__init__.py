@@ -159,6 +159,8 @@ def create_app(test_config=None):
     if test_config:
         app.config.update(test_config)
 
+    from app.demo_data import isolate_demo_database, seed_demo_data
+    isolate_demo_database(app)
     db.init_app(app)
     mail.init_app(app)
 
@@ -167,7 +169,10 @@ def create_app(test_config=None):
     with app.app_context():
         db.create_all()
         _ensure_runtime_schema_columns()
-        _bootstrap_admin_user()
+        if app.config.get("LOGISTOCK_DEMO_PUBLICO"):
+            seed_demo_data()
+        else:
+            _bootstrap_admin_user()
 
     Migrate(app, db)
 
