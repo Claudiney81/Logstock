@@ -1,0 +1,49 @@
+/* Dashboard only: preserve the visual identity of the other modules. */
+.app-dashboard {
+  font-family: "Segoe UI", Arial, sans-serif;
+  max-width: 1600px;
+  margin-inline: auto;
+  padding: 0 24px 64px;
+}
+.app-dashboard h1, .app-dashboard h2, .app-dashboard p,
+.app-dashboard .table, .app-dashboard .btn, .app-dashboard a {
+  font-family: inherit;
+}
+.app-dashboard .app-page-header { margin-bottom: 24px; }
+.app-dashboard .app-page-header h1 { font-size: 1.8rem; letter-spacing: -.04em; font-weight: 700; }
+.app-dashboard .app-page-kicker { letter-spacing: .1em; font-size: .7rem; font-weight: 700; }
+.app-dashboard .dashboard-subtitle { color: var(--ls-muted); font-size: .9rem; margin: 8px 0 0; }
+.app-dashboard .app-kpi-card { position: relative; min-height: 150px; padding: 20px; gap: 10px; box-shadow: none; transition: border-color .15s, box-shadow .15s; }
+.app-dashboard .app-kpi-card strong { font-size: 2rem; line-height: 1.1; letter-spacing: -.04em; }
+.app-dashboard .app-kpi-label { font-size: .8rem; font-weight: 500; line-height: 1.4; min-height: 2.8em; }
+.app-dashboard .app-kpi-card:hover { border-color: #ff8a00; box-shadow: 0 4px 16px rgba(15,23,42,.06); }
+.app-dashboard .dashboard-attention { border-top: 3px solid #ff8a00; }
+.app-dashboard .dashboard-attention strong { color: #a95000; }
+.app-dashboard .app-panel { box-shadow: 0 3px 14px rgba(15,23,42,.035); }
+.app-dashboard .app-panel-header { padding: 18px 20px; }
+.app-dashboard .app-panel-header h2 { font-size: .95rem; font-weight: 650; }
+.app-dashboard .app-panel-header p { font-size: .8rem; margin-top: 5px; }
+.app-dashboard .dashboard-shortcuts .app-panel { display: flex; align-items: center; }
+.app-dashboard .dashboard-shortcuts .app-panel-header { flex: 0 0 190px; border-bottom: 0; }
+.app-dashboard .dashboard-shortcuts .app-panel-header p { display: none; }
+.app-dashboard .app-shortcut-list { display: grid; grid-template-columns: repeat(5, minmax(0,1fr)); gap: 8px; padding: 14px; flex: 1; }
+.app-dashboard .app-shortcut-list a { padding: 12px 10px; font-size: .8rem; font-weight: 550; line-height: 1.4; }
+.app-dashboard .app-shortcut-list a:hover { border-color: #ff8a00; }
+.app-dashboard .app-shortcut-list .bi { color: #ff8a00; }
+.app-dashboard .app-table th { font-size: .68rem; font-weight: 650; letter-spacing: .045em; padding: 12px 20px; white-space: nowrap; }
+.app-dashboard .app-table td { font-size: .82rem; padding: 14px 20px; }
+.app-dashboard .dashboard-status-pending { color: #92400e; background: #fff4d6; border-color: #fde3a3; }
+html[data-theme="night"] .app-dashboard .dashboard-attention strong { color: #b45309; }
+@media (max-width: 1199px) {
+  .app-dashboard .dashboard-shortcuts .app-panel { display: block; }
+  .app-dashboard .dashboard-shortcuts .app-panel-header { padding-bottom: 0; }
+}
+@media (max-width: 767px) {
+  .app-dashboard { padding-inline: 12px; }
+  .app-dashboard .app-shortcut-list { grid-template-columns: repeat(2,minmax(0,1fr)); }
+  .app-dashboard .app-table td, .app-dashboard .app-table th { padding: 12px; }
+  .app-dashboard .app-page-header h1 { font-size: 1.5rem; }
+}
+@media (prefers-reduced-motion: reduce) {
+  .app-dashboard .app-kpi-card { transition: none; }
+}
