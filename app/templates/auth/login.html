@@ -2,21 +2,30 @@
 
 {% block content %}
 
-<div class="d-flex justify-content-center align-items-center vh-100 bg-light">
+<style>
+  .login-panel {
+    width: 100%;
+    max-width: 420px;
+    border: 1px solid #e2e8f0;
+    border-radius: 12px;
+    background: #fff;
+    box-shadow: 0 8px 28px rgba(15, 23, 42, 0.06);
+  }
+  .login-panel h1 { color: #1e293b; font-size: 1.5rem; font-weight: 600; }
+  .login-panel .form-label { color: #334155; font-size: .875rem; }
+  .login-panel .form-control { min-height: 44px; font-size: .9375rem; }
+  .login-panel .btn { min-height: 44px; }
+  .login-panel a { font-size: .875rem; }
+</style>
+
+<div class="d-flex justify-content-center align-items-center bg-light px-3 py-5" style="min-height: calc(100dvh - 150px);">
   <div
-    class="card shadow-lg rounded-4 border-0"
-    style="width: 100%; max-width: 420px;"
+    class="card login-panel"
   >
-    <div class="card-body p-4">
+    <div class="card-body p-4 p-sm-5">
 
       <div class="text-center mb-4">
-        <h3 class="fw-bold text-primary">
-          🔐 Acesso ao Sistema
-        </h3>
-
-        <p class="text-muted mb-0" style="font-size: 0.95rem;">
-          Informe seus dados para entrar
-        </p>
+        <h1 class="mb-0">Login</h1>
       </div>
 
       <!-- Alertas -->
@@ -64,7 +73,7 @@
 
         <div class="mb-3">
           <label for="email" class="form-label fw-semibold">
-            Email
+            E-mail
           </label>
 
           <input
@@ -102,6 +111,8 @@
               type="button"
               class="btn btn-outline-secondary"
               id="btnMostrarSenha"
+              aria-label="Mostrar senha"
+              aria-pressed="false"
             >
               <i class="bi bi-eye" id="iconeSenha"></i>
             </button>
@@ -146,9 +157,13 @@ document.addEventListener('DOMContentLoaded', function () {
     if (senha.type === 'password') {
       senha.type = 'text';
       icone.className = 'bi bi-eye-slash';
+      btn.setAttribute('aria-label', 'Ocultar senha');
+      btn.setAttribute('aria-pressed', 'true');
     } else {
       senha.type = 'password';
       icone.className = 'bi bi-eye';
+      btn.setAttribute('aria-label', 'Mostrar senha');
+      btn.setAttribute('aria-pressed', 'false');
     }
 
   });
