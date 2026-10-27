@@ -262,6 +262,26 @@
 
       .user-avatar > .bi-person-fill { font-size: .8rem; }
 
+      .logged-user-box .logout-link {
+        color: #fff;
+        border-color: #fff;
+        background-color: var(--ls-navbar);
+      }
+
+      .logged-user-box .logout-link:hover,
+      .logged-user-box .logout-link:focus,
+      .logged-user-box .logout-link:active {
+        color: #ff8a00;
+        border-color: #fff;
+        background-color: var(--ls-navbar);
+      }
+
+      .logged-user-box .logout-link:focus-visible {
+        outline: 2px solid #ff8a00;
+        outline-offset: 3px;
+        box-shadow: none;
+      }
+
       .navbar-collapse > .nav-item,
       .navbar-collapse > li {
         list-style: none;
@@ -958,7 +978,7 @@
 
   <a
     href="{{ url_for('auth.logout') }}"
-    class="btn btn-outline-light btn-sm py-0 px-2"
+    class="btn btn-outline-light btn-sm py-0 px-2 logout-link"
     style="height:26px; font-size:0.78rem;"
   >
     <i class="bi bi-box-arrow-right"></i>
