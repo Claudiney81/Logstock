@@ -1,3 +1,4 @@
+from app.utils.datas import formatar_horario
 # app/utils/mailer.py
 
 from io import BytesIO
@@ -1005,7 +1006,7 @@ def _build_movimentacao_pdf(movimentacao) -> bytes:
     elems.append(Spacer(1, 16))
 
     data_hora = (
-        movimentacao.data_hora.strftime("%d/%m/%Y %H:%M")
+        formatar_horario(movimentacao.data_hora)
         if movimentacao.data_hora else "-"
     )
 
@@ -1017,6 +1018,17 @@ def _build_movimentacao_pdf(movimentacao) -> bytes:
          "Observação:",
          movimentacao.observacao or "-"],
     ]
+
+    if movimentacao.destino_tipo == 'cliente':
+        from app.models import Empresa
+        from xml.sax.saxutils import escape
+        cliente_retorno = Empresa.query.get(movimentacao.destino_id)
+        nome_cliente = cliente_retorno.razao_social if cliente_retorno else '-'
+        numero_os = movimentacao.ordem_servico.numero_os if movimentacao.ordem_servico else '-'
+        dados.append([
+            'Cliente de retorno:', Paragraph(escape(nome_cliente), styles['Normal']),
+            'O.S.:', Paragraph(escape(numero_os), styles['Normal']),
+        ])
 
     titulo_dados = Table(
         [["DADOS DA MOVIMENTAÇÃO"]],

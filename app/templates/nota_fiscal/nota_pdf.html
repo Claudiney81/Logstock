@@ -214,11 +214,12 @@ body {
   <div class="card-title">Dados da Nota Fiscal</div>
 
   <table class="dados-nota">
+    <tr><td class="label">Recebimento:</td><td class="valor" colspan="3">{{ nota.data_recebimento.strftime('%d/%m/%Y') if nota.data_recebimento else 'Não informado' }}</td></tr>
     <tr>
       <td class="label">Número NF:</td>
       <td class="valor">{{ nota.numero_nf if nota.numero_nf else 'SEM NÚMERO' }}</td>
       <td class="label">Data Registro:</td>
-      <td class="valor">{{ nota.data_hora.strftime('%d/%m/%Y %H:%M') if nota.data_hora else '—' }}</td>
+      <td class="valor">{{ nota.data_hora|horario_local('%d/%m/%Y %H:%M') if nota.data_hora else '—' }}</td>
     </tr>
 
     <tr>
@@ -286,8 +287,8 @@ body {
           <td class="center">{{ it.categoria or 'MATERIAL' }}</td>
           <td class="center">{{ it.unidade or '—' }}</td>
           <td class="num">{{ q|int }}</td>
-          <td class="num">R$ {{ '%.2f'|format(vu)|replace('.', ',') }}</td>
-          <td class="num">R$ {{ '%.2f'|format(vt)|replace('.', ',') }}</td>
+          <td class="num">{{ vu|brl }}</td>
+          <td class="num">{{ vt|brl }}</td>
         </tr>
       {% endfor %}
     </tbody>
@@ -298,7 +299,7 @@ body {
   <tr>
     <td class="total-label">TOTAL DA NOTA:</td>
     <td class="total-valor">
-      R$ {{ '%.2f'|format(ns.total_geral|float)|replace('.', ',') }}
+      {{ (ns.total_geral|float)|brl }}
     </td>
   </tr>
 </table>

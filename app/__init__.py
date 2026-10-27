@@ -36,6 +36,8 @@ from app.cli import (
     auditar_preparar_empresa,
     auditar_backup_drive,
     backup_drive,
+    auditar_limpeza_operacional,
+    limpar_dados_operacionais,
 )
 
 
@@ -68,6 +70,9 @@ def _ensure_runtime_schema_columns():
     inspector = inspect(db.engine)
 
     required_columns = {
+        "notas_fiscais_entrada": {
+            "data_recebimento": "DATE",
+        },
         "estoque": {
             "valor_unitario": "FLOAT",
             "condicao_material": "VARCHAR(30)",
@@ -127,7 +132,8 @@ def _import_bp(
     )
 
 
-def create_app():
+def create_app(test_config=None):
+    from app.drafts import init_drafts
     app = Flask(__name__, instance_relative_config=True)
 
     if os.getenv("RENDER"):
@@ -145,6 +151,13 @@ def create_app():
     )
 
     app.config.from_pyfile(config_path)
+    from app.utils.datas import formatar_horario, hoje_local
+    app.jinja_env.filters['horario_local'] = formatar_horario
+    from app.utils.ordenacao import cliente_primeiro
+    app.jinja_env.filters['cliente_primeiro'] = cliente_primeiro
+    app.jinja_env.globals['hoje_local'] = hoje_local
+    if test_config:
+        app.config.update(test_config)
 
     db.init_app(app)
     mail.init_app(app)
@@ -169,6 +182,54 @@ def create_app():
             return Usuario.query.get(int(user_id))
         except Exception:
             return None
+
+    @app.before_request
+    def bloquear_tecnico_para_admin():
+        if not current_user.is_authenticated:
+            return None
+
+        if getattr(current_user, "perfil", None) != "tecnico":
+            return None
+
+        allowed_endpoints = {
+            "home.home",
+            "tecnico_mobile.login",
+            "tecnico_mobile.logout",
+            "tecnico_mobile.home",
+            "tecnico_mobile.alterar_senha",
+            "baixa_tecnico.formulario_baixa",
+            "baixa_tecnico.formulario_mobile_dedicado",
+            "baixa_tecnico.api_os_por_cliente",
+            "baixa_tecnico.api_itens",
+            "baixa_tecnico.registrar",
+            "baixa_tecnico.pendentes_mobile",
+            "baixa_tecnico.detalhe_pendente_mobile",
+            "baixa_tecnico.aprovar_mobile",
+            "baixa_tecnico.recusar_mobile",
+            "baixa_tecnico.portal_mobile",
+            "baixa_tecnico.login_aprovador_mobile",
+            "tecnico_mobile.login",
+            "auth.login",
+            "auth.logout",
+            "auth.login_tecnico",
+            "auth_tecnico.login_tecnico",
+            "requisicao_mobile.login",
+            "requisicao_mobile.logout",
+            "requisicao_mobile.nova",
+            "requisicao_mobile.api_itens_empresa_padrao",
+            "requisicao_mobile.api_itens_por_estoque",
+            "static",
+        }
+
+        endpoint = request.endpoint or ""
+
+        if endpoint.startswith("static"):
+            return None
+
+        if endpoint in allowed_endpoints:
+            return None
+
+        return redirect(url_for("tecnico_mobile.home"))
 
     estoque_bp = _import_bp("app.routes.estoque")
     nota_fiscal_bp = _import_bp("app.routes.nota_fiscal")
@@ -335,6 +396,8 @@ def create_app():
     app.cli.add_command(auditar_preparar_empresa)
     app.cli.add_command(auditar_backup_drive)
     app.cli.add_command(backup_drive)
+    app.cli.add_command(auditar_limpeza_operacional)
+    app.cli.add_command(limpar_dados_operacionais)
 
     @app.context_processor
     def inject_requisicoes_tecnicos_pendentes():
@@ -445,6 +508,7 @@ def create_app():
                 session["tecnico_id"] = tecnico.id
                 session["tecnico_nome"] = tecnico.nome
                 session["perfil"] = usuario.perfil
+                session["perfil_mobile"] = "tecnico"
 
                 return redirect(
                     url_for("baixa_tecnico.formulario_baixa")
@@ -479,4 +543,5 @@ def create_app():
         response.headers.setdefault("Referrer-Policy", "strict-origin-when-cross-origin")
         return response
 
+    init_drafts(app)
     return app

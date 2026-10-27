@@ -142,7 +142,26 @@
     background: #f8fafc;
     border: 1px dashed #cbd5e1;
     border-radius: 10px;
-    padding: 9px 10px;
+    padding: 12px;
+  }
+
+  .nf-import-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 12px;
+    flex-wrap: wrap;
+  }
+
+  .nf-import-title {
+    color: #073763;
+    font-weight: 800;
+  }
+
+  .nf-import-description {
+    color: #64748b;
+    font-size: .8rem;
+    margin-top: 2px;
   }
 
   .nf-quick-grid {
@@ -356,6 +375,11 @@
                   >
                 </div>
 
+                <div class="col-md-3">
+                  <label class="nf-label" for="data_recebimento">Data de recebimento</label>
+                  <input type="date" id="data_recebimento" name="data_recebimento" class="form-control"
+                    value="{{ hoje_local().isoformat() }}" max="{{ hoje_local().isoformat() }}" required>
+                </div>
                 <div class="col-12 nf-field-fornecedor">
                   <label class="nf-label">Fornecedor</label>
                   <select name="fornecedor" class="form-select" required>
@@ -446,7 +470,7 @@
                     name="observacao"
                     class="form-control"
                     rows="3"
-                    placeholder="Informe observações relevantes para esta entrada, se houver."
+                    placeholder="Observação (opcional)"
                   >N/D</textarea>
                 </div>
               </div>
@@ -471,21 +495,25 @@
                       <th style="width: 12%;">Ação</th>
                     </tr>
                   </thead>
-                  <tbody id="tabela-itens"></tbody>
+                  <tbody id="tabela-itens" data-draft-region="tabela-itens"></tbody>
                 </table>
               </div>
 
               <div class="nf-actions-bar">
-                <button
-                  type="reset"
-                  class="btn btn-outline-secondary"
-                  onclick="limparItens()"
-                >
-                  <i class="bi bi-eraser me-1"></i>
-                  Limpar
-                </button>
+                <div id="totalNotaFiscal" class="d-flex align-items-center fw-semibold">
+                  Total da Nota: R$ 0,00
+                </div>
 
                 <div class="d-flex gap-2 justify-content-end">
+                  <button
+                    type="button"
+                    class="btn btn-outline-secondary"
+                    onclick="limparItens()"
+                  >
+                    <i class="bi bi-eraser me-1"></i>
+                    Limpar
+                  </button>
+
                   <button type="submit" id="btnSalvarNotaFiscal" class="btn btn-nf-success px-4">
                     <i class="bi bi-check-circle me-1"></i>
                     Salvar Nota Fiscal
@@ -554,23 +582,34 @@
               </div>
 
               <div class="nf-import-box mt-3">
-                <div class="row align-items-center g-2">
-                  <div class="col-md-4">
-                    <div class="fw-bold text-dark">
+                <div class="nf-import-header">
+                  <div>
+                    <div class="nf-import-title">
                       <i class="bi bi-file-earmark-excel me-1"></i>
                       Importar Excel
                     </div>
+                    <div class="nf-import-description">
+                      Confira os itens antes de inserir.
+                    </div>
                   </div>
 
-                  <div class="col-md-8">
+                  <div class="d-flex align-items-center gap-2 flex-wrap">
+                    <label for="importarExcel" class="btn btn-outline-success btn-sm mb-0">
+                      <i class="bi bi-paperclip me-1"></i>
+                      Anexar planilha
+                    </label>
                     <input
                       type="file"
                       id="importarExcel"
-                      accept=".xlsx"
-                      class="form-control"
+                      accept=".xlsx,.xls"
+                      class="visually-hidden"
                     >
+                    <span id="nomeArquivoExcel" class="text-muted small">
+                      Nenhum arquivo selecionado
+                    </span>
                   </div>
                 </div>
+                <div id="itensImportadosPendentes" class="mt-3" hidden></div>
               </div>
 
               <hr class="my-3">
@@ -665,7 +704,7 @@
 </div>
 
 
-<script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
+<script src="{{ url_for('static', filename='vendor/xlsx.full.min.js', v='0.18.5') }}"></script>
 
 <link
   href="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/css/select2.min.css"
@@ -716,11 +755,57 @@
     border: 2px solid #0d6efd;
     box-shadow: 0 0 6px rgba(13,110,253,.25);
   }
+  .nf-import-preview {
+    border: 1px solid #b7d7c1;
+    border-radius: 8px;
+    background: #fff;
+    overflow: hidden;
+  }
+
+  .nf-import-preview table {
+    font-size: .82rem;
+  }
+
+  .nf-import-preview-toolbar {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 10px;
+    flex-wrap: wrap;
+    padding: 10px;
+    background: #eef8f1;
+    border-bottom: 1px solid #cfe5d5;
+  }
+
+  .nf-import-preview .table-responsive {
+    max-height: 320px;
+  }
+
+  .nf-import-preview thead th {
+    position: sticky;
+    top: 0;
+    z-index: 1;
+    background: #f8fafc;
+    white-space: nowrap;
+  }
+
+  .nf-import-row:not(.nf-import-row-selected) {
+    color: #94a3b8;
+    background: #f8fafc;
+  }
+
+  .nf-import-check {
+    width: 1.05rem;
+    height: 1.05rem;
+    cursor: pointer;
+  }
+
 </style>
 
 <script>
 
 let itensNotaLote = [];
+let itensImportadosPendentes = [];
 
 function normalizarTextoNF(valor) {
   return String(valor || "")
@@ -743,14 +828,66 @@ function textoItemNF(item) {
   return normalizarTextoNF(`${item.codigo || ""} ${item.descricao || ""}`);
 }
 
+function parseNumeroBRNF(valor) {
+  const texto = String(valor ?? "0").replace("R$", "").trim();
+
+  if (!texto) {
+    return 0;
+  }
+
+  if (texto.includes(",")) {
+    return parseFloat(texto.replace(/\./g, "").replace(",", "."));
+  }
+
+  return parseFloat(texto);
+}
+
 function formatarValorNF(valor) {
-  const numero = parseFloat(String(valor || "0").replace(",", "."));
+  const numero = parseNumeroBRNF(valor);
 
   if (isNaN(numero)) {
     return "0.00";
   }
 
   return numero.toFixed(2);
+}
+
+function formatarReal(valor) {
+  const numero = parseNumeroBRNF(valor);
+
+  if (isNaN(numero)) {
+    return "R$ 0,00";
+  }
+
+  return numero.toLocaleString("pt-BR", {
+    style: "currency",
+    currency: "BRL",
+  });
+}
+
+function atualizarTotalNotaFiscal() {
+  const tabela = document.getElementById("tabela-itens");
+  let total = 0;
+
+  if (tabela) {
+    tabela.querySelectorAll("tr").forEach((tr) => {
+      const valorInput = tr.querySelector('input[name="valor[]"]');
+      const quantidadeInput = tr.querySelector('input[name="quantidade[]"]');
+
+      const valor = parseFloat(String(valorInput?.value || "0").replace(",", "."));
+      const quantidade = parseFloat(String(quantidadeInput?.value || "0").replace(",", "."));
+
+      if (!isNaN(valor) && !isNaN(quantidade)) {
+        total += valor * quantidade;
+      }
+    });
+  }
+
+  const totalEl = document.getElementById("totalNotaFiscal");
+
+  if (totalEl) {
+    totalEl.textContent = `Total da Nota: ${formatarReal(total)}`;
+  }
 }
 
 function itemJaNaNota(codigo) {
@@ -1133,7 +1270,8 @@ function adicionarItem() {
   let valor =
     document.getElementById("valor").value.trim();
 
-  valor = valor.replace(",", ".");
+  const cadastrado = itensNotaLote.find(item => String(item.codigo) === codigo);
+  valor = formatarValorNF(valor);
 
   if (!codigo || !descricao || !quantidade) {
     alert("Selecione um item e informe a quantidade.");
@@ -1148,30 +1286,30 @@ function adicionarItem() {
 
   row.innerHTML = `
     <td>
-      <input type="hidden" name="codigo[]" value="${codigo}">
-      ${codigo}
+      <input type="hidden" name="codigo[]" value="${escaparHtmlNF(codigo)}">
+      ${escaparHtmlNF(codigo)}
     </td>
 
     <td>
-      <input type="hidden" name="descricao[]" value="${descricao}">
-      ${descricao}
+      <input type="hidden" name="descricao[]" value="${escaparHtmlNF(descricao)}">
+      ${escaparHtmlNF(descricao)}
     </td>
 
     <td>
-      <input type="hidden" name="quantidade[]" value="${quantidade}">
-      ${quantidade}
+      <input type="number" name="quantidade[]" value="${escaparHtmlNF(quantidade)}"
+             class="form-control form-control-sm nf-quantidade-final" min="1" step="1" required
+             aria-label="Quantidade de ${escaparHtmlNF(codigo)}">
     </td>
 
     <td>
-      <input type="hidden" name="valor[]" value="${valor}">
-      R$ ${valor.replace(".", ",")}
+      <input type="number" name="valor[]" value="${valor}" class="form-control form-control-sm" min="0" step="0.01" required aria-label="Valor unitario">
     </td>
 
     <td>
       <button
         type="button"
         class="btn btn-sm btn-danger"
-        onclick="this.closest('tr').remove()"
+        onclick="removerItem(this)"
       >
         Excluir
       </button>
@@ -1186,12 +1324,22 @@ function adicionarItem() {
 
   selectDescricao.selectedIndex = 0;
 
+  atualizarTotalNotaFiscal();
 }
 
 function limparItens() {
   document.getElementById("tabela-itens").innerHTML = "";
+  atualizarTotalNotaFiscal();
 }
 
+function removerItem(button) {
+  const row = button.closest("tr");
+
+  if (row) {
+    row.remove();
+    atualizarTotalNotaFiscal();
+  }
+}
 
 function validarItens() {
 
@@ -1206,90 +1354,354 @@ function validarItens() {
 
 }
 
+function prepararEdicaoItensNF() {
+  document.querySelectorAll('#tabela-itens tr').forEach(tr => {
+    const codigo = tr.querySelector('input[name="codigo[]"]')?.value || '';
+    const quantidade = tr.querySelector('input[name="quantidade[]"]');
+    if (quantidade) {
+      quantidade.type = 'number';
+      quantidade.min = '1';
+      quantidade.step = '1';
+      quantidade.required = true;
+      quantidade.className = 'form-control form-control-sm nf-quantidade-final';
+      quantidade.setAttribute('aria-label', `Quantidade de ${codigo}`);
+      quantidade.parentElement.replaceChildren(quantidade);
+    }
+    const valor = tr.querySelector('input[name="valor[]"]');
+    if (valor) {
+      valor.type = 'number';
+      valor.min = '0';
+      valor.step = '0.01';
+      valor.required = true;
+      valor.className = 'form-control form-control-sm';
+      valor.setAttribute('aria-label', `Valor unitario de ${codigo}`);
+      valor.parentElement.replaceChildren(valor);
+    }
+  });
+  atualizarTotalNotaFiscal();
+}
 
-document
-  .getElementById("importarExcel")
-  .addEventListener("change", function (e) {
+document.getElementById('tabela-itens')?.addEventListener('input', atualizarTotalNotaFiscal);
+document.getElementById('formNotaFiscal')?.addEventListener('draft:restored', prepararEdicaoItensNF);
+document.addEventListener('DOMContentLoaded', () => {
+  prepararEdicaoItensNF();
+});
 
-    const reader = new FileReader();
 
-    reader.onload = function (e) {
+function normalizarCabecalhoExcel(valor) {
+  return normalizarTextoNF(valor)
+    .replace(/[^a-z0-9]+/g, "_")
+    .replace(/^_|_$/g, "");
+}
 
-      const data = new Uint8Array(e.target.result);
+function valorColunaExcel(linha, nomes, valorPadrao = "") {
+  const colunas = Object.keys(linha);
 
+  for (const nome of nomes) {
+    const coluna = colunas.find((item) => (
+      normalizarCabecalhoExcel(item) === normalizarCabecalhoExcel(nome)
+    ));
+
+    if (coluna && linha[coluna] !== "" && linha[coluna] !== null && linha[coluna] !== undefined) {
+      return linha[coluna];
+    }
+  }
+
+  return valorPadrao;
+}
+
+function numeroExcel(valor, valorPadrao = 0) {
+  if (typeof valor === "number") {
+    return Number.isFinite(valor) ? valor : valorPadrao;
+  }
+
+  let texto = String(valor ?? "")
+    .replace(/R\$/gi, "")
+    .replace(/\s/g, "")
+    .trim();
+
+  if (!texto) {
+    return valorPadrao;
+  }
+
+  if (texto.includes(",")) {
+    texto = texto.replace(/\./g, "").replace(",", ".");
+  }
+
+  let numero = Number(texto);
+
+  if (!Number.isFinite(numero)) {
+    const numeroComUnidade = texto.match(/^[+-]?\d+(?:\.\d+)?/);
+    numero = numeroComUnidade ? Number(numeroComUnidade[0]) : valorPadrao;
+  }
+
+  return Number.isFinite(numero) ? numero : valorPadrao;
+}
+
+function normalizarDescricaoImportacao(valor) {
+  return normalizarTextoNF(valor)
+    .replace(/[^a-z0-9]+/g, " ")
+    .trim();
+}
+
+function encontrarItemImportado(descricao) {
+  const descricaoNormalizada = normalizarDescricaoImportacao(descricao);
+
+  if (!descricaoNormalizada) {
+    return null;
+  }
+
+  return itensNotaLote.find((item) => (
+    normalizarDescricaoImportacao(item.descricao) === descricaoNormalizada
+  )) || null;
+}
+
+function gerarCodigoImportado(descricao) {
+  const texto = normalizarDescricaoImportacao(descricao);
+  let hash = 0;
+
+  for (let indice = 0; indice < texto.length; indice += 1) {
+    hash = ((hash << 5) - hash) + texto.charCodeAt(indice);
+    hash |= 0;
+  }
+
+  return `IMP-${Math.abs(hash).toString(36).toUpperCase()}`;
+}
+
+function renderizarImportadosPendentes() {
+  const container = document.getElementById("itensImportadosPendentes");
+
+  if (!container) {
+    return;
+  }
+
+  if (!itensImportadosPendentes.length) {
+    container.hidden = true;
+    container.innerHTML = "";
+    return;
+  }
+
+  const totalSelecionados = itensImportadosPendentes.filter((item) => item.selecionado !== false).length;
+  const todosSelecionados = totalSelecionados === itensImportadosPendentes.length;
+
+  container.hidden = false;
+  container.innerHTML = `
+    <div class="nf-import-preview">
+      <div class="nf-import-preview-toolbar">
+        <div>
+          <strong>${itensImportadosPendentes.length} item(ns) importado(s)</strong>
+          <span class="text-muted small ms-1">— ${totalSelecionados} selecionado(s)</span>
+        </div>
+        <div class="d-flex gap-2 flex-wrap">
+          <button type="button" class="btn btn-sm btn-outline-success" onclick="marcarTodosImportados(true)">
+            Marcar todos
+          </button>
+          <button type="button" class="btn btn-sm btn-outline-secondary" onclick="marcarTodosImportados(false)">
+            Desmarcar todos
+          </button>
+          <button type="button" class="btn btn-sm btn-success" onclick="adicionarImportadosSelecionados()" ${totalSelecionados ? "" : "disabled"}>
+            <i class="bi bi-plus-circle me-1"></i>Adicionar selecionados
+          </button>
+        </div>
+      </div>
+      <div class="table-responsive">
+        <table class="table table-sm table-bordered mb-0 align-middle">
+          <thead>
+            <tr>
+              <th class="text-center" style="width:42px">
+                <input type="checkbox" class="form-check-input nf-import-check" title="Selecionar todos" onchange="marcarTodosImportados(this.checked)" ${todosSelecionados ? "checked" : ""}>
+              </th>
+              <th>Código</th>
+              <th>Descrição</th>
+              <th>Qtd.</th>
+              <th>Valor</th>
+            </tr>
+          </thead>
+          <tbody>
+            ${itensImportadosPendentes.map((item, indice) => `
+              <tr class="nf-import-row ${item.selecionado !== false ? "nf-import-row-selected" : ""}">
+                <td class="text-center">
+                  <input type="checkbox" class="form-check-input nf-import-check" aria-label="Selecionar item" onchange="alternarImportadoPendente(${indice}, this.checked)" ${item.selecionado !== false ? "checked" : ""}>
+                </td>
+                <td>${escaparHtmlNF(item.codigo)}</td>
+                <td>${escaparHtmlNF(item.descricao)}</td>
+                <td>${escaparHtmlNF(item.quantidade)}</td>
+                <td><input type="number" class="form-control form-control-sm" min="0" step="0.01"
+                  value="${escaparHtmlNF(item.valor)}" aria-label="Valor unitario"
+                  oninput="itensImportadosPendentes[${indice}].valor = this.value"></td>
+              </tr>
+            `).join("")}
+          </tbody>
+        </table>
+      </div>
+    </div>
+  `;
+}
+
+function alternarImportadoPendente(indice, selecionado) {
+  if (itensImportadosPendentes[indice]) {
+    itensImportadosPendentes[indice].selecionado = selecionado;
+  }
+  renderizarImportadosPendentes();
+}
+
+function marcarTodosImportados(selecionado) {
+  itensImportadosPendentes.forEach((item) => {
+    item.selecionado = selecionado;
+  });
+  renderizarImportadosPendentes();
+}
+
+function adicionarImportadosSelecionados() {
+  const itensParaAdicionar = itensImportadosPendentes.filter((item) => item.selecionado !== false);
+
+  if (!itensParaAdicionar.length) {
+    alert("Marque ao menos um item para adicionar à nota.");
+    return;
+  }
+
+  let adicionados = 0;
+
+  itensParaAdicionar.forEach((item) => {
+    if (!itemJaNaNota(item.codigo)) {
+      adicionarItemImportado(item.codigo, item.descricao, item.quantidade, item.valor);
+      adicionados += 1;
+    }
+  });
+
+  itensImportadosPendentes = itensImportadosPendentes.filter((item) => item.selecionado === false);
+  renderizarImportadosPendentes();
+
+  if (adicionados) {
+    document.querySelector(".nf-itens-card")?.scrollIntoView({
+      behavior: "smooth",
+      block: "center"
+    });
+  }
+}
+
+document.getElementById("importarExcel")?.addEventListener("change", function (e) {
+  const arquivo = e.target.files?.[0];
+  const nomeArquivo = document.getElementById("nomeArquivoExcel");
+
+  if (!arquivo) {
+    return;
+  }
+
+  if (typeof XLSX === "undefined") {
+    alert("O leitor de Excel não carregou. Atualize a página e tente novamente.");
+    e.target.value = "";
+    return;
+  }
+
+  if (nomeArquivo) {
+    nomeArquivo.textContent = arquivo.name;
+  }
+
+  const reader = new FileReader();
+
+  reader.onload = function (evento) {
+    try {
+      const data = new Uint8Array(evento.target.result);
       const workbook = XLSX.read(data, { type: "array" });
+      const primeiraAba = workbook.SheetNames[0];
 
-      const sheet = workbook.Sheets[workbook.SheetNames[0]];
+      if (!primeiraAba) {
+        throw new Error("A planilha não possui abas.");
+      }
 
-      const rows = XLSX.utils.sheet_to_json(sheet, {
+      const matriz = XLSX.utils.sheet_to_json(workbook.Sheets[primeiraAba], {
+        header: 1,
         defval: ""
       });
-
-      console.log("📊 Dados do Excel:", rows);
-
-      rows.forEach((row, index) => {
-
-        let codigo = (row["codigo"] || row["Código"] || "").toString().trim();
-
-        let descricao = (row["descricao"] || row["Descrição"] || "").toString().trim();
-
-        let quantidade = row["quantidade"] || row["Quantidade"];
-
-        let valor = row["valor_unitario"] || row["Valor Unitário"] || row["valor"];
-
-        if (codigo === "") codigo = row["codigo"];
-
-        if (descricao === "") descricao = row["descricao"];
-
-        if (!quantidade) quantidade = row["quantidade"];
-
-        if (!valor) valor = row["valor"];
-
-        if (!codigo) {
-          console.warn(`Linha ${index + 2} ignorada: código vazio`, row);
-          return;
-        }
-
-        quantidade = parseFloat(quantidade);
-
-        if (isNaN(quantidade) || quantidade <= 0) {
-          console.warn(`Linha ${index + 2} ignorada: quantidade inválida`);
-          return;
-        }
-
-        valor = (valor || "0").toString();
-
-        valor = valor.replace("R$", "").trim();
-
-        valor = valor.replace(/\./g, "").replace(",", ".");
-
-        valor = parseFloat(valor);
-
-        if (isNaN(valor)) valor = 0;
-
-        adicionarItemImportado(
-          String(codigo),
-          descricao,
-          String(parseInt(quantidade)),
-          valor.toFixed(2)
+      const indiceCabecalho = matriz.findIndex((linha) => {
+        const cabecalhos = linha.map(normalizarCabecalhoExcel);
+        return ["item", "descricao"].some((nome) => cabecalhos.includes(nome)) && (
+          ["qtd", "quantidade", "quant", "qtde"].some((nome) => cabecalhos.includes(nome))
         );
-
       });
 
-      alert("Importação concluída com sucesso!");
+      if (indiceCabecalho < 0) {
+        throw new Error("Cabeçalho da planilha não encontrado.");
+      }
 
-    };
+      const cabecalhos = matriz[indiceCabecalho];
+      const rows = matriz.slice(indiceCabecalho + 1).map((linha) => (
+        Object.fromEntries(cabecalhos.map((cabecalho, coluna) => [cabecalho, linha[coluna]]))
+      ));
+      itensImportadosPendentes = [];
+      let inseridos = 0;
+      let ignorados = 0;
 
-    reader.readAsArrayBuffer(e.target.files[0]);
+      rows.forEach((row, index) => {
+        const descricao = String(valorColunaExcel(row, ["descricao", "descrição", "item"]))
+          .trim();
+        const quantidade = numeroExcel(
+          valorColunaExcel(row, ["quantidade", "qtd", "quant", "qtde"])
+        );
+        const valor = numeroExcel(
+          valorColunaExcel(row, ["valor_unitario", "valor unitario", "valor unit.", "vl unitario", "vlr unitario", "preco unitario", "valor estimado", "valor", "preco", "preço"])
+        );
+        const itemCadastrado = encontrarItemImportado(descricao);
+        const codigoPlanilha = String(valorColunaExcel(row, ["codigo", "código", "cod"])).trim();
+        const codigo = codigoPlanilha || itemCadastrado?.codigo || gerarCodigoImportado(descricao);
+        const cadastro = itensNotaLote.find(item => String(item.codigo) === codigo);
 
-  });
+        if (normalizarDescricaoImportacao(descricao) === "total") {
+          return;
+        }
+
+        if (!descricao || !codigo || !Number.isInteger(quantidade) || quantidade <= 0 || itemJaNaNota(codigo)) {
+          ignorados += 1;
+          console.warn(`Linha ${index + 2} ignorada: dados inválidos ou item duplicado`, row);
+          return;
+        }
+
+        itensImportadosPendentes.push({
+          codigo,
+          descricao,
+          quantidade: String(quantidade),
+          valor: formatarValorNF(valor),
+          selecionado: true
+        });
+        inseridos += 1;
+      });
+
+      renderizarImportadosPendentes();
+
+      if (!inseridos) {
+        alert("Nenhum item válido foi encontrado. Use colunas Código, Descrição, Quantidade e Valor Unitário.");
+      } else {
+        alert(`${inseridos} item(ns) carregado(s). Confira a seleção antes de adicionar à nota.${ignorados ? ` ${ignorados} linha(s) ignorada(s).` : ""}`);
+      }
+    } catch (erro) {
+      console.error("Erro ao importar planilha:", erro);
+      const motivo = erro?.message;
+      if (motivo === "Cabeçalho da planilha não encontrado.") {
+        alert("Cabeçalho não encontrado na primeira aba. Use as colunas Descrição (ou Item), Quantidade (ou Qtd.) e Valor Unitário. Código é opcional.");
+      } else if (motivo === "A planilha não possui abas.") {
+        alert("A planilha não possui abas para importar.");
+      } else {
+        alert("Não foi possível ler a planilha. Verifique se o arquivo é um Excel .xlsx ou .xls válido e não está protegido por senha.");
+      }
+    } finally {
+      e.target.value = "";
+    }
+  };
+
+  reader.onerror = function () {
+    e.target.value = "";
+    alert("Não foi possível abrir o arquivo selecionado. Baixe ou salve a planilha neste computador e tente novamente.");
+  };
+
+  reader.readAsArrayBuffer(arquivo);
+});
 
 
 function adicionarItemImportado(codigo, descricao, quantidade, valor) {
 
-  valor = parseFloat(
-    (valor || "0").toString().replace(",", ".")
-  ).toFixed(2);
+  const cadastrado = itensNotaLote.find(item => String(item.codigo) === String(codigo));
+  valor = formatarValorNF(valor);
 
   const tabela = document.getElementById("tabela-itens");
 
@@ -1297,30 +1709,30 @@ function adicionarItemImportado(codigo, descricao, quantidade, valor) {
 
   row.innerHTML = `
     <td>
-      <input type="hidden" name="codigo[]" value="${codigo}">
-      ${codigo}
+      <input type="hidden" name="codigo[]" value="${escaparHtmlNF(codigo)}">
+      ${escaparHtmlNF(codigo)}
     </td>
 
     <td>
-      <input type="hidden" name="descricao[]" value="${descricao}">
-      ${descricao}
+      <input type="hidden" name="descricao[]" value="${escaparHtmlNF(descricao)}">
+      ${escaparHtmlNF(descricao)}
     </td>
 
     <td>
-      <input type="hidden" name="quantidade[]" value="${quantidade}">
-      ${quantidade}
+      <input type="number" name="quantidade[]" value="${escaparHtmlNF(quantidade)}"
+             class="form-control form-control-sm nf-quantidade-final" min="1" step="1" required
+             aria-label="Quantidade de ${escaparHtmlNF(codigo)}">
     </td>
 
     <td>
-      <input type="hidden" name="valor[]" value="${valor}">
-      R$ ${valor.replace(".", ",")}
+      <input type="number" name="valor[]" value="${valor}" class="form-control form-control-sm" min="0" step="0.01" required aria-label="Valor unitario">
     </td>
 
     <td>
       <button
         type="button"
         class="btn btn-sm btn-danger"
-        onclick="this.closest('tr').remove()"
+        onclick="removerItem(this)"
       >
         Excluir
       </button>
@@ -1328,15 +1740,37 @@ function adicionarItemImportado(codigo, descricao, quantidade, valor) {
   `;
 
   tabela.appendChild(row);
+  atualizarTotalNotaFiscal();
 
 }
 
 document.addEventListener("DOMContentLoaded", function () {
 
+  const formNotaFiscal = document.getElementById("formNotaFiscal");
+
   const categoriaEntrada = document.getElementById("categoria_entrada");
   const selectDescricao = document.getElementById("descricao");
   const campoCodigo = document.getElementById("codigo");
   const campoValor = document.getElementById("valor");
+
+  if (formNotaFiscal) {
+    formNotaFiscal.addEventListener("keydown", function (event) {
+      const alvo = event.target;
+      const camposAuxiliares = ["codigo", "quantidade", "valor", "busca_lote_nf"];
+
+      if (
+        event.key === "Enter" &&
+        alvo &&
+        camposAuxiliares.includes(alvo.id)
+      ) {
+        event.preventDefault();
+
+        if (alvo.id === "codigo" || alvo.id === "quantidade" || alvo.id === "valor") {
+          adicionarItem();
+        }
+      }
+    });
+  }
 
   function carregarItensPorCategoria() {
 
@@ -1348,6 +1782,7 @@ document.addEventListener("DOMContentLoaded", function () {
 
         itensNotaLote = data || [];
         renderizarItensNotaLote();
+        atualizarTotalNotaFiscal();
 
         selectDescricao.innerHTML =
           '<option value="">Selecione um item...</option>';
@@ -1611,4 +2046,17 @@ document.addEventListener("DOMContentLoaded", function () {
 });
 </script>
 
+
+<script>
+
+window.logistockDraftAdapter = {
+  capture: () => ({pendentes: itensImportadosPendentes}),
+  restore: data => {
+    itensImportadosPendentes = data?.pendentes || [];
+    renderizarImportadosPendentes();
+  }
+};
+document.getElementById('formNotaFiscal').addEventListener('draft:restored', atualizarTotalNotaFiscal);
+
+</script>
 {% endblock %}

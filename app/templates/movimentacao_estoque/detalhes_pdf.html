@@ -223,7 +223,7 @@
 
       <td class="label">Data/Hora:</td>
       <td class="valor">
-        {{ movimentacao.data_hora.strftime('%d/%m/%Y %H:%M') if movimentacao.data_hora else '-' }}
+        {{ movimentacao.data_hora|horario_local('%d/%m/%Y %H:%M') if movimentacao.data_hora else '-' }}
       </td>
     </tr>
 
@@ -245,6 +245,8 @@
       <td>
         {% if movimentacao.destino_tipo == 'empresa' %}
           Empresa
+        {% elif movimentacao.destino_tipo == 'cliente' %}
+          Cliente
         {% elif movimentacao.destino_tipo == 'tecnico' %}
           Técnico
         {% else %}
@@ -264,6 +266,14 @@
         {{ movimentacao.observacao or '-' }}
       </td>
     </tr>
+    {% if movimentacao.destino_tipo == 'cliente' %}
+    <tr>
+      <td class="label">Cliente de retorno:</td>
+      <td>{{ empresas_dict.get(movimentacao.destino_id|int, '-') }}</td>
+      <td class="label">O.S.:</td>
+      <td>{{ movimentacao.ordem_servico.numero_os if movimentacao.ordem_servico else '-' }}</td>
+    </tr>
+    {% endif %}
   </table>
 
   {% set total_geral = namespace(valor=0) %}
@@ -315,11 +325,11 @@
       </td>
 
       <td class="right">
-        R$ {{ "%.2f"|format(i.valor_unitario or 0) }}
+        {{ (i.valor_unitario or 0)|brl }}
       </td>
 
       <td class="right">
-        R$ {{ "%.2f"|format(subtotal) }}
+        {{ subtotal|brl }}
       </td>
     </tr>
 
@@ -339,7 +349,7 @@
     <tr>
       <td class="total-label">TOTAL GERAL:</td>
       <td class="total-value">
-        R$ {{ "%.2f"|format(total_geral.valor) }}
+        {{ total_geral.valor|brl }}
       </td>
     </tr>
   </table>

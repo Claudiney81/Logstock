@@ -11,6 +11,7 @@ from flask import (
 )
 
 from flask_login import login_required, current_user
+from app.drafts import draft_saved
 
 from datetime import datetime
 from types import SimpleNamespace
@@ -43,7 +44,8 @@ from reportlab.platypus import (
 )
 
 from reportlab.lib import colors
-from reportlab.lib.styles import getSampleStyleSheet
+from reportlab.lib.styles import getSampleStyleSheet, ParagraphStyle
+from xml.sax.saxutils import escape
 
 from app import db
 
@@ -55,13 +57,16 @@ from app.models import (
     BaixaTecnicaItem,
     Item,
     Empresa,
-    OrdemServico
+    OrdemServico,
+    MovimentacaoEstoque,
+    MovimentacaoEstoqueItem
 )
 
 from app.utils.mailer import (
     send_baixa_recusa_email,
     send_baixa_aprovada_email
 )
+from app.utils.baixa_sobras import transferir_sobras_cliente_para_empresa
 
 bp_baixa_desktop = Blueprint(
     "baixa_desktop",
@@ -222,12 +227,23 @@ def api_ordens_servico():
     if not cliente_id:
         return {"ordens": []}
 
-    # A O.S é para REGISTRO da baixa.
-    # Por isso NÃO pode depender de saldo técnico.
-    # Lista todas as O.S cadastradas para o cliente selecionado.
+    # A O.S é para REGISTRO da baixa e não depende de saldo técnico.
+    # Porém baixa nova só deve apontar para O.S ainda aberta/em andamento.
     ordens = (
         OrdemServico.query
         .filter(OrdemServico.cliente_id == cliente_id)
+        .filter(
+            (OrdemServico.status.is_(None))
+            | (OrdemServico.status.in_(["aberta", "em_andamento"]))
+        )
+        .filter(
+            ~db.session.query(BaixaTecnica.id)
+            .filter(
+                BaixaTecnica.ordem_servico_id == OrdemServico.id,
+                BaixaTecnica.status.in_(["confirmado", "aprovada", "aprovada_parcial"])
+            )
+            .exists()
+        )
         .order_by(OrdemServico.numero_os.asc())
         .all()
     )
@@ -341,7 +357,7 @@ def nova_baixa():
         quantidades = request.form.getlist("resumo_quantidade[]")
         tipos_estoque = request.form.getlist("resumo_tipo_estoque[]")
 
-        itens_compilados = []
+        itens_por_origem = {}
 
         for item_id, qtd, tipo_estoque_item in zip(item_ids, quantidades, tipos_estoque):
             try:
@@ -356,31 +372,39 @@ def nova_baixa():
                 continue
 
             cliente_ref = cliente_id if tipo_estoque_item == "cliente" else None
-            os_ref = ordem_servico_id if tipo_estoque_item == "cliente" else None
+            chave_item = (item_id, tipo_estoque_item)
+
+            if chave_item not in itens_por_origem:
+                itens_por_origem[chave_item] = {
+                    "item_id": item_id,
+                    "quantidade": 0,
+                    "tipo_estoque": tipo_estoque_item,
+                    "cliente_estoque_id": cliente_ref
+                }
+
+            itens_por_origem[chave_item]["quantidade"] += qtd
+
+        itens_compilados = list(itens_por_origem.values())
+
+        for linha in itens_compilados:
+            ordem_ref = ordem_servico_id if linha["tipo_estoque"] == "cliente" else None
 
             saldo_total = saldo_disponivel(
                 tecnico_id=tecnico_id,
-                item_id=item_id,
+                item_id=linha["item_id"],
                 tipo_servico_id=tipo_servico_id,
-                tipo_estoque=tipo_estoque_item,
-                cliente_id=cliente_ref,
-                ordem_servico_id=os_ref
+                tipo_estoque=linha["tipo_estoque"],
+                cliente_id=linha["cliente_estoque_id"],
+                ordem_servico_id=ordem_ref
             )
 
-            if qtd > saldo_total:
-                item = Item.query.get(item_id)
+            if linha["quantidade"] > saldo_total:
+                item = Item.query.get(linha["item_id"])
                 flash(
-                    f"Quantidade maior que o saldo disponível para {item.descricao if item else item_id}.",
+                    f"Quantidade maior que o saldo disponível para {item.descricao if item else linha['item_id']}.",
                     "danger"
                 )
                 return redirect(url_for("baixa_desktop.nova_baixa"))
-
-            itens_compilados.append({
-                "item_id": item_id,
-                "quantidade": qtd,
-                "tipo_estoque": tipo_estoque_item,
-                "cliente_estoque_id": cliente_ref
-            })
 
         if not itens_compilados:
             flash("Adicione pelo menos um item ao resumo da baixa.", "warning")
@@ -421,13 +445,14 @@ def nova_baixa():
                 else None
             )
             baixa.responsavel = responsavel
-            baixa.observacao = observacao
-            baixa.status = "pendente"
+            if observacao.upper() != "N/D":
+                baixa.observacao = observacao
+            baixa.status = "revisada"
             baixa.motivo_recusa = None
             baixa.visualizado_tecnico = True
             baixa.data_hora = datetime.now()
 
-            mensagem_sucesso = "Baixa corrigida e reenviada para aprovação do engenheiro/supervisor."
+            mensagem_sucesso = "Baixa revisada e reenviada para aprovação do engenheiro/supervisor."
 
         else:
             baixa = BaixaTecnica(
@@ -453,6 +478,9 @@ def nova_baixa():
             db.session.flush()
 
             mensagem_sucesso = "Baixa registrada. Aguarde aprovação do engenheiro/supervisor."
+
+        if ordem_servico and ordem_servico.status != "finalizada":
+            ordem_servico.status = "em_andamento"
 
         for linha in itens_compilados:
             valor_unitario = valor_saldo_tecnico(
@@ -541,7 +569,16 @@ def detalhe_baixa(baixa_id):
 
     itens = []
 
-    for item_baixa in baixa.itens:
+    itens_ordenados = sorted(
+        baixa.itens,
+        key=lambda item: (
+            0 if (item.tipo_estoque or "empresa") == "empresa" else 1,
+            item.item.codigo if item.item else "",
+            item.id
+        )
+    )
+
+    for item_baixa in itens_ordenados:
         cliente_ref = (
         item_baixa.cliente_estoque_id
         if item_baixa.tipo_estoque == "cliente"
@@ -635,7 +672,7 @@ def detalhe_baixa(baixa_id):
                 .filter(
                     BaixaTecnicaItem.baixa_tecnica_id == baixa.id,
                     BaixaTecnicaItem.id.in_(itens_ids),
-                    BaixaTecnicaItem.status == "pendente"
+                    BaixaTecnicaItem.status.in_(["pendente", "pendente_ajuste"])
                 )
                 .all()
             )
@@ -712,9 +749,9 @@ def detalhe_baixa(baixa_id):
 
             pendentes = (
                 BaixaTecnicaItem.query
-                .filter_by(
-                    baixa_tecnica_id=baixa.id,
-                    status="pendente"
+                .filter(
+                    BaixaTecnicaItem.baixa_tecnica_id == baixa.id,
+                    BaixaTecnicaItem.status.in_(["pendente", "pendente_ajuste"])
                 )
                 .count()
             )
@@ -725,25 +762,27 @@ def detalhe_baixa(baixa_id):
             else:
                 baixa.status = "pendente"
 
-            if baixa.cliente_id:
-                cliente_os = Empresa.query.get(baixa.cliente_id)
+            if baixa.ordem_servico_id:
+                ordem = OrdemServico.query.get(baixa.ordem_servico_id)
 
-                if cliente_os:
+                if ordem:
                     baixas_abertas = (
                         BaixaTecnica.query
                         .filter(
-                            BaixaTecnica.cliente_id == baixa.cliente_id,
-                            BaixaTecnica.tecnico_id == baixa.tecnico_id,
-                            BaixaTecnica.status.in_(["pendente", "pendente_ajuste"])
+                            BaixaTecnica.ordem_servico_id == baixa.ordem_servico_id,
+                            BaixaTecnica.status.in_(["pendente", "revisada"])
                         )
                         .count()
                     )
 
-                    cliente_os.status_os = (
-                        "finalizada"
-                        if baixas_abertas == 0
-                        else "em_andamento"
-                    )
+                    if baixas_abertas == 0:
+                        ordem.status = "finalizada"
+                        transferir_sobras_cliente_para_empresa(
+                            tecnico_id=baixa.tecnico_id,
+                            ordem_servico_id=baixa.ordem_servico_id
+                        )
+                    else:
+                        ordem.status = "em_andamento"
 
             db.session.commit()
 
@@ -782,21 +821,31 @@ def detalhe_baixa(baixa_id):
                 item_baixa.status = "pendente_ajuste"
                 item_baixa.motivo_recusa = motivo
 
-            if baixa.cliente_id:
-                cliente_os = Empresa.query.get(baixa.cliente_id)
+            if baixa.ordem_servico_id:
+                ordem = OrdemServico.query.get(baixa.ordem_servico_id)
 
-                if cliente_os:
-                    cliente_os.status_os = "em_andamento"
+                if ordem:
+                    ordem.status = "em_andamento"
 
             db.session.commit()
 
-            flash("Baixa devolvida para ajuste do técnico.", "warning")
+            if baixa.origem_mobile:
+                flash("Baixa devolvida para ajuste no portal do técnico.", "warning")
+            else:
+                flash("Baixa devolvida para correção no Baixa Desktop.", "warning")
+            draft_saved()
+
             return redirect(url_for("baixa_desktop.baixas_pendentes"))
 
     return render_template(
         "baixa_desktop/detalhe_baixa.html",
         baixa=baixa,
-        itens=itens
+        itens=itens,
+        grupos_itens=[
+            (tipo, [linha for linha in itens if (linha[0].tipo_estoque or 'empresa') == tipo])
+            for tipo in ('cliente', 'empresa')
+            if any((linha[0].tipo_estoque or 'empresa') == tipo for linha in itens)
+        ]
     )
     
 @bp_baixa_desktop.route("/pendentes")
@@ -806,7 +855,7 @@ def baixas_pendentes():
     baixas = (
         BaixaTecnica.query
         .filter(
-            BaixaTecnica.status.in_(["pendente", "pendente_ajuste"])
+            BaixaTecnica.status.in_(["pendente", "revisada"])
         )
         .order_by(BaixaTecnica.data_hora.desc())
         .all()
@@ -932,41 +981,77 @@ def baixas_realizadas():
         data_fim=data_fim
     )       
 
+def grupos_relatorio_baixa(baixa):
+    """Consulta a sobra histórica do cliente, sem usar o saldo atual do técnico.
+
+    A sobra pertence ao fechamento da O.S./técnico, não a uma baixa individual.
+    """
+    grupos = {"cliente": [], "empresa": [], "sobra": []}
+    for item in baixa.itens:
+        tipo = "cliente" if (item.tipo_estoque or "").lower() == "cliente" else "empresa"
+        grupos[tipo].append(item)
+    if baixa.ordem_servico_id and baixa.tecnico_id:
+        sobras = (MovimentacaoEstoqueItem.query.join(MovimentacaoEstoque).filter(
+            MovimentacaoEstoque.ordem_servico_id == baixa.ordem_servico_id,
+            MovimentacaoEstoque.destino_tipo == "tecnico",
+            MovimentacaoEstoque.destino_id == baixa.tecnico_id,
+            MovimentacaoEstoque.origem_tipo == "cliente",
+            MovimentacaoEstoque.tipo_movimentacao == "retorno_sobra_os",
+        ).order_by(MovimentacaoEstoque.id, MovimentacaoEstoqueItem.id).all())
+        for item in sobras:
+            grupos["sobra"].append(SimpleNamespace(
+                item=item.item, quantidade=item.quantidade,
+                quantidade_aprovada=item.quantidade,
+                valor_unitario=item.valor_unitario,
+                valor_total=item.quantidade * float(item.valor_unitario or 0),
+            ))
+    return grupos
+
+
 @bp_baixa_desktop.route("/detalhe/<int:baixa_id>/excel")
 @login_required
 def exportar_baixa_excel(baixa_id):
 
     baixa = BaixaTecnica.query.get_or_404(baixa_id)
 
+    colunas = ["Código", "Descrição", "Unidade", "Quantidade", "Valor Unitário", "Valor Total", "Tipo Estoque"]
     dados = []
-
+    linhas_titulos = []
+    linhas_cabecalhos = []
+    subtotais = []
     total_geral = 0
-    total_empresa = 0
-    total_cliente = 0
+    grupos = grupos_relatorio_baixa(baixa)
 
-    for item in baixa.itens:
+    for tipo, nome, titulo in (
+        ("cliente", "Cliente", "MATERIAIS APLICADOS DO CLIENTE"),
+        ("empresa", "Empresa", "MATERIAIS APLICADOS DO SALDO DA EMPRESA"),
+        ("sobra", "Sobra cliente", "SOBRA DO MATERIAL DO CLIENTE - FECHAMENTO DA O.S."),
+    ):
+        linhas_titulos.append(10 + len(dados))
+        dados.append([titulo] + [None] * 6)
+        linhas_cabecalhos.append(10 + len(dados))
+        dados.append(colunas)
+        total_grupo = 0
+        if not grupos[tipo]:
+            mensagem = "Nenhuma sobra registrada no fechamento da O.S." if tipo == "sobra" else "Nenhum material aplicado."
+            dados.append([None, mensagem] + [None] * 5)
+        for item in grupos[tipo]:
+            valor_total = float(item.valor_total or 0)
+            total_grupo += valor_total
+            if tipo != "sobra":
+                total_geral += valor_total
+            dados.append([
+                item.item.codigo if item.item else "",
+                item.item.descricao if item.item else "",
+                item.item.unidade if item.item else "",
+                item.quantidade_aprovada or item.quantidade,
+                float(item.valor_unitario or 0), valor_total, nome,
+            ])
+        subtotais.append((10 + len(dados), f"TOTAL {nome.upper()}", total_grupo))
+        dados.append([None] * 7)
+        dados.append([None] * 7)
 
-        valor_unit = float(item.valor_unitario or 0)
-        valor_total = float(item.valor_total or 0)
-
-        total_geral += valor_total
-
-        if (item.tipo_estoque or "").lower() == "empresa":
-            total_empresa += valor_total
-        elif (item.tipo_estoque or "").lower() == "cliente":
-            total_cliente += valor_total
-
-        dados.append({
-            "Código": item.item.codigo if item.item else "",
-            "Descrição": item.item.descricao if item.item else "",
-            "Unidade": item.item.unidade if item.item else "",
-            "Quantidade": item.quantidade_aprovada or item.quantidade,
-            "Valor Unitário": valor_unit,
-            "Valor Total": valor_total,
-            "Tipo Estoque": (item.tipo_estoque or "").title()
-        })
-
-    df = pd.DataFrame(dados)
+    df = pd.DataFrame(dados, columns=colunas)
 
     output = io.BytesIO()
 
@@ -977,7 +1062,8 @@ def exportar_baixa_excel(baixa_id):
         df.to_excel(
             writer,
             index=False,
-            startrow=10,
+            startrow=9,
+            header=False,
             sheet_name=sheet_name
         )
 
@@ -985,7 +1071,7 @@ def exportar_baixa_excel(baixa_id):
         worksheet = writer.sheets[sheet_name]
 
         worksheet.sheet_view.showGridLines = False
-        worksheet.freeze_panes = "A11"
+        worksheet.freeze_panes = "A12"
 
         worksheet.page_setup.orientation = "landscape"
         worksheet.page_setup.paperSize = worksheet.PAPERSIZE_A4
@@ -1081,7 +1167,7 @@ def exportar_baixa_excel(baixa_id):
         worksheet.row_dimensions[header_row].height = 22
 
         primeira_linha = 12
-        ultima_linha = 11 + len(df)
+        ultima_linha = 9 + len(df)
 
         for row in worksheet.iter_rows(
             min_row=primeira_linha,
@@ -1118,15 +1204,22 @@ def exportar_baixa_excel(baixa_id):
         for col, largura in larguras.items():
             worksheet.column_dimensions[get_column_letter(col)].width = largura
 
-        linha_total_empresa = ultima_linha + 3
-        linha_total_cliente = ultima_linha + 4
-        linha_total_geral = ultima_linha + 6
+        for linha in linhas_titulos:
+            worksheet.merge_cells(start_row=linha, start_column=1, end_row=linha, end_column=7)
+            worksheet.cell(linha, 1).fill = azul_claro
+            worksheet.cell(linha, 1).font = label_font
+            worksheet.cell(linha, 1).alignment = left
+            worksheet.row_dimensions[linha].height = 24
+        for linha in linhas_cabecalhos:
+            for cell in worksheet[linha]:
+                cell.fill = azul
+                cell.font = branco
+                cell.alignment = center
+                cell.border = borda
+            worksheet.row_dimensions[linha].height = 22
 
-        totais = [
-            (linha_total_empresa, "TOTAL EMPRESA", total_empresa),
-            (linha_total_cliente, "TOTAL CLIENTE", total_cliente),
-            (linha_total_geral, "TOTAL GERAL DA BAIXA", total_geral),
-        ]
+        linha_total_geral = ultima_linha + 2
+        totais = subtotais + [(linha_total_geral, "TOTAL GERAL DA BAIXA", total_geral)]
 
         for linha, titulo, valor in totais:
             worksheet.merge_cells(
@@ -1210,6 +1303,20 @@ def exportar_baixa_pdf(baixa_id):
     elementos = []
 
     styles = getSampleStyleSheet()
+    estilo_campo = ParagraphStyle(
+        "CampoPDF",
+        parent=styles["Normal"],
+        fontSize=8.5,
+        leading=10.5,
+        wordWrap="CJK",
+    )
+    estilo_item = ParagraphStyle(
+        "ItemPDF",
+        parent=styles["Normal"],
+        fontSize=7.5,
+        leading=9,
+        wordWrap="CJK",
+    )
 
     azul = colors.HexColor("#002b55")
     cinza_claro = colors.HexColor("#f3f6f9")
@@ -1218,6 +1325,10 @@ def exportar_baixa_pdf(baixa_id):
 
     def moeda(valor):
         return f"R$ {float(valor or 0):,.2f}".replace(",", "X").replace(".", ",").replace("X", ".")
+
+    def texto_pdf(valor, estilo=estilo_campo):
+        conteudo = escape(str(valor if valor not in (None, "") else "-"))
+        return Paragraph(conteudo.replace("\n", "<br/>"), estilo)
 
     # ==================================================
     # LOGO + CABEÇALHO
@@ -1304,7 +1415,7 @@ def exportar_baixa_pdf(baixa_id):
             tipos_estoque.add(item.tipo_estoque)
 
     if "empresa" in tipos_estoque and "cliente" in tipos_estoque:
-        tipo_estoque_pdf = "Empresa / Cliente"
+        tipo_estoque_pdf = "Cliente / Empresa"
     elif "empresa" in tipos_estoque:
         tipo_estoque_pdf = "Empresa"
     elif "cliente" in tipos_estoque:
@@ -1314,36 +1425,36 @@ def exportar_baixa_pdf(baixa_id):
 
     dados_cabecalho = [
     [
-        "Técnico:",
-        baixa.tecnico.nome if baixa.tecnico else "-",
-        "Responsável:",
-        baixa.responsavel or "-"
+        texto_pdf("Técnico:"),
+        texto_pdf(baixa.tecnico.nome if baixa.tecnico else "-"),
+        texto_pdf("Responsável:"),
+        texto_pdf(baixa.responsavel or "-")
     ],
 
     [
-        "Cliente:",
-        cliente_nome,
-        "O.S:",
-        numero_os
+        texto_pdf("Cliente:"),
+        texto_pdf(cliente_nome),
+        texto_pdf("O.S:"),
+        texto_pdf(numero_os)
     ],
 
     [
-        "Tipo Serviço:",
-        baixa.tipo_servico.nome if baixa.tipo_servico else "-",
-        "Status:",
-        status
+        texto_pdf("Tipo Serviço:"),
+        texto_pdf(baixa.tipo_servico.nome if baixa.tipo_servico else "-"),
+        texto_pdf("Status:"),
+        texto_pdf(status)
     ],
 
     [
-        "Tipo de Estoque:",
-        tipo_estoque_pdf,
-        "Endereço:",
-        baixa.endereco or "-"
+        texto_pdf("Tipo de Estoque:"),
+        texto_pdf(tipo_estoque_pdf),
+        texto_pdf("Endereço:"),
+        texto_pdf(baixa.endereco or "-")
     ],
 
     [
-        "Observação:",
-        baixa.observacao or "-",
+        texto_pdf("Observação:"),
+        texto_pdf(baixa.observacao or "-"),
         "",
         ""
     ],
@@ -1384,6 +1495,8 @@ def exportar_baixa_pdf(baixa_id):
         ("TOPPADDING", (0, 0), (-1, -1), 7),
         ("BOTTOMPADDING", (0, 0), (-1, -1), 7),
         ("LEFTPADDING", (0, 0), (-1, -1), 8),
+        ("RIGHTPADDING", (0, 0), (-1, -1), 8),
+        ("SPAN", (1, 4), (3, 4)),
     ]))
 
     elementos.append(tabela_cab)
@@ -1393,100 +1506,99 @@ def exportar_baixa_pdf(baixa_id):
     # ITENS
     # ==================================================
 
-    dados_itens = [[
-        "Código",
-        "Descrição",
-        "Un.",
-        "Qtd.",
-        "Valor Unit.",
-        "Valor Total",
-        "Origem"
-    ]]
-
     total_geral = 0
-    total_empresa = 0
-    total_cliente = 0
+    grupos = grupos_relatorio_baixa(baixa)
 
-    for item in baixa.itens:
+    for tipo, origem, titulo_grupo in (
+        ("cliente", "Cliente", "MATERIAIS APLICADOS DO CLIENTE"),
+        ("empresa", "Empresa", "MATERIAIS APLICADOS DO SALDO DA EMPRESA"),
+        ("sobra", "Sobra cliente", "SOBRA DO MATERIAL DO CLIENTE - FECHAMENTO DA O.S."),
+    ):
+        itens_grupo = grupos[tipo]
+        total_grupo = 0
+        titulo_bloco = Paragraph(f"<b>{titulo_grupo}</b>", styles["Normal"])
+        titulo_bloco.keepWithNext = True
+        elementos.append(titulo_bloco)
+        elementos.append(Spacer(1, 8))
 
-        valor_unit = float(item.valor_unitario or 0)
-        valor_total = float(item.valor_total or 0)
+        dados_itens = [[
+            "Código",
+            "Descrição",
+            "Un.",
+            "Qtd.",
+            "Valor Unit.",
+            "Valor Total",
+            "Origem"
+        ]]
 
-        total_geral += valor_total
+        if not itens_grupo:
+            mensagem = "Nenhuma sobra registrada no fechamento da O.S." if tipo == "sobra" else "Nenhum material aplicado."
+            dados_itens.append(["", texto_pdf(mensagem, estilo_item), "", "", "", "", ""])
 
-        if (item.tipo_estoque or "").lower() == "empresa":
-            total_empresa += valor_total
+        for item in itens_grupo:
 
-        elif (item.tipo_estoque or "").lower() == "cliente":
-            total_cliente += valor_total
+            valor_unit = float(item.valor_unitario or 0)
+            valor_total = float(item.valor_total or 0)
 
-        origem = "Cliente" if item.tipo_estoque == "cliente" else "Empresa"
+            if tipo != "sobra":
+                total_geral += valor_total
 
-        dados_itens.append([
-            item.item.codigo if item.item else "-",
-            Paragraph(item.item.descricao if item.item else "-", styles["Normal"]),
-            item.item.unidade if item.item else "-",
-            str(item.quantidade_aprovada or item.quantidade or 0),
-            moeda(valor_unit),
-            moeda(valor_total),
-            origem
-        ])
+            total_grupo += valor_total
 
-    tabela_itens = Table(
-        dados_itens,
-        colWidths=[62, 205, 38, 38, 70, 75, 52],
-        repeatRows=1
-    )
+            dados_itens.append([
+                texto_pdf(item.item.codigo if item.item else "-", estilo_item),
+                texto_pdf(item.item.descricao if item.item else "-", estilo_item),
+                texto_pdf(item.item.unidade if item.item else "-", estilo_item),
+                str(item.quantidade_aprovada or item.quantidade or 0),
+                moeda(valor_unit),
+                moeda(valor_total),
+                texto_pdf(origem, estilo_item)
+            ])
 
-    tabela_itens.setStyle(TableStyle([
-        ("BACKGROUND", (0, 0), (-1, 0), azul),
-        ("TEXTCOLOR", (0, 0), (-1, 0), colors.white),
-        ("FONTNAME", (0, 0), (-1, 0), "Helvetica-Bold"),
-        ("FONTSIZE", (0, 0), (-1, 0), 8),
-        ("ALIGN", (0, 0), (-1, 0), "CENTER"),
+        dados_itens.append([f"TOTAL {origem.upper()}:", "", "", "", "", moeda(total_grupo), ""])
 
-        ("GRID", (0, 0), (-1, -1), 0.5, cinza_borda),
-        ("FONTSIZE", (0, 1), (-1, -1), 7.5),
-        ("VALIGN", (0, 0), (-1, -1), "MIDDLE"),
-        ("TOPPADDING", (0, 0), (-1, -1), 6),
-        ("BOTTOMPADDING", (0, 0), (-1, -1), 6),
+        tabela_itens = Table(
+            dados_itens,
+            colWidths=[62, 205, 38, 38, 70, 75, 52],
+            repeatRows=1
+        )
 
-        ("ALIGN", (0, 1), (0, -1), "CENTER"),
-        ("ALIGN", (2, 1), (3, -1), "CENTER"),
-        ("ALIGN", (4, 1), (5, -1), "RIGHT"),
-        ("ALIGN", (6, 1), (6, -1), "CENTER"),
+        tabela_itens.setStyle(TableStyle([
+            ("BACKGROUND", (0, 0), (-1, 0), azul),
+            ("TEXTCOLOR", (0, 0), (-1, 0), colors.white),
+            ("FONTNAME", (0, 0), (-1, 0), "Helvetica-Bold"),
+            ("FONTSIZE", (0, 0), (-1, 0), 8),
+            ("ALIGN", (0, 0), (-1, 0), "CENTER"),
 
-        ("ROWBACKGROUNDS", (0, 1), (-1, -1), [colors.white, cinza_claro]),
-    ]))
+            ("GRID", (0, 0), (-1, -1), 0.5, cinza_borda),
+            ("FONTSIZE", (0, 1), (-1, -1), 7.5),
+            ("VALIGN", (0, 0), (-1, -1), "MIDDLE"),
+            ("TOPPADDING", (0, 0), (-1, -1), 6),
+            ("BOTTOMPADDING", (0, 0), (-1, -1), 6),
 
-    elementos.append(tabela_itens)
-    elementos.append(Spacer(1, 18))
+            ("ALIGN", (0, 1), (0, -1), "CENTER"),
+            ("ALIGN", (2, 1), (3, -1), "CENTER"),
+            ("ALIGN", (4, 1), (5, -1), "RIGHT"),
+            ("ALIGN", (6, 1), (6, -1), "CENTER"),
+
+            ("ROWBACKGROUNDS", (0, 1), (-1, -2), [colors.white, cinza_claro]),
+            ("SPAN", (0, -1), (4, -1)),
+            ("SPAN", (5, -1), (6, -1)),
+            ("BACKGROUND", (0, -1), (-1, -1), azul),
+            ("TEXTCOLOR", (0, -1), (-1, -1), colors.white),
+            ("FONTNAME", (0, -1), (-1, -1), "Helvetica-Bold"),
+            ("ALIGN", (0, -1), (-1, -1), "RIGHT"),
+            ("NOSPLIT", (0, -2), (-1, -1)),
+        ]))
+
+        elementos.append(tabela_itens)
+        elementos.append(Spacer(1, 18))
 
 # ==================================================
 # TOTAIS
 # ==================================================
 
     dados_totais = [
-        [
-            Paragraph(
-                '<para align="right"><b>TOTAL EMPRESA:</b></para>',
-                styles["Normal"]
-            ),
-            Paragraph(
-                f'<para align="center"><font color="white"><b>{moeda(total_empresa)}</b></font></para>',
-                styles["Normal"]
-            )
-        ],
-        [
-            Paragraph(
-                '<para align="right"><b>TOTAL CLIENTE:</b></para>',
-                styles["Normal"]
-            ),
-            Paragraph(
-                f'<para align="center"><font color="white"><b>{moeda(total_cliente)}</b></font></para>',
-                styles["Normal"]
-            )
-        ],
         [
             Paragraph(
                 '<para align="right"><b>TOTAL GERAL DA BAIXA:</b></para>',
@@ -1527,7 +1639,9 @@ def exportar_baixa_pdf(baixa_id):
         '<para align="center"><b>Assinatura física</b></para>',
         styles["Normal"]
     )
-    assinatura_nome = baixa.responsavel or "Responsável / Operador"
+    assinatura_nome = texto_pdf(
+        baixa.responsavel or "Responsável / Operador"
+    )
     tabela_assinatura = Table(
         [[assinatura_fisica], [assinatura_nome]],
         colWidths=[360],
@@ -1583,7 +1697,9 @@ def exportar_baixa_pdf(baixa_id):
 def api_baixas_pendentes_count():
     count = (
         BaixaTecnica.query
-        .filter(BaixaTecnica.status.in_(["pendente", "pendente_ajuste"]))
+        .filter(
+            BaixaTecnica.status.in_(["pendente", "revisada"])
+        )
         .count()
     )
 

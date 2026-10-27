@@ -1,10 +1,12 @@
-from flask import Blueprint, render_template, request, redirect, url_for, flash
+from flask import Blueprint, render_template, request, redirect, url_for, flash, abort
 from flask_login import current_user, login_required
 from app.extensions import db
 from app.models import Tecnico, Usuario
 import qrcode
 import os
 from werkzeug.security import generate_password_hash
+from sqlalchemy.exc import IntegrityError
+from app.drafts import draft_saved
 
 bp = Blueprint('tecnicos', __name__, url_prefix='/tecnicos')
 
@@ -103,6 +105,7 @@ def cadastrar_tecnico():
             'tecnico_mobile.login',
             _external=True
         )
+        draft_saved()
 
         qr = qrcode.QRCode(version=1, box_size=10, border=4)
         qr.add_data(login_tecnico_url)
@@ -144,6 +147,67 @@ Qualquer dúvida, entre em contato com o setor responsável.
         )
 
     return render_template('tecnicos/cadastro.html')
+
+
+@bp.route('/editar/<int:tecnico_id>', methods=['GET', 'POST'])
+@login_required
+def editar_tecnico(tecnico_id):
+    if current_user.perfil not in ('admin', 'estoque'):
+        abort(403)
+    tecnico = Tecnico.query.get_or_404(tecnico_id)
+    campos = ('nome', 'matricula', 'cpf', 'telefone', 'email', 'funcao', 'status')
+    dados = {campo: getattr(tecnico, campo) or '' for campo in campos}
+    if request.method == 'POST':
+        dados = {campo: request.form.get(campo, '').strip() for campo in campos}
+        erro = None
+        cpf = limpar_cpf(dados['cpf'])
+        usuarios = Usuario.query.filter_by(tecnico_id=tecnico.id).all()
+        if not all(dados[campo] for campo in ('nome', 'matricula', 'cpf')):
+            erro = 'Nome, matrícula e CPF são obrigatórios.'
+        elif len(cpf) != 11 or not cpf.isdigit():
+            erro = 'Informe um CPF com 11 números.'
+        elif dados['status'] not in ('Ativo', 'Inativo'):
+            erro = 'Selecione um status válido.'
+        elif any(len(dados[campo]) > limite for campo, limite in
+                 (('nome', 100), ('matricula', 20), ('telefone', 20), ('email', 100), ('funcao', 100))):
+            erro = 'Um dos campos excedeu o tamanho permitido.'
+        elif Tecnico.query.filter(Tecnico.id != tecnico.id, Tecnico.matricula == dados['matricula']).first():
+            erro = 'Matrícula já cadastrada para outro técnico.'
+        elif any(limpar_cpf(outro.cpf or '') == cpf for outro in
+                 Tecnico.query.filter(Tecnico.id != tecnico.id).all()):
+            erro = 'CPF já cadastrado para outro técnico.'
+        elif usuarios and not dados['email']:
+            erro = 'O técnico possui acesso vinculado e precisa manter um e-mail.'
+        elif len(usuarios) > 1 and dados['email'] != (tecnico.email or ''):
+            erro = 'O técnico possui mais de um acesso vinculado. Regularize os acessos antes de alterar o e-mail.'
+        elif dados['email'] and ('@' not in dados['email'] or any(c.isspace() for c in dados['email'])):
+            erro = 'Informe um e-mail válido.'
+        elif dados['email'] and Tecnico.query.filter(Tecnico.id != tecnico.id, Tecnico.email == dados['email']).first():
+            erro = 'E-mail já cadastrado para outro técnico.'
+        elif dados['email'] and Usuario.query.filter(Usuario.email == dados['email']).filter(
+                (Usuario.tecnico_id != tecnico.id) | Usuario.tecnico_id.is_(None)).first():
+            erro = 'Este e-mail pertence a outro usuário. Informe um e-mail diferente.'
+        if erro:
+            flash(erro, 'danger')
+            return render_template('tecnicos/editar.html', tecnico=tecnico, dados=dados), 400
+        dados['cpf'] = f'{cpf[:3]}.{cpf[3:6]}.{cpf[6:9]}-{cpf[9:]}'
+        try:
+            for campo, valor in dados.items():
+                setattr(tecnico, campo, valor)
+            # Keep the same technician ID, balances, history, password, and roles.
+            for usuario in usuarios:
+                usuario.nome = tecnico.nome
+                if len(usuarios) == 1:
+                    usuario.email = tecnico.email
+                usuario.status = tecnico.status
+            db.session.commit()
+        except IntegrityError:
+            db.session.rollback()
+            flash('Não foi possível salvar: matrícula, CPF ou e-mail já utilizado.', 'danger')
+            return render_template('tecnicos/editar.html', tecnico=tecnico, dados=dados), 400
+        flash('Dados do técnico atualizados com sucesso.', 'success')
+        return redirect(url_for('tecnicos.listar_tecnicos'))
+    return render_template('tecnicos/editar.html', tecnico=tecnico, dados=dados)
 
 
 @bp.route('/listagem', endpoint='listar_tecnicos')

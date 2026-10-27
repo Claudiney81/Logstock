@@ -215,7 +215,7 @@
           {% set tipos = baixa.itens | map(attribute='tipo_estoque') | list %}
 
           {% if 'empresa' in tipos and 'cliente' in tipos %}
-            Empresa / Cliente
+            Cliente / Empresa
           {% elif 'empresa' in tipos %}
             Empresa
           {% elif 'cliente' in tipos %}
@@ -259,7 +259,7 @@
     </thead>
 
     <tbody>
-      {% for item in baixa.itens %}
+      {% for item in baixa.itens|cliente_primeiro %}
 
         {% set valor_total = (item.valor_total or 0)|float %}
         {% set total.valor = total.valor + valor_total %}
@@ -272,10 +272,10 @@
             {{ item.quantidade_aprovada if item.quantidade_aprovada else item.quantidade }}
           </td>
           <td class="right">
-            R$ {{ "%.2f"|format((item.valor_unitario or 0)|float)|replace('.', ',') }}
+            {{ (item.valor_unitario or 0)|brl }}
           </td>
           <td class="right">
-            R$ {{ "%.2f"|format(valor_total)|replace('.', ',') }}
+            {{ valor_total|brl }}
           </td>
           <td class="center">
             {% if item.tipo_estoque == 'cliente' %}
@@ -293,7 +293,7 @@
     <tr>
       <td class="total-label">TOTAL GERAL DA BAIXA:</td>
       <td class="total-valor">
-        R$ {{ "%.2f"|format(total.valor)|replace('.', ',') }}
+        {{ total.valor|brl }}
       </td>
     </tr>
   </table>

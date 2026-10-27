@@ -1,0 +1,32 @@
+{% extends 'base.html' %}
+{% block content %}
+<div class="container mt-4" style="max-width:980px">
+  <div class="app-page-header">
+    <div><p class="app-page-kicker">Técnicos</p><h1>Editar técnico</h1></div>
+    <a class="btn btn-outline-secondary" href="{{ url_for('tecnicos.listar_tecnicos') }}">Voltar à listagem</a>
+  </div>
+  <form method="post" class="app-panel p-3">
+    <div class="row g-3">
+      {% for campo, rotulo, tamanho in [('nome','Nome',100), ('matricula','Matrícula / Login',20), ('cpf','CPF',14), ('telefone','Telefone',20), ('email','E-mail',100), ('funcao','Função',100)] %}
+      <div class="col-md-6">
+        <label class="form-label" for="{{ campo }}">{{ rotulo }}</label>
+        <input class="form-control" id="{{ campo }}" name="{{ campo }}" value="{{ dados[campo] }}"
+               type="{{ 'email' if campo == 'email' else 'text' }}" maxlength="{{ tamanho }}"
+               {% if campo in ['nome','matricula','cpf'] %}required{% endif %}>
+      </div>
+      {% endfor %}
+      <div class="col-md-6">
+        <label class="form-label" for="status">Status</label>
+        <select class="form-select" name="status" id="status" required>
+          {% for status in ['Ativo','Inativo'] %}<option value="{{ status }}" {% if dados.status == status %}selected{% endif %}>{{ status }}</option>{% endfor %}
+        </select>
+      </div>
+    </div>
+    <p class="text-muted mt-3">Alterar o e-mail também atualiza o acesso. A senha será mantida.</p>
+    <div class="d-flex justify-content-end gap-2 mt-3">
+      <a class="btn btn-outline-secondary" href="{{ url_for('tecnicos.listar_tecnicos') }}">Voltar</a>
+      <button class="btn btn-primary" type="submit">Salvar alterações</button>
+    </div>
+  </form>
+</div>
+{% endblock %}

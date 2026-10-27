@@ -167,14 +167,14 @@
       <div class="app-kpi-card">
         <span class="app-kpi-icon app-kpi-blue"><i class="bi bi-cash-stack"></i></span>
         <span class="app-kpi-label">Total esperado</span>
-        <strong>R$ {{ "%.2f"|format(total_existente)|replace('.', ',') }}</strong>
+        <strong>{{ total_existente|brl }}</strong>
       </div>
     </div>
     <div class="col-md-4">
       <div class="app-kpi-card">
         <span class="app-kpi-icon app-kpi-green"><i class="bi bi-check2-circle"></i></span>
         <span class="app-kpi-label">Total contado</span>
-        <strong>R$ {{ "%.2f"|format(total_contado)|replace('.', ',') }}</strong>
+        <strong>{{ total_contado|brl }}</strong>
       </div>
     </div>
     <div class="col-md-4">
@@ -182,7 +182,7 @@
         <span class="app-kpi-icon app-kpi-yellow"><i class="bi bi-arrow-left-right"></i></span>
         <span class="app-kpi-label">Diferença financeira</span>
         <strong>
-          {% if diferenca_financeira > 0 %}+{% endif %}R$ {{ "%.2f"|format(diferenca_financeira)|replace('.', ',') }}
+          {% if diferenca_financeira > 0 %}+{% endif %}{{ diferenca_financeira|brl }}
         </strong>
       </div>
     </div>
@@ -239,11 +239,11 @@
                 <span class="badge bg-secondary">0</span>
               {% endif %}
             </td>
-            <td class="text-end">R$ {{ "%.2f"|format(valor_unitario)|replace('.', ',') }}</td>
-            <td class="text-end">R$ {{ "%.2f"|format(total_existente_item)|replace('.', ',') }}</td>
-            <td class="text-end">R$ {{ "%.2f"|format(total_contado_item)|replace('.', ',') }}</td>
+            <td class="text-end">{{ valor_unitario|brl }}</td>
+            <td class="text-end">{{ total_existente_item|brl }}</td>
+            <td class="text-end">{{ total_contado_item|brl }}</td>
             <td class="text-end fw-bold">
-              {% if diferenca_financeira_item > 0 %}+{% endif %}R$ {{ "%.2f"|format(diferenca_financeira_item)|replace('.', ',') }}
+              {% if diferenca_financeira_item > 0 %}+{% endif %}{{ diferenca_financeira_item|brl }}
             </td>
           </tr>
           {% endfor %}

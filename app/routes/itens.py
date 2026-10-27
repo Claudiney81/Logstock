@@ -90,6 +90,7 @@ def editar(id):
 
         db.session.commit()
 
+        flash('Item atualizado com sucesso!', 'success')
         return redirect(url_for('estoque.listar_itens'))
 
     return render_template('itens/editar.html', item=item)

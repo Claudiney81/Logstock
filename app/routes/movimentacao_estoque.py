@@ -1,3 +1,4 @@
+from app.utils.datas import formatar_horario
 from flask import Blueprint, render_template, request, redirect, url_for, flash, jsonify, send_file
 from flask_login import login_required, current_user
 from datetime import datetime
@@ -81,6 +82,20 @@ def _atribuir_condicao_estoque(estoque, condicao):
         estoque.condicao_material = condicao
 
 
+def parse_valor_br(valor):
+    texto = str(valor or "0").replace("R$", "").strip()
+
+    if not texto:
+        return 0.0
+
+    try:
+        if "," in texto:
+            texto = texto.replace(".", "").replace(",", ".")
+        return float(texto)
+    except Exception:
+        return 0.0
+
+
 def _pode_corrigir_saldo_legado():
     return getattr(current_user, 'perfil', None) in PERFIS_CORRECAO_LEGADO
 
@@ -122,21 +137,58 @@ def _tipo_servico_saldo_nota(nota):
 
 
 def _quantidade_movimentada_da_nota(nota_id, item_id):
-    return (
-        db.session.query(func.coalesce(func.sum(MovimentacaoEstoqueItem.quantidade), 0))
-        .join(
-            MovimentacaoEstoque,
-            MovimentacaoEstoque.id == MovimentacaoEstoqueItem.movimentacao_id
-        )
+    """Saídas líquidas da NF, abatendo retornos uma única vez em ordem FIFO.
+
+    Retornos antigos não guardam NF. Distribuímos entre saídas anteriores
+    do mesmo cliente, técnico, O.S. e grupo de serviço, incluindo saídas
+    sem NF para que sua devolução não libere indevidamente outra nota.
+    """
+    nota = db.session.get(NotaFiscalEntrada, nota_id)
+    if not nota:
+        return 0
+
+    eventos = (
+        db.session.query(MovimentacaoEstoque, MovimentacaoEstoqueItem.quantidade)
+        .join(MovimentacaoEstoqueItem,
+              MovimentacaoEstoqueItem.movimentacao_id == MovimentacaoEstoque.id)
         .filter(
-            MovimentacaoEstoque.nota_fiscal_id == nota_id,
-            MovimentacaoEstoque.origem_tipo == 'cliente',
-            MovimentacaoEstoque.destino_tipo == 'tecnico',
-            MovimentacaoEstoqueItem.item_id == item_id
+            MovimentacaoEstoqueItem.item_id == item_id,
+            or_(
+                db.and_(MovimentacaoEstoque.origem_tipo == 'cliente',
+                        MovimentacaoEstoque.origem_id == nota.cliente_id,
+                        MovimentacaoEstoque.destino_tipo == 'tecnico'),
+                db.and_(MovimentacaoEstoque.origem_tipo == 'tecnico',
+                        MovimentacaoEstoque.destino_tipo == 'cliente',
+                        MovimentacaoEstoque.destino_id == nota.cliente_id,
+                        MovimentacaoEstoque.tipo_movimentacao == 'retorno_cliente'),
+            ),
         )
-        .scalar()
-        or 0
+        .order_by(MovimentacaoEstoque.data_hora, MovimentacaoEstoque.id,
+                  MovimentacaoEstoqueItem.id)
+        .all()
     )
+    lotes = {}
+    for mov, quantidade in eventos:
+        saida = mov.origem_tipo == 'cliente'
+        chave = (
+            mov.destino_id if saida else mov.origem_id,
+            mov.ordem_servico_id,
+            _tipo_servico_saldo_movimentacao(mov),
+        )
+        fila = lotes.setdefault(chave, [])
+        restante = max(int(quantidade or 0), 0)
+        if saida:
+            fila.append([mov.nota_fiscal_id, restante])
+            continue
+        for lote in fila:
+            abatido = min(lote[1], restante)
+            lote[1] -= abatido
+            restante -= abatido
+            if not restante:
+                break
+        # Excesso sem saída anterior comprovada não vira crédito futuro.
+
+    return sum(qtd for fila in lotes.values() for nf, qtd in fila if nf == nota_id)
 
 
 def _itens_pendentes_nota_cliente(nota):
@@ -541,7 +593,7 @@ def _consumir_estoque_empresa(
                 )
             )
 
-    registros = query.order_by(Estoque.id.asc()).all()
+    registros = query.order_by(Estoque.id.asc()).populate_existing().with_for_update().all()
 
     saldo_total = sum(int(e.quantidade or 0) for e in registros)
 
@@ -745,6 +797,44 @@ def nova_movimentacao():
         if origem_tipo == destino_tipo:
             flash('Origem e destino não podem ser iguais.', 'danger')
             return redirect(url_for('movimentacao_estoque.nova_movimentacao'))
+
+        if destino_tipo == 'cliente':
+            from app.utils.retorno_material_cliente import registrar_retorno_cliente
+            try:
+                if categoria_movimentacao != 'MATERIAL' or origem_tipo != 'tecnico' or saldo_tecnico_tipo != 'cliente':
+                    raise ValueError('O retorno ao cliente deve sair do saldo cliente do técnico e conter somente materiais.')
+                if condicao_material:
+                    raise ValueError('O retorno ao cliente recompõe o estoque comum. Confira a condição do material.')
+                tecnico_retorno_id = int(tecnico_id or 0)
+                cliente_retorno_id = int(cliente_os_id or 0)
+                servico_retorno_id = int(tipo_servico_id or 0)
+                if not TipoServico.query.filter_by(id=servico_retorno_id).first():
+                    raise ValueError('Selecione um tipo de serviço válido.')
+                nova_mov = registrar_retorno_cliente(
+                    tecnico_id=tecnico_retorno_id, cliente_id=cliente_retorno_id,
+                    ordem_servico_id=ordem_servico_id, tipo_servico_id=servico_retorno_id,
+                    codigos=codigos, quantidades=quantidades,
+                    usuario_id=current_user.id, observacao=observacao, assinatura=assinatura,
+                )
+                db.session.commit()
+            except (ValueError, OverflowError) as erro:
+                db.session.rollback()
+                flash(f'Retorno não realizado: {erro}', 'danger')
+                return redirect(url_for('movimentacao_estoque.nova_movimentacao'))
+            except Exception:
+                db.session.rollback()
+                from flask import current_app
+                current_app.logger.exception('Falha no retorno de material ao cliente')
+                flash('Não foi possível registrar o retorno. Nenhum saldo foi alterado.', 'danger')
+                return redirect(url_for('movimentacao_estoque.nova_movimentacao'))
+            try:
+                if send_movimentacao_email(nova_mov, attach_pdf=True):
+                    nova_mov.email_enviado = True
+                    db.session.commit()
+            except Exception:
+                db.session.rollback()
+            flash('Retorno registrado. Material devolvido ao estoque do mesmo cliente, sem entrada no estoque empresa.', 'success')
+            return redirect(url_for('movimentacao_estoque.detalhes', id=nova_mov.id))
 
         # ==================================================
         # REGRAS MATERIAL
@@ -983,10 +1073,16 @@ def nova_movimentacao():
                     flash(f'O item {item.codigo} é Ferramenta/EPI. Use Ferramentas & EPIs.', 'danger')
                     continue
 
-            try:
-                valor_unitario = float(str(valores[i]).replace(',', '.')) if valores[i] else 0
-            except Exception:
-                valor_unitario = 0
+            # Para saldos pertencentes à empresa, o cadastro do item é a
+            # fonte oficial do valor. Não confie no campo enviado pela tela:
+            # saldos antigos podem conservar um valor_unitario desatualizado.
+            if origem_tipo == 'empresa' or (
+                origem_tipo == 'tecnico'
+                and saldo_tecnico_tipo == 'empresa'
+            ):
+                valor_unitario = float(item.valor or 0)
+            else:
+                valor_unitario = parse_valor_br(valores[i] if i < len(valores) else 0)
 
             try:
                 quantidade_minima = int(minimos[i]) if minimos[i] else 0
@@ -1015,7 +1111,7 @@ def nova_movimentacao():
                     tipo_servico_id=tipo_servico_saldo,
                     tipo_estoque='cliente',
                     cliente_id=int(cliente_os_id) if cliente_os_id else None
-                ).first()
+                ).populate_existing().with_for_update().first()
 
                 if not estoque_origem:
                     flash(f'Item {item.codigo} sem saldo no estoque do Cliente.', 'danger')
@@ -1289,6 +1385,9 @@ def exportar_historico_excel():
         if mov.origem_tipo == 'cliente':
             cliente_os = empresas_dict.get(int(mov.origem_id or 0), '-')
 
+        elif mov.destino_tipo == 'cliente':
+            cliente_os = empresas_dict.get(int(mov.destino_id or 0), '-')
+
         elif (
             mov.origem_tipo == 'empresa'
             and mov.destino_tipo == 'tecnico'
@@ -1326,7 +1425,7 @@ def exportar_historico_excel():
         linhas.append({
             'ID': mov.id,
             'Data/Hora': (
-                mov.data_hora.strftime('%d/%m/%Y %H:%M')
+                formatar_horario(mov.data_hora, '%d/%m/%Y %H:%M')
                 if mov.data_hora else '-'
             ),
             'Origem': (mov.origem_tipo or '-').capitalize(),
@@ -1557,10 +1656,9 @@ def api_itens_movimentacao():
     # ESTOQUE EMPRESA
     # ==================================================
     if origem_tipo == 'empresa':
-        valor_estoque = func.coalesce(
-            func.max(Estoque.valor_unitario),
-            Item.valor
-        ).label('valor')
+        # O valor exibido na transferência deve ser o mesmo do cadastro do
+        # item. Estoque.valor_unitario pode conter valores históricos.
+        valor_estoque = Item.valor.label('valor')
 
         query = (
             db.session.query(
@@ -1730,10 +1828,15 @@ def api_itens_movimentacao():
         if not tecnico_id:
             return jsonify([])
 
-        valor_saldo = func.coalesce(
-            func.max(SaldoTecnico.valor_unitario),
-            Item.valor
-        ).label('valor')
+        # Materiais da empresa acompanham o valor corrente do cadastro.
+        # Para materiais de cliente, preserve o valor específico do saldo/NF.
+        if saldo_tecnico_tipo == 'empresa':
+            valor_saldo = Item.valor.label('valor')
+        else:
+            valor_saldo = func.coalesce(
+                func.max(SaldoTecnico.valor_unitario),
+                Item.valor
+            ).label('valor')
 
         query = (
             db.session.query(
@@ -1852,7 +1955,7 @@ def api_notas_cliente_movimentacao():
         resultados.append({
             'id': nota.id,
             'numero_nf': nota.numero_nf,
-            'data_hora': nota.data_hora.strftime('%d/%m/%Y %H:%M') if nota.data_hora else '',
+            'data_hora': formatar_horario(nota.data_hora, '%d/%m/%Y %H:%M') if nota.data_hora else '',
             'fornecedor': nota.fornecedor,
             'total_pendente': total_pendente
         })

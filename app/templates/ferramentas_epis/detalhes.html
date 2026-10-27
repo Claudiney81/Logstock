@@ -178,11 +178,11 @@
               </td>
 
               <td class="text-end">
-                R$ {{ "%.2f"|format(item_hist.valor_unitario or 0)|replace('.', ',') }}
+                {{ (item_hist.valor_unitario or 0)|brl }}
               </td>
 
               <td class="text-end">
-                R$ {{ "%.2f"|format(item_hist.valor_total or 0)|replace('.', ',') }}
+                {{ (item_hist.valor_total or 0)|brl }}
               </td>
             </tr>
 

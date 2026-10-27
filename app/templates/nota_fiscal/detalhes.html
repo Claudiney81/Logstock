@@ -14,7 +14,7 @@
       <p class="app-page-kicker">Nota Fiscal</p>
       <h1>Detalhes da Nota Fiscal</h1>
       <p class="app-page-subtitle">
-        NF {{ nota.numero_nf }} registrada em {{ nota.data_hora.strftime('%d/%m/%Y %H:%M') if nota.data_hora else '-' }}.
+        NF {{ nota.numero_nf }} registrada em {{ nota.data_hora|horario_local('%d/%m/%Y %H:%M') if nota.data_hora else '-' }}.
       </p>
     </div>
 
@@ -69,7 +69,6 @@
     <div class="app-panel-header">
       <div>
         <h2>Dados da entrada</h2>
-        <p>Informações registradas no lançamento da nota fiscal.</p>
       </div>
     </div>
 
@@ -117,9 +116,13 @@
 
         <div class="col-md-4">
           <label class="form-label fw-semibold">Data de Registro</label>
-          <input type="text" class="form-control" value="{{ nota.data_hora.strftime('%d/%m/%Y %H:%M') if nota.data_hora else '-' }}" readonly>
+          <input type="text" class="form-control" value="{{ nota.data_hora|horario_local('%d/%m/%Y %H:%M') if nota.data_hora else '-' }}" readonly>
         </div>
 
+        <div class="col-md-4">
+          <label class="form-label fw-semibold">Data de recebimento</label>
+          <input class="form-control" readonly value="{{ nota.data_recebimento.strftime('%d/%m/%Y') if nota.data_recebimento else 'Não informado' }}">
+        </div>
         <div class="col-12">
           <label class="form-label fw-semibold">Observação</label>
           <textarea class="form-control" rows="2" readonly>{{ nota.observacao or '' }}</textarea>

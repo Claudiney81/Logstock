@@ -61,7 +61,7 @@
           <th style="width: 5%"></th>
         </tr>
       </thead>
-      <tbody>
+      <tbody data-draft-region="tabela-itens">
         <tr>
           <td>
             <input
@@ -175,5 +175,11 @@
       if (linhas.length > 1) e.target.closest("tr").remove();
     }
   });
+</script>
+
+<script>
+
+document.querySelector('form').addEventListener('draft:restored', atualizarDescricoes);
+
 </script>
 {% endblock %}

@@ -15,26 +15,11 @@ bp_tecnico_mobile = Blueprint(
 
 
 def get_tecnico_logado():
-    tecnico_id = session.get("tecnico_id")
-
-    if tecnico_id:
-        tecnico = Tecnico.query.get(tecnico_id)
-        if tecnico:
-            return tecnico
-
-    if current_user.is_authenticated:
-        tecnico = getattr(current_user, "tecnico", None)
-
-        if tecnico:
-            return tecnico
-
-        if getattr(current_user, "email", None):
-            tecnico = Tecnico.query.filter_by(email=current_user.email).first()
-
+    if session.get("perfil_mobile") == "tecnico":
+        tecnico_id = session.get("tecnico_id")
+        if tecnico_id:
+            tecnico = Tecnico.query.get(tecnico_id)
             if tecnico:
-                session["tecnico_id"] = tecnico.id
-                session["tecnico_nome"] = tecnico.nome
-                session["perfil_mobile"] = "tecnico"
                 return tecnico
 
     return None
@@ -99,11 +84,6 @@ def localizar_usuario_tecnico(login):
 
 @bp_tecnico_mobile.route("/login", methods=["GET", "POST"])
 def login():
-
-    if request.method == "GET" and current_user.is_authenticated:
-        logout_user()
-        session.clear()
-
     if request.method == "POST":
 
         login = (
@@ -120,9 +100,18 @@ def login():
             flash("Login ou senha inválidos.", "danger")
             return redirect(url_for("tecnico_mobile.login"))
 
-        logout_user()
-        session.clear()
-        login_user(usuario)
+        # O navegador compartilha o cookie de sessão entre todas as abas.
+        # Quando um administrador abre o portal técnico em outra aba, preserve
+        # o login administrativo e mantenha apenas o contexto mobile separado.
+        preservar_login_admin = (
+            current_user.is_authenticated
+            and getattr(current_user, "perfil", None) == "admin"
+        )
+
+        if not preservar_login_admin:
+            logout_user()
+            session.clear()
+            login_user(usuario)
 
         if not tecnico:
             tecnico = getattr(usuario, "tecnico", None)
@@ -185,7 +174,13 @@ def alterar_senha():
             flash("Preencha todos os campos.", "warning")
             return redirect(url_for("tecnico_mobile.alterar_senha"))
 
-        if not check_password_hash(current_user.senha_hash, senha_atual):
+        usuario_tecnico = Usuario.query.filter_by(tecnico_id=tecnico.id).first()
+
+        if not usuario_tecnico:
+            flash("Usuário técnico não localizado.", "danger")
+            return redirect(url_for("tecnico_mobile.alterar_senha"))
+
+        if not check_password_hash(usuario_tecnico.senha_hash, senha_atual):
             flash("Senha atual incorreta.", "danger")
             return redirect(url_for("tecnico_mobile.alterar_senha"))
 
@@ -197,7 +192,7 @@ def alterar_senha():
             flash("A nova senha deve ter pelo menos 6 caracteres.", "warning")
             return redirect(url_for("tecnico_mobile.alterar_senha"))
 
-        current_user.senha_hash = generate_password_hash(nova_senha)
+        usuario_tecnico.senha_hash = generate_password_hash(nova_senha)
         db.session.commit()
 
         flash("Senha alterada com sucesso.", "success")
@@ -212,6 +207,11 @@ def alterar_senha():
 @bp_tecnico_mobile.route("/logout")
 @login_required
 def logout():
-    logout_user()
-    session.clear()
+    if getattr(current_user, "perfil", None) == "admin":
+        session.pop("tecnico_id", None)
+        session.pop("tecnico_nome", None)
+        session.pop("perfil_mobile", None)
+    else:
+        logout_user()
+        session.clear()
     return redirect(url_for("tecnico_mobile.login"))

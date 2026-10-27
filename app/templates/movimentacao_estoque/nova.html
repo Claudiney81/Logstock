@@ -145,6 +145,7 @@
                 <select id="destino_tipo" name="destino_tipo" class="form-select" required>
                   <option value="">Selecione</option>
                   <option value="empresa">Empresa</option>
+                  <option value="cliente">Cliente (retorno à origem)</option>
                   <option value="tecnico">Técnico</option>
                 </select>
               </div>
@@ -224,7 +225,7 @@
                   <option value="">Selecione a NF a transferir</option>
                 </select>
                 <div class="form-text">
-                  A movimentação ficará limitada ao saldo pendente desta NF.
+                  Limite: saldo pendente da nota, incluindo devoluções ao cliente, limitado ao estoque disponível.
                 </div>
               </div>
 
@@ -351,7 +352,7 @@
                   </tr>
                 </thead>
 
-                <tbody>
+                <tbody data-draft-region="tabela-itens">
                   <tr>
                     <td>
                       <input type="text" name="codigo[]" class="form-control form-control-sm codigo-input" placeholder="Código ou descrição">
@@ -540,8 +541,13 @@ function ajustarDestinoAutomatico() {
   }
 
   if (origemTipo === "tecnico") {
-    destinoTipo.value = "empresa";
+    if (!["empresa", "cliente"].includes(destinoTipo.value)) destinoTipo.value = "empresa";
   }
+  destinoTipo.querySelector('option[value="cliente"]').disabled = origemTipo !== "tecnico";
+  const retornoCliente = origemTipo === "tecnico" && destinoTipo.value === "cliente";
+  const saldoTipo = document.getElementById("saldo_tecnico_tipo");
+  saldoTipo.querySelector('option[value="empresa"]').disabled = retornoCliente;
+  if (retornoCliente) saldoTipo.value = "cliente";
 }
 
 function atualizarCamposDinamicos() {
@@ -578,7 +584,8 @@ function atualizarCamposDinamicos() {
 
   const mostrarDevolucaoTecnico =
     origemTipo === "tecnico" &&
-    destinoTipo === "empresa";
+    ["empresa", "cliente"].includes(destinoTipo);
+  const retornoCliente = origemTipo === "tecnico" && destinoTipo === "cliente";
 
     const mostrarUsadoBom =
       origemTipo === "empresa" &&
@@ -603,7 +610,8 @@ function atualizarCamposDinamicos() {
   tecnicoDiv.style.display = mostrarTecnico ? "block" : "none";
   destinoMaterialDiv.style.display = mostrarDestinoMaterial ? "block" : "none";
   saldoTecnicoTipoDiv.style.display = mostrarDevolucaoTecnico ? "block" : "none";
-  condicaoMaterialDiv.style.display = mostrarDevolucaoTecnico ? "block" : "none";
+  condicaoMaterialDiv.style.display = mostrarDevolucaoTecnico && !retornoCliente ? "block" : "none";
+  if (retornoCliente) document.getElementById("condicao_material").value = "";
   usadoBomDiv.style.display =
   mostrarUsadoBom ? "block" : "none";
   clienteDiv.style.display = mostrarClienteOs ? "block" : "none";
@@ -615,8 +623,8 @@ function atualizarCamposDinamicos() {
       : "none";
 
   tecnico.required = mostrarTecnico;
-  cliente.required = origemTipo === "cliente" && destinoTipo === "tecnico";
-  osInput.required = origemTipo === "cliente" && destinoTipo === "tecnico";
+  cliente.required = (origemTipo === "cliente" && destinoTipo === "tecnico") || retornoCliente;
+  osInput.required = (origemTipo === "cliente" && destinoTipo === "tecnico") || retornoCliente;
   notaFiscal.required = origemTipo === "cliente" && destinoTipo === "tecnico";
 
   if (!mostrarTecnico) {
@@ -744,7 +752,9 @@ function preencherTodosSelects(filtro = "") {
   });
 }
 
+let consultaItensAtual = 0;
 function atualizarListaDeItens() {
+  const consultaAtual = ++consultaItensAtual;
   const tipoServicoId = document.getElementById("tipo_servico_id")?.value;
   const origemTipo = document.getElementById("origem_tipo")?.value;
   const destinoTipo = document.getElementById("destino_tipo")?.value;
@@ -796,6 +806,12 @@ function atualizarListaDeItens() {
     const osId = document.getElementById("os_id")?.value;
 
     if (saldoTecnicoTipo === "cliente") {
+      if (destinoTipo === "cliente" && (!clienteId || !osId)) {
+        itensDisponiveis = [];
+        renderizarTabelaLote();
+        preencherTodosSelects();
+        return;
+      }
       if (clienteId) {
         url += `&cliente_id=${clienteId}`;
       }
@@ -809,11 +825,13 @@ function atualizarListaDeItens() {
   fetch(url)
     .then((res) => res.json())
     .then((data) => {
+      if (consultaAtual !== consultaItensAtual) return;
       itensDisponiveis = data || [];
       preencherTodosSelects();
       renderizarTabelaLote();
     })
     .catch(() => {
+      if (consultaAtual !== consultaItensAtual) return;
       itensDisponiveis = [];
       preencherTodosSelects();
       renderizarTabelaLote();
@@ -973,6 +991,14 @@ function inserirSelecionadosLote() {
   if (!selecionados.length) {
     alert("Marque pelo menos um item na lista em lote.");
     return;
+  }
+
+  if (document.getElementById("destino_tipo").value === "cliente") {
+    // Na devolução, a seleção atual substitui o lote anterior.
+    const tbody = document.querySelector("#tabela-itens tbody");
+    tbody.replaceChildren();
+    tbody.dataset.loteRetorno = "true";
+    inserirLinha();
   }
 
   let inseridos = 0;
@@ -1216,6 +1242,21 @@ function removerLinha(btn, isFirstLine) {
   tr.remove();
 }
 
+document.querySelector("form")?.addEventListener("keydown", function (e) {
+  if (e.key !== "Enter") return;
+
+  const tagName = e.target.tagName;
+  const usaEnterNaTela =
+    e.target.classList.contains("codigo-input") ||
+    e.target.classList.contains("lote-qtd");
+
+  if (tagName === "BUTTON" || tagName === "TEXTAREA" || usaEnterNaTela) {
+    return;
+  }
+
+  e.preventDefault();
+});
+
 document.querySelector("form")?.addEventListener("submit", function (e) {
   const origemTipo = document.getElementById("origem_tipo").value;
   const destinoTipo = document.getElementById("destino_tipo").value;
@@ -1242,9 +1283,15 @@ document.querySelector("form")?.addEventListener("submit", function (e) {
     return false;
   }
 
-  if (origemTipo === "tecnico" && destinoTipo !== "empresa") {
+  if (origemTipo === "tecnico" && !["empresa", "cliente"].includes(destinoTipo)) {
     e.preventDefault();
-    alert("Quando a origem for Técnico, o destino deve ser Empresa.");
+    alert("Quando a origem for Técnico, o destino deve ser Empresa ou Cliente.");
+    return false;
+  }
+
+  if (destinoTipo === "cliente" && (origemTipo !== "tecnico" || !clienteId || !osId || document.getElementById("saldo_tecnico_tipo").value !== "cliente")) {
+    e.preventDefault();
+    alert("Selecione o saldo cliente do técnico e o cliente/O.S. de origem para devolver.");
     return false;
   }
 
@@ -1306,6 +1353,34 @@ document.querySelector("form")?.addEventListener("submit", function (e) {
     e.preventDefault();
     alert("Existe item duplicado na movimentação. Remova ou altere o item repetido antes de salvar.");
     return false;
+  }
+
+  if (destinoTipo === "cliente") {
+    const marcados = Array.from(document.querySelectorAll("#tabela-lote .lote-check:checked"));
+    const linhas = Array.from(document.querySelectorAll("#tabela-itens tbody tr"))
+      .filter(tr => tr.querySelector(".codigo-input")?.value.trim());
+    const selecao = marcados.map(check => {
+      const tr = check.closest("tr");
+      return [tr.dataset.codigo, Number(tr.querySelector(".lote-qtd").value)];
+    });
+    const coincide = selecao.length === linhas.length && selecao.every(([codigo, quantidade]) =>
+      linhas.some(tr => tr.querySelector(".codigo-input").value.trim() === codigo &&
+        Number(tr.querySelector(".quantidade-input").value) === quantidade));
+    const usaLote = document.querySelector("#tabela-itens tbody").dataset.loteRetorno === "true";
+    if ((marcados.length || usaLote) && !coincide) {
+      e.preventDefault();
+      alert("A seleção marcada difere dos itens da devolução. Clique em Inserir Selecionados para atualizar e confira a lista final.");
+      return false;
+    }
+    const resumo = linhas.map(tr => {
+      const codigo = tr.querySelector(".codigo-input").value.trim();
+      const descricao = tr.querySelector(".descricao-select").selectedOptions[0]?.textContent || "";
+      return `${codigo} - ${descricao}: ${tr.querySelector(".quantidade-input").value}`;
+    }).join("\n");
+    if (!confirm(`Devolver ao cliente somente estes ${linhas.length} itens?\n\n${resumo}`)) {
+      e.preventDefault();
+      return false;
+    }
   }
 });
 
@@ -1461,6 +1536,21 @@ if (canvas) {
 
   let drawing = false;
   let hasSignature = false;
+  window.logistockDraftAdapter = {
+    capture: () => ({assinatura: hasSignature ? canvas.toDataURL('image/png') : ''}),
+    restore: data => new Promise(resolve => {
+      if (!data?.assinatura) return resolve();
+      const img = new Image();
+      img.onload = () => {
+        ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
+        hasSignature = true;
+        document.getElementById('assinatura').value = data.assinatura;
+        resolve();
+      };
+      img.onerror = resolve;
+      img.src = data.assinatura;
+    })
+  };
 
   canvas.addEventListener("mousedown", function () {
     drawing = true;
@@ -1517,4 +1607,18 @@ if (canvas) {
 }
 </script>
 
+
+<script>
+
+document.querySelector('form').addEventListener('draft:restored', () => {
+  preencherTodosSelects();
+  document.querySelectorAll('#tabela-itens tbody tr').forEach(tr => {
+    const select = tr.querySelector('.descricao-select');
+    const item = itensDisponiveis.find(i => String(i.codigo) === select?.value);
+    if (item) aplicarItemNaLinha(tr, item, tr.querySelector('.quantidade-input').value);
+  });
+  configurarMinimoTecnico();
+});
+
+</script>
 {% endblock %}

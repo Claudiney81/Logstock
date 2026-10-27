@@ -107,7 +107,7 @@
         </div>
 
         <div class="col-md-2">
-          <label for="data_emissao" class="form-label fw-semibold">Data</label>
+          <label for="data_emissao" class="form-label fw-semibold">Data do registro</label>
           <input
             type="date"
             class="form-control"
@@ -150,7 +150,8 @@
             <th>Cliente</th>
             <th>Tipo Serviço</th>
             <th>Registrado por</th>
-            <th>Data</th>
+            <th>Registro</th>
+            <th>Recebimento</th>
             <th class="text-end">Total Itens</th>
             <th class="text-end">Valor Total</th>
             <th class="text-center">Ações</th>
@@ -192,7 +193,8 @@
               {% endif %}
             </td>
             <td>{{ n.nota.usuario.nome if n.nota.usuario else '-' }}</td>
-            <td class="text-nowrap">{{ n.nota.data_hora.strftime('%d/%m/%Y') if n.nota.data_hora else '-' }}</td>
+            <td class="text-nowrap">{{ n.nota.data_hora|horario_local('%d/%m/%Y') if n.nota.data_hora else '-' }}</td>
+            <td class="text-nowrap">{{ n.nota.data_recebimento.strftime('%d/%m/%Y') if n.nota.data_recebimento else 'Não informado' }}</td>
             <td class="text-end">{{ n.total_itens or 0 }}</td>
             <td class="text-end fw-semibold">{{ (n.total_nota or 0)|brl }}</td>
             <td>
@@ -211,7 +213,7 @@
           </tr>
           {% else %}
           <tr>
-            <td colspan="11" class="text-center text-muted py-5">
+            <td colspan="12" class="text-center text-muted py-5">
               Nenhuma nota encontrada.
             </td>
           </tr>

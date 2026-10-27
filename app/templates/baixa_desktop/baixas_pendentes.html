@@ -115,17 +115,19 @@
           <tbody>
 
             {% for baixa in baixas %}
-            <tr class="{% if baixa.status == 'pendente_ajuste' %}linha-ajuste{% endif %}">
+            <tr class="{% if baixa.status in ['pendente_ajuste', 'revisada'] %}linha-ajuste{% endif %}">
 
               <td>
                 {{ baixa.data_hora.strftime('%d/%m/%Y %H:%M') if baixa.data_hora else '-' }}
               </td>
 
               <td>
-                {% if baixa.status == 'pendente_ajuste' %}
-                  <span class="badge-soft badge-soft-orange">Retorno Ajuste</span>
+                {% if baixa.status == 'revisada' %}
+                  <span class="badge-soft badge-soft-orange">Baixa Revisada</span>
+                {% elif baixa.status == 'pendente_ajuste' %}
+                  <span class="badge-soft badge-soft-yellow">Operador Revisando</span>
                 {% else %}
-                  <span class="badge-soft badge-soft-red">Pendente</span>
+                  <span class="badge-soft badge-soft-red">Aprovação Pendente</span>
                 {% endif %}
               </td>
 

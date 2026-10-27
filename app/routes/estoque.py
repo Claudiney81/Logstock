@@ -266,8 +266,7 @@ def alerta_estoque_baixo():
 # Função auxiliar - Buscar Alertas de Estoque
 # ------------------------
 def buscar_alertas_estoque(tipo_servico_id=None):
-    if tipo_servico_id and tipo_servico_id != 1:
-        tipo_servico_id = 1
+    from types import SimpleNamespace
 
     query = (
         db.session.query(Estoque, Item, TipoServico)
@@ -277,7 +276,7 @@ def buscar_alertas_estoque(tipo_servico_id=None):
             Estoque.tipo_servico_id == TipoServico.id
         )
         .filter(
-            Estoque.tipo_estoque == 'empresa'
+            db.or_(Estoque.tipo_estoque == 'empresa', Estoque.tipo_estoque.is_(None))
         )
     )
 
@@ -288,19 +287,19 @@ def buscar_alertas_estoque(tipo_servico_id=None):
 
     resultados = query.all()
 
-    alertas = []
-
+    grupos = {}
     for estoque, item, tipo_servico in resultados:
+        if item.id not in grupos:
+            grupos[item.id] = (SimpleNamespace(quantidade=0, quantidade_minima=0, endereco=''), item, tipo_servico)
+        saldo = grupos[item.id][0]
+        if estoque.condicao_material in (None, '', 'DISPONIVEL'):
+            saldo.quantidade += estoque.quantidade or 0
+        saldo.quantidade_minima = max(saldo.quantidade_minima, estoque.quantidade_minima or 0)
+        saldo.endereco = max(saldo.endereco, estoque.endereco or '')
 
-        if (
-            estoque.quantidade_minima is not None
-            and estoque.quantidade <= estoque.quantidade_minima
-        ):
-            alertas.append(
-                (estoque, item, tipo_servico)
-            )
-
-    return alertas
+    return [linha for linha in grupos.values()
+            if linha[0].quantidade_minima > 0
+            and linha[0].quantidade <= linha[0].quantidade_minima]
 
 # ------------------------
 # API: Estoque
@@ -463,8 +462,8 @@ def saldo_estoque():
 
     tipo_servico_consulta_id = tipo_servico_id
 
-    if tipo_servico_id and tipo_servico_id != 1:
-        tipo_servico_consulta_id = 1
+    if tipo_servico_id:
+        tipo_servico_consulta_id = tipo_servico_id
 
     if tipo_servico_consulta_id:
         query = query.filter(
@@ -484,7 +483,7 @@ def saldo_estoque():
             Item.valor,
             Empresa.razao_social
         )
-        .having(func.sum(Estoque.quantidade) > 0)
+        .having(db.or_(func.sum(Estoque.quantidade) > 0, func.max(Estoque.quantidade_minima) > 0))
         .order_by(
             Empresa.razao_social,
             Item.descricao
@@ -523,7 +522,7 @@ def atualizar_minimos():
             continue
 
         try:
-            item_id = int(key[8:-1])
+            item_id = int(key[len("minimos["):-1])
             val = (value or "").strip()
 
             query = Estoque.query.filter_by(
@@ -532,11 +531,11 @@ def atualizar_minimos():
 
             if tipo_estoque == "empresa":
                 query = query.filter(
-                    Estoque.tipo_estoque == "empresa"
+                    db.or_(Estoque.tipo_estoque == "empresa", Estoque.tipo_estoque.is_(None))
                 )
 
                 if tipo_servico_id:
-                    tipo_servico_consulta_id = 1 if tipo_servico_id != 1 else tipo_servico_id
+                    tipo_servico_consulta_id = tipo_servico_id
                     query = query.filter(
                         Estoque.tipo_servico_id == tipo_servico_consulta_id
                     )
@@ -556,6 +555,12 @@ def atualizar_minimos():
             if not estoques:
                 continue
 
+            if val and not val.endswith('%') and not val.isdigit():
+                raise ValueError('Informe uma quantidade inteira não negativa.')
+            if val.endswith('%') and int(val[:-1].strip()) < 0:
+                raise ValueError('Informe um percentual não negativo.')
+            quantidade_base = sum(e.quantidade or 0 for e in estoques
+                                  if e.condicao_material in (None, '', 'DISPONIVEL'))
             for estoque in estoques:
 
                 if val == "":
@@ -564,7 +569,7 @@ def atualizar_minimos():
                 elif val.endswith('%'):
                     percentual = int(val[:-1].strip())
                     estoque.quantidade_minima = round(
-                        (percentual / 100) * (estoque.quantidade or 0)
+                        (percentual / 100) * quantidade_base
                     )
 
                 else:
@@ -573,7 +578,7 @@ def atualizar_minimos():
             atualizados_minimos += 1
 
         except Exception as e:
-            print("ERRO MINIMO:", e)
+            flash(f'Não foi possível salvar o mínimo de {key}: {e}', 'danger')
             continue
 
     db.session.commit()
@@ -587,7 +592,8 @@ def atualizar_minimos():
         'estoque.saldo_estoque',
         tipo_estoque=tipo_estoque,
         cliente_id=cliente_id,
-        tipo_servico_id=tipo_servico_id
+        tipo_servico_id=tipo_servico_id,
+        categoria=request.form.get('categoria', '')
     ))
 
 
@@ -747,7 +753,8 @@ def exportar_criticos():
             "Tipo Serviço": tipo_servico.nome if tipo_servico else "-",
             "Quantidade Atual": estoque.quantidade or 0,
             "Estoque Mínimo": estoque.quantidade_minima or 0,
-            "Endereço": estoque.endereco or ""
+            "Endereço": estoque.endereco or "",
+            "Quantidade a Comprar": max(0, (estoque.quantidade_minima or 0) - (estoque.quantidade or 0))
         })
 
     df = pd.DataFrame(dados)
@@ -848,6 +855,7 @@ def exportar_criticos():
             worksheet.write(row_num, 5, item_linha["Quantidade Atual"], qtd_alerta_format)
             worksheet.write(row_num, 6, item_linha["Estoque Mínimo"], minimo_alerta_format)
             worksheet.write(row_num, 7, item_linha["Endereço"], normal_format)
+            worksheet.write(row_num, 8, item_linha["Quantidade a Comprar"], center_format)
 
         worksheet.set_column('A:A', 14)
         worksheet.set_column('B:B', 48)
@@ -857,6 +865,7 @@ def exportar_criticos():
         worksheet.set_column('F:F', 18)
         worksheet.set_column('G:G', 18)
         worksheet.set_column('H:H', 42)
+        worksheet.set_column('I:I', 24)
 
         worksheet.set_row(0, 26)
         worksheet.set_row(1, 20)
@@ -910,6 +919,7 @@ def exportar_alertas_excel():
             "Tipo de Serviço": tipo_servico.nome if tipo_servico else "-",
             "Quantidade Atual": quantidade_atual,
             "Quantidade Mínima": estoque.quantidade_minima or 0,
+            "Quantidade a Comprar": max(0, (estoque.quantidade_minima or 0) - quantidade_atual),
             "Endereço": estoque.endereco or "-",
             "Valor Unitário (R$)": valor_unitario,
             "Valor Total Atual (R$)": quantidade_atual * valor_unitario
@@ -945,8 +955,9 @@ def exportar_alertas_excel():
         worksheet.set_column('D:D', 18)
         worksheet.set_column('E:E', 25)
         worksheet.set_column('F:G', 18)
-        worksheet.set_column('H:H', 35)
-        worksheet.set_column('I:J', 22, money_format)
+        worksheet.set_column('H:H', 22)
+        worksheet.set_column('I:I', 35)
+        worksheet.set_column('J:K', 22, money_format)
 
     output.seek(0)
 
@@ -1187,8 +1198,8 @@ def exportar_saldo_excel():
 
     tipo_servico_consulta_id = tipo_servico_id
 
-    if tipo_servico_id and tipo_servico_id != 1:
-        tipo_servico_consulta_id = 1
+    if tipo_servico_id:
+        tipo_servico_consulta_id = tipo_servico_id
 
     if tipo_servico_consulta_id:
         query = query.filter(

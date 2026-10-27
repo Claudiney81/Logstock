@@ -62,7 +62,6 @@
 <div class="mobile-page-title">
   <p class="kicker">Requisição Mobile</p>
   <h1>Nova Requisição</h1>
-  <p>Solicite materiais disponíveis no estoque da empresa.</p>
 </div>
 
 <div class="req-summary">
@@ -76,7 +75,7 @@
   <div class="mobile-panel mb-3">
     <div class="mobile-panel-header">
       <h2>Dados da solicitação</h2>
-      <p>Escolha o tipo de serviço antes de adicionar os itens.</p>
+      <p>Selecione o serviço para carregar os materiais.</p>
     </div>
 
     <div class="p-3">
@@ -110,7 +109,6 @@
   <div class="mobile-panel">
     <div class="mobile-panel-header">
       <h2>Itens da Requisição</h2>
-      <p>Adicione material, confira o saldo e informe a quantidade.</p>
     </div>
 
     <div class="table-responsive item-table-wrap">
@@ -123,7 +121,7 @@
             <th style="width:48px;"></th>
           </tr>
         </thead>
-        <tbody>
+        <tbody data-draft-region="tabela-itens">
           <tr id="linhaVaziaItens">
             <td colspan="4" class="text-center text-muted py-4">
               Nenhum item adicionado.
@@ -163,7 +161,7 @@
           Você confirma o envio desta requisição?
         </p>
         <p class="mb-0 text-muted small">
-          Após o envio, a solicitação ficará pendente para análise do setor responsável.
+          O envio ficará pendente de aprovação.
         </p>
       </div>
 
@@ -377,4 +375,25 @@ document
   });
 </script>
 
+
+<script>
+
+document.getElementById('formRequisicao').addEventListener('draft:restored', () => {
+  tipoSelecionado = document.getElementById('tipo-servico-select').value;
+  document.querySelectorAll('select[name="item_id[]"]').forEach(async select => {
+    const value = select.value;
+    const response = await fetch(`/requisicao_mobile/api/itens/${tipoSelecionado}/${tipoEstoqueSelecionado}`);
+    const data = await response.json();
+    select.replaceChildren(new Option('Selecione...', ''));
+    for (const item of data.itens || []) {
+      const option = new Option(`${item.codigo} - ${item.descricao} (Saldo: ${item.saldo})`, item.id);
+      Object.assign(option.dataset, {codigo: item.codigo, unidade: item.unidade, saldo: item.saldo});
+      select.appendChild(option);
+    }
+    select.value = value;
+    if (select.value) preencherCampos(select);
+  });
+});
+
+</script>
 {% endblock %}

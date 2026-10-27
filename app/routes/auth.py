@@ -135,6 +135,7 @@ def login():
 
         if user and check_password_hash(user.senha_hash, senha):
             login_user(user)
+            session["perfil_mobile"] = "tecnico" if user.perfil == 'tecnico' else session.get("perfil_mobile")
             flash('Login efetuado com sucesso!', 'success')
 
             if user.perfil == 'tecnico':
@@ -255,6 +256,7 @@ def login_tecnico():
             session["tecnico_id"] = tecnico.id
             session["tecnico_nome"] = tecnico.nome
             session["perfil"] = "tecnico"
+            session["perfil_mobile"] = "tecnico"
 
             return redirect(url_for('baixa_tecnico.formulario_baixa', modo='mobile'))
 

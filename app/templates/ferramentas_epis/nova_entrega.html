@@ -332,4 +332,16 @@ document.getElementById("formTransferencia").addEventListener("submit", function
 });
 </script>
 
+
+<script>
+
+window.logistockDraftAdapter = {
+  capture: () => ({tecnico: padTecnico.toData(), logistica: padLogistica.toData()}),
+  restore: data => {
+    padTecnico.fromData(data?.tecnico || []);
+    padLogistica.fromData(data?.logistica || []);
+  }
+};
+
+</script>
 {% endblock %}

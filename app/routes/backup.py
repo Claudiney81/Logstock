@@ -1,6 +1,10 @@
 import os
+import io
+import sqlite3
+import tempfile
+from datetime import datetime
 
-from flask import Blueprint, jsonify, current_app
+from flask import Blueprint, jsonify, current_app, send_file
 from flask_login import login_required, current_user
 
 from app.extensions import db
@@ -70,3 +74,37 @@ def executar_backup():
             "status": "erro",
             "mensagem": str(e)
         }), 500
+
+
+@bp_backup.route("/download")
+@login_required
+def download_backup():
+    if getattr(current_user, "perfil", None) != "admin":
+        return jsonify({"status": "erro", "mensagem": "Acesso apenas para admin"}), 403
+
+    caminho_banco = localizar_banco_sqlite()
+    arquivo_temporario = tempfile.NamedTemporaryFile(suffix=".db", delete=False)
+    arquivo_temporario.close()
+
+    origem = sqlite3.connect(caminho_banco)
+    destino = sqlite3.connect(arquivo_temporario.name)
+    try:
+        origem.backup(destino)
+    finally:
+        destino.close()
+        origem.close()
+
+    try:
+        with open(arquivo_temporario.name, "rb") as arquivo:
+            conteudo = io.BytesIO(arquivo.read())
+    finally:
+        os.remove(arquivo_temporario.name)
+
+    conteudo.seek(0)
+    nome = f"logistock_render_{datetime.now().strftime('%Y%m%d_%H%M%S')}.db"
+    return send_file(
+        conteudo,
+        as_attachment=True,
+        download_name=nome,
+        mimetype="application/x-sqlite3",
+    )

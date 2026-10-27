@@ -1,4 +1,10 @@
-cd /d C:\Users\claudinei.moura\Desktop\tempeeee
-start http://127.0.0.1:5000/
-python run.py
+@echo off
+cd /d "%~dp0"
+if exist ".runtime\python311\python.exe" (
+    ".runtime\python311\python.exe" abrir_logistock.py
+) else if exist "venv\Scripts\python.exe" (
+    "venv\Scripts\python.exe" abrir_logistock.py
+) else (
+    python abrir_logistock.py
+)
 pause

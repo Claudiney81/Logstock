@@ -11,7 +11,7 @@
 
     <div class="app-page-actions">
       <a
-        href="{{ url_for('baixa_desktop.baixas_realizadas') }}"
+        href="{% if baixa.status in ['pendente', 'revisada'] %}{{ url_for('baixa_desktop.baixas_pendentes') }}{% else %}{{ url_for('baixa_desktop.baixas_realizadas') }}{% endif %}"
         class="btn btn-outline-secondary"
       >
         <i class="bi bi-arrow-left me-1"></i>
@@ -59,13 +59,24 @@
           <small class="text-muted fw-semibold">Tipo de Estoque</small>
           <div class="fw-semibold">
             {% if 'empresa' in tipos and 'cliente' in tipos %}
-              Empresa / Cliente
+              Cliente / Empresa
             {% elif 'empresa' in tipos %}
               Empresa
             {% elif 'cliente' in tipos %}
               Cliente
             {% else %}
               -
+            {% endif %}
+          </div>
+        </div>
+
+        <div class="col-md-3">
+          <small class="text-muted fw-semibold">Origem</small>
+          <div class="fw-semibold">
+            {% if baixa.origem_mobile %}
+              <span class="badge bg-info text-dark">Portal Mobile</span>
+            {% else %}
+              <span class="badge bg-warning text-dark">Baixa Desktop</span>
             {% endif %}
           </div>
         </div>
@@ -97,9 +108,11 @@
             {% if baixa.status == 'confirmado' %}
               <span class="status-confirmado">Confirmado</span>
             {% elif baixa.status == 'pendente' %}
-              <span class="status-pendente">Pendente</span>
+              <span class="status-pendente">Aprovação Pendente</span>
             {% elif baixa.status == 'pendente_ajuste' %}
-              <span class="status-ajuste">Retorno Ajuste</span>
+              <span class="status-ajuste">Operador Revisando</span>
+            {% elif baixa.status == 'revisada' %}
+              <span class="status-revisada">Baixa Revisada</span>
             {% elif baixa.status == 'recusado' %}
               <span class="status-recusado">Recusado</span>
             {% elif baixa.status == 'aprovada_parcial' %}
@@ -259,6 +272,11 @@
         font-weight: 600;
       }
 
+      .status-revisada {
+        color: #0d6efd;
+        font-weight: 600;
+      }
+
       .status-recusado {
         color: #6c757d;
         font-weight: 600;
@@ -284,6 +302,24 @@
         font-weight: 600;
       }
 
+      .linha-grupo-estoque {
+        background: #eaf3ff;
+        border-top: 2px solid #0d6efd;
+        border-bottom: 1px solid #b6d4fe;
+        color: #084298;
+        font-size: 0.78rem;
+        font-weight: 800;
+        letter-spacing: 0.04em;
+        text-transform: uppercase;
+      }
+
+      .linha-grupo-estoque.cliente {
+        background: #e9f8ef;
+        border-top-color: #198754;
+        border-bottom-color: #badbcc;
+        color: #0f5132;
+      }
+
       .btn-acao {
         border-radius: 8px;
         padding: 7px 14px;
@@ -291,32 +327,37 @@
       }
     </style>
 
+    {% for tipo_grupo, itens_grupo in grupos_itens %}
     <div class="tabela-container shadow-sm mb-3">
+      <div class="linha-grupo-estoque {{ tipo_grupo }} p-3">
+        {% if tipo_grupo == 'cliente' %}
+          Material baixado do saldo do cliente/O.S
+        {% else %}
+          Material baixado do saldo da empresa
+        {% endif %}
+      </div>
 
       <table class="table table-hover align-middle mb-0 app-table">
 
         <thead>
           <tr>
             <th style="width:50px;">
-              <input type="checkbox" id="checkAll">
+              {% if loop.first %}<input type="checkbox" id="checkAll" aria-label="Selecionar todos os itens">{% endif %}
             </th>
             <th>Tipo Estoque</th>
             <th>Código</th>
             <th>Descrição</th>
             <th>Un.</th>
-            <th>Qtd.</th>
-            <th>Valor Unit.</th>
-            <th>Valor Total</th>
+            <th>Qtd. Utilizada</th>
             <th>Saldo Técnico</th>
-            <th style="width:150px;">Qtd. Aprovar</th>
+            <th style="width:150px;">Qtd. a Aprovar</th>
             <th>Status Item</th>
           </tr>
         </thead>
 
         <tbody>
 
-          {% for item, saldo in itens %}
-
+          {% for item, saldo in itens_grupo %}
             {% set sal = saldo or 0 %}
 
             {% if item.status == 'confirmado' %}
@@ -335,8 +376,8 @@
                 class="chk-item"
                 name="itens"
                 value="{{ item.id }}"
-                {% if sal > 0 and item.status == 'pendente' %}checked{% endif %}
-                {% if item.status != 'pendente' %}disabled{% endif %}
+                {% if sal > 0 and item.status in ['pendente', 'pendente_ajuste'] %}checked{% endif %}
+                {% if item.status not in ['pendente', 'pendente_ajuste'] %}disabled{% endif %}
               >
             </td>
 
@@ -361,27 +402,7 @@
             </td>
 
             <td class="text-center fw-semibold">
-              {{ req }}
-            </td>
-
-            <td class="text-center">
-              <span class="fw-semibold text-primary">
-                R$
-                {{
-                  '%.2f'|format((item.valor_unitario or 0)|float)
-                  | replace('.', ',')
-                }}
-              </span>
-            </td>
-
-            <td class="text-center">
-              <span class="fw-bold text-success">
-                R$
-               {{
-                 '%.2f'|format((item.valor_total or 0)|float)
-                 | replace('.', ',')
-               }}
-              </span>
+              {{ (item.quantidade or 0) + (item.quantidade_aprovada or 0) }}
             </td>
 
             <td class="text-center">
@@ -402,7 +423,7 @@
                 data-req="{{ req }}"
                 data-saldo="{{ sal }}"
                 data-codigo="{{ item.item.codigo if item.item else '' }}"
-                {% if item.status != 'pendente' %}readonly{% endif %}
+                {% if item.status not in ['pendente', 'pendente_ajuste'] %}readonly{% endif %}
               >
             </td>
 
@@ -411,6 +432,8 @@
                 <span class="status-confirmado">Confirmado</span>
               {% elif item.status == 'recusado' %}
                 <span class="status-recusado">Recusado</span>
+              {% elif item.status == 'pendente_ajuste' %}
+                <span class="status-ajuste">Ajuste</span>
               {% else %}
                 <span class="status-pendente">Pendente</span>
               {% endif %}
@@ -421,7 +444,7 @@
           {% else %}
 
           <tr>
-            <td colspan="11" class="text-center text-muted py-4">
+            <td colspan="9" class="text-center text-muted py-4">
               Nenhum item encontrado.
             </td>
           </tr>
@@ -433,7 +456,10 @@
       </table>
 
     </div>
-    
+    {% else %}
+    <div class="text-center text-muted py-4">Nenhum item encontrado.</div>
+    {% endfor %}
+
 <div class="d-flex justify-content-end mt-3 pe-3">
 
   <div class="card shadow-sm border-0"
@@ -449,13 +475,28 @@
 
         {% set total = namespace(valor=0.0) %}
 
-        {% for item in baixa.itens %}
+        {% for item in baixa.itens|cliente_primeiro %}
           {% set valor_item = (item.valor_total|string)|replace(',', '.')|float %}
           {% set total.valor = total.valor + valor_item %}
         {% endfor %}
 
-        R$ {{ '%.2f'|format(total.valor)|replace('.', ',') }}
+        {{ total.valor|brl }}
               </h4>
+
+      {% set totais_origem = namespace(empresa=0.0, cliente=0.0) %}
+      {% for item in baixa.itens|cliente_primeiro %}
+        {% set valor_item = (item.valor_total or 0)|float %}
+        {% if (item.tipo_estoque or 'empresa') == 'cliente' %}
+          {% set totais_origem.cliente = totais_origem.cliente + valor_item %}
+        {% else %}
+          {% set totais_origem.empresa = totais_origem.empresa + valor_item %}
+        {% endif %}
+      {% endfor %}
+      <div class="small text-muted mt-2">
+        Cliente/O.S: {{ totais_origem.cliente|brl }}
+        &nbsp;|&nbsp;
+        Empresa: {{ totais_origem.empresa|brl }}
+      </div>
 
     </div>
 
@@ -468,7 +509,7 @@
   <div class="d-flex gap-2">
 
     <a
-      href="{{ url_for('baixa_desktop.baixas_realizadas') }}"
+      href="{% if baixa.status in ['pendente', 'revisada'] %}{{ url_for('baixa_desktop.baixas_pendentes') }}{% else %}{{ url_for('baixa_desktop.baixas_realizadas') }}{% endif %}"
       class="btn btn-outline-secondary btn-acao"
     >
       <i class="bi bi-arrow-left me-1"></i>
@@ -515,9 +556,11 @@
     </button>
 
     <button
-      type="button"
+      type="submit"
       class="btn btn-success btn-acao"
       id="btnAprovar"
+      name="aprovar"
+      value="1"
     >
       <i class="bi bi-check-circle me-1"></i>
       Aprovar Baixa
@@ -588,7 +631,7 @@
   if (!form) return;
 
   const checkAll = document.getElementById("checkAll");
-  const itens = Array.from(document.querySelectorAll(".chk-item:not(:disabled)"));
+  const itens = Array.from(document.querySelectorAll(".chk-item"));
   const btnAprovar = document.getElementById("btnAprovar");
   const btnExcluir = document.getElementById("btnExcluir");
   const btnModalRecusar = document.getElementById("btnModalRecusar");
@@ -637,7 +680,9 @@
   }
 
   if (btnAprovar) {
-    btnAprovar.addEventListener("click", () => {
+    btnAprovar.addEventListener("click", (event) => {
+      event.preventDefault();
+
       if (!itens.some((c) => c.checked)) {
         alert("Selecione ao menos um item para aprovar.");
         return;

@@ -12,8 +12,9 @@ from app.models import (
     OrdemServico
 )
 
-from flask_login import current_user
+from flask_login import current_user, login_required
 from datetime import datetime
+from app.utils.datas import formatar_horario, hoje_local, limites_dia_utc
 from app.utils.valores_estoque import sincronizar_valor_empresa_item
 import os, pdfkit, re
 
@@ -73,6 +74,92 @@ def proximo_numero_inventario():
 
 def _nota_cancelada(nota):
     return MARCADOR_NF_CANCELADA in (nota.observacao or '')
+
+
+@bp.route('/<int:id>/editar', methods=['GET', 'POST'])
+@login_required
+def editar(id):
+    from flask import abort
+    from app.models import NotaFiscalEdicao
+    from app.utils.edicao_nota import (
+        retrato, assinatura, conferir_assinatura, bloqueio_quantidades, ajustar_quantidades,
+        corrigir_cliente,
+    )
+    if current_user.perfil not in ('admin', 'estoque'):
+        abort(403)
+    nota = NotaFiscalEntrada.query.get_or_404(id)
+    if _nota_cancelada(nota):
+        flash('Notas canceladas não podem ser editadas.', 'warning')
+        return redirect(url_for('nota_fiscal.historico'))
+    if request.method == 'POST':
+        try:
+            # Re-read after acquiring the invoice lock: reject stale editing tabs.
+            nota = NotaFiscalEntrada.query.filter_by(id=id).populate_existing().with_for_update().one()
+            db.session.expire(nota, ['itens'])
+            if _nota_cancelada(nota) or not conferir_assinatura(nota, request.form.get('versao', '')):
+                raise ValueError('A nota foi alterada. Reabra a edição antes de salvar.')
+            numero = request.form.get('numero_nf', '').strip()
+            fornecedor = request.form.get('fornecedor', '').strip()
+            observacao = request.form.get('observacao', '').strip()
+            motivo = request.form.get('motivo', '').strip()
+            recebimento = request.form.get('data_recebimento', '').strip()
+            data_recebimento = datetime.strptime(recebimento, '%Y-%m-%d').date() if recebimento else nota.data_recebimento
+            if data_recebimento and data_recebimento > hoje_local():
+                raise ValueError('A data de recebimento não pode ser futura.')
+            if not numero or len(numero) > 50 or not fornecedor or len(fornecedor) > 150:
+                raise ValueError('Preencha número (até 50 caracteres) e fornecedor (até 150).')
+            if not motivo or len(motivo) > 2000:
+                raise ValueError('Informe o motivo da correção (até 2000 caracteres).')
+            if MARCADOR_NF_CANCELADA in observacao:
+                raise ValueError('A observação contém um marcador reservado de cancelamento.')
+            if numero != nota.numero_nf and _nota_ativa_com_numero(numero):
+                raise ValueError('Já existe uma nota ativa com esse número.')
+            fornecedores = {e.razao_social for e in Empresa.query.filter_by(tipo_empresa='fornecedor').all()}
+            if fornecedor != nota.fornecedor and fornecedor not in fornecedores:
+                raise ValueError('Selecione um fornecedor cadastrado.')
+            quantidades = {}
+            for item in nota.itens:
+                recebido = request.form.get(f'quantidade_{item.id}')
+                if recebido is None:
+                    quantidades[item.id] = item.quantidade
+                elif not re.fullmatch(r'[0-9]{1,9}', recebido) or int(recebido) <= 0:
+                    raise ValueError('As quantidades devem ser números inteiros positivos.')
+                else:
+                    quantidades[item.id] = int(recebido)
+            antes = retrato(nota)
+            novo_cliente_raw = request.form.get('novo_cliente_id', '').strip()
+            if novo_cliente_raw and (not novo_cliente_raw.isascii() or not novo_cliente_raw.isdigit() or len(novo_cliente_raw) > 10):
+                raise ValueError('Selecione um cliente válido para o novo destino.')
+            novo_cliente_id = int(novo_cliente_raw) if novo_cliente_raw else nota.cliente_id
+            if novo_cliente_id != nota.cliente_id:
+                corrigir_cliente(nota, novo_cliente_id, quantidades,
+                                 request.form.get('confirmar_destino') == '1')
+            elif any(quantidades[i.id] != i.quantidade for i in nota.itens):
+                ajustar_quantidades(nota, quantidades)
+            nota.numero_nf, nota.fornecedor, nota.observacao = numero, fornecedor, observacao
+            nota.data_recebimento = data_recebimento
+            db.session.flush()
+            depois = retrato(nota)
+            if antes == depois:
+                raise ValueError('Nenhuma alteração foi informada.')
+            db.session.add(NotaFiscalEdicao(nota_fiscal_id=nota.id, usuario_id=current_user.id,
+                                           motivo=motivo, antes=antes, depois=depois))
+            db.session.commit()
+            flash('Nota corrigida e histórico registrado. Saldo atualizado conforme a correção.', 'success')
+            return redirect(url_for('nota_fiscal.detalhes', id=id))
+        except ValueError as erro:
+            db.session.rollback()
+            flash(str(erro), 'warning')
+        except Exception:
+            db.session.rollback()
+            current_app.logger.exception('Falha ao editar nota %s', id)
+            flash('Não foi possível salvar. Nenhuma alteração foi aplicada. Reabra a nota e tente novamente.', 'danger')
+        return redirect(url_for('nota_fiscal.editar', id=id))
+    historico = NotaFiscalEdicao.query.filter_by(nota_fiscal_id=id).order_by(NotaFiscalEdicao.id.desc()).all()
+    fornecedores = Empresa.query.filter_by(tipo_empresa='fornecedor').order_by(Empresa.razao_social).all()
+    clientes = Empresa.query.filter_by(tipo_empresa='cliente').order_by(Empresa.razao_social).all()
+    return render_template('nota_fiscal/editar.html', nota=nota, fornecedores=fornecedores,
+                           clientes=clientes, bloqueio=bloqueio_quantidades(nota), versao=assinatura(nota), historico=historico)
 
 
 def _nota_ativa_com_numero(numero_nf):
@@ -174,7 +261,7 @@ def _aplicar_cancelamento_nota(nota, itens):
                 ),
                 Estoque.quantidade > 0
             )
-            .order_by(Estoque.id.asc())
+            .order_by(Estoque.id.asc()).populate_existing().with_for_update()
             .all()
         )
 
@@ -239,6 +326,14 @@ def nova_nota():
         )
 
         observacao = request.form.get('observacao', '').strip() or 'N/D'
+        recebimento = request.form.get('data_recebimento', '').strip()
+        try:
+            data_recebimento = datetime.strptime(recebimento, '%Y-%m-%d').date() if recebimento else hoje_local()
+            if data_recebimento > hoje_local():
+                raise ValueError()
+        except ValueError:
+            flash('Informe uma data de recebimento válida, sem data futura.', 'warning')
+            return redirect(url_for('nota_fiscal.nova_nota'))
 
         if not numero_nf:
             flash('Informe o número da nota fiscal.', 'warning')
@@ -337,7 +432,8 @@ def nova_nota():
             tipo_servico_id=tipo_servico_id,
             usuario_id=current_user.id if current_user.is_authenticated else None,
             observacao=observacao,
-            data_hora=datetime.utcnow()
+            data_hora=datetime.utcnow(),
+            data_recebimento=data_recebimento
         )
 
         db.session.add(nova_nota)
@@ -398,8 +494,7 @@ def nova_nota():
                 if descricao_item and descricao_item != item.descricao:
                     item.descricao = descricao_item
 
-                if tipo_estoque == 'empresa':
-                    item.valor = valor_convertido
+                # Preserve the unit price entered for this invoice.
 
                 item.categoria = categoria_entrada
 
@@ -425,7 +520,7 @@ def nova_nota():
                     if tipo_estoque == 'cliente'
                     else None
                 )
-            ).first()
+            ).populate_existing().with_for_update().first()
 
             if estoque:
                 estoque.quantidade += quantidade_int
@@ -589,7 +684,7 @@ def exportar_pdf(id):
     ctx = dict(
         nota=nota,
         numero=nota.numero_nf or nota.id,
-        data_hora=nota.data_hora.strftime('%d/%m/%Y %H:%M') if nota.data_hora else '',
+        data_hora=formatar_horario(nota.data_hora, '%d/%m/%Y %H:%M') if nota.data_hora else '',
         fornecedor=nota.fornecedor or '',
         tipo_estoque=nota.tipo_estoque or '',
         cliente=nota.cliente.razao_social if nota.cliente else '',
@@ -764,10 +859,11 @@ def exportar_excel(id):
             ),
             (
                 "Data Registro",
-                nota.data_hora.strftime("%d/%m/%Y %H:%M")
+                formatar_horario(nota.data_hora, '%d/%m/%Y %H:%M')
                 if nota.data_hora
                 else ""
             ),
+            ("Recebimento", nota.data_recebimento.strftime('%d/%m/%Y') if nota.data_recebimento else "Não informado"),
             ("Observação", nota.observacao or "")
         ])
 
@@ -865,6 +961,7 @@ def historico_valores():
     query = (
         db.session.query(
             NotaFiscalEntrada.data_hora,
+            NotaFiscalEntrada.data_recebimento,
             NotaFiscalEntrada.numero_nf,
             NotaFiscalEntrada.fornecedor,
             Item.codigo,
@@ -889,7 +986,7 @@ def historico_valores():
     if data_inicio:
         try:
             dt_inicio = datetime.strptime(data_inicio, "%Y-%m-%d")
-            query = query.filter(NotaFiscalEntrada.data_hora >= dt_inicio)
+            query = query.filter(NotaFiscalEntrada.data_hora >= limites_dia_utc(dt_inicio.date())[0])
         except Exception:
             pass
 
@@ -897,7 +994,7 @@ def historico_valores():
         try:
             dt_fim = datetime.strptime(data_fim, "%Y-%m-%d")
             dt_fim = dt_fim.replace(hour=23, minute=59, second=59)
-            query = query.filter(NotaFiscalEntrada.data_hora <= dt_fim)
+            query = query.filter(NotaFiscalEntrada.data_hora < limites_dia_utc(dt_fim.date())[1])
         except Exception:
             pass
 
@@ -952,6 +1049,7 @@ def exportar_historico_valores_excel():
     query = (
         db.session.query(
             NotaFiscalEntrada.data_hora,
+            NotaFiscalEntrada.data_recebimento,
             NotaFiscalEntrada.numero_nf,
             NotaFiscalEntrada.fornecedor,
             Item.codigo,
@@ -976,7 +1074,7 @@ def exportar_historico_valores_excel():
     if data_inicio:
         try:
             dt_inicio = datetime.strptime(data_inicio, "%Y-%m-%d")
-            query = query.filter(NotaFiscalEntrada.data_hora >= dt_inicio)
+            query = query.filter(NotaFiscalEntrada.data_hora >= limites_dia_utc(dt_inicio.date())[0])
         except Exception:
             pass
 
@@ -984,7 +1082,7 @@ def exportar_historico_valores_excel():
         try:
             dt_fim = datetime.strptime(data_fim, "%Y-%m-%d")
             dt_fim = dt_fim.replace(hour=23, minute=59, second=59)
-            query = query.filter(NotaFiscalEntrada.data_hora <= dt_fim)
+            query = query.filter(NotaFiscalEntrada.data_hora < limites_dia_utc(dt_fim.date())[1])
         except Exception:
             pass
 
@@ -994,7 +1092,8 @@ def exportar_historico_valores_excel():
     ).all()
 
     colunas_detalhe = [
-        "Data Entrada",
+        "Data Registro",
+        "Recebimento",
         "NF",
         "Fornecedor",
         "Código",
@@ -1033,7 +1132,8 @@ def exportar_historico_valores_excel():
             variacao = ((valor_atual - valor_unitario) / valor_unitario) * 100
 
         dados.append({
-            "Data Entrada": r.data_hora.strftime("%d/%m/%Y %H:%M") if r.data_hora else "",
+            "Data Registro": formatar_horario(r.data_hora, '%d/%m/%Y %H:%M') if r.data_hora else "",
+            "Recebimento": r.data_recebimento.strftime('%d/%m/%Y') if r.data_recebimento else "Não informado",
             "NF": r.numero_nf or "",
             "Fornecedor": r.fornecedor or "",
             "Código": r.codigo or "",
@@ -1351,7 +1451,8 @@ def pesquisar():
             data = datetime.strptime(data_emissao, '%Y-%m-%d')
 
             query = query.filter(
-                db.func.date(NotaFiscalEntrada.data_hora) == data.date()
+                NotaFiscalEntrada.data_hora >= limites_dia_utc(data.date())[0],
+                NotaFiscalEntrada.data_hora < limites_dia_utc(data.date())[1]
             )
 
         except:

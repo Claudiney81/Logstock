@@ -17,7 +17,7 @@
         </tr>
       </thead>
       <tbody>
-        {% for baixa in baixas %} {% for item in baixa.itens %}
+        {% for baixa in baixas %} {% for item in baixa.itens|cliente_primeiro %}
         <tr>
           <td>{{ baixa.data.strftime('%d/%m/%Y %H:%M') }}</td>
           <td>{{ baixa.tecnico.nome if baixa.tecnico else '---' }}</td>
@@ -40,6 +40,7 @@
               </form>
 
               <button
+                type="button"
                 class="btn btn-danger btn-sm"
                 data-bs-toggle="modal"
                 data-bs-target="#recusarModal{{ baixa.id }}"

@@ -100,7 +100,7 @@
         </div>
 
         <div class="col-md-auto d-grid">
-          <button class="btn btn-primary">
+          <button type="submit" class="btn btn-primary">
             <i class="bi bi-search me-1"></i>
             Filtrar
           </button>
@@ -137,7 +137,7 @@
               <td>{{ tipo_servico.nome if tipo_servico else '-' }}</td>
               <td>{{ item.unidade }}</td>
               <td class="text-nowrap">
-                R$ {{ "%.2f"|format(item.valor or 0)|replace('.', ',') }}
+                {{ (item.valor or 0)|brl }}
               </td>
               <td class="text-end text-danger fw-bold">{{ estoque.quantidade }}</td>
               <td class="text-end">

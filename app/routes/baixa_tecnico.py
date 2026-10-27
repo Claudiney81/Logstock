@@ -27,6 +27,7 @@ from werkzeug.security import (
 )
 
 from app import db
+from app.drafts import draft_saved
 
 from app.models import (
     Tecnico,
@@ -40,6 +41,7 @@ from app.models import (
     Usuario,
     OrdemServico
 )
+from app.utils.baixa_sobras import transferir_sobras_cliente_para_empresa
 
 bp_baixa_tecnico = Blueprint(
     "baixa_tecnico",
@@ -47,7 +49,7 @@ bp_baixa_tecnico = Blueprint(
     url_prefix="/baixa_tecnico"
 )
 
-PERFIS_APROVADOR_BAIXA = {"admin", "tecnica", "engenheiro", "supervisor"}
+PERFIS_APROVADOR_BAIXA = {"admin"}
 
 
 def usuario_pode_aprovar_baixa():
@@ -73,28 +75,12 @@ def exigir_aprovador_mobile():
 # ==========================================================
 
 def get_tecnico_mobile():
-    tecnico_id = session.get("tecnico_id")
-
-    if tecnico_id:
-        tecnico = Tecnico.query.get(tecnico_id)
-        if tecnico:
-            return tecnico
-
-    if current_user.is_authenticated:
-        if getattr(current_user, "tecnico_id", None):
-            tecnico = Tecnico.query.get(current_user.tecnico_id)
+    if session.get("perfil_mobile") == "tecnico":
+        tecnico_id = session.get("tecnico_id")
+        if tecnico_id:
+            tecnico = Tecnico.query.get(tecnico_id)
             if tecnico:
                 return tecnico
-
-        if getattr(current_user, "email", None):
-            tecnico = Tecnico.query.filter_by(email=current_user.email).first()
-            if tecnico:
-                return tecnico
-
-    tecnico_id = request.args.get("tecnico_id", type=int)
-
-    if tecnico_id:
-        return Tecnico.query.get(tecnico_id)
 
     return None
 
@@ -213,33 +199,62 @@ def formulario_mobile_dedicado(tecnico_id=None):
     )
 
     clientes = (
-    db.session.query(Empresa)
-    .join(
-        OrdemServico,
-        OrdemServico.cliente_id == Empresa.id
+        db.session.query(Empresa)
+        .join(
+            OrdemServico,
+            OrdemServico.cliente_id == Empresa.id
+        )
+        .filter(
+            Empresa.razao_social.notilike("%CCM%"),
+            db.func.lower(Empresa.tipo_empresa) == "cliente",
+            or_(
+                OrdemServico.status.is_(None),
+                OrdemServico.status.in_(["aberta", "em_andamento"])
+            ),
+            ~db.session.query(BaixaTecnica.id)
+            .filter(
+                BaixaTecnica.ordem_servico_id == OrdemServico.id,
+                BaixaTecnica.status.in_([
+                    "pendente",
+                    "revisada",
+                    "pendente_ajuste",
+                    "recusado",
+                    "confirmado",
+                    "aprovada",
+                    "aprovada_parcial"
+                ])
+            )
+            .exists()
+        )
+        .distinct()
+        .order_by(
+            Empresa.razao_social
+        )
+        .all()
     )
-    .filter(
-        Empresa.razao_social.notilike("%CCM%")
-    )
-    .filter(
-        db.func.lower(Empresa.tipo_empresa) == "cliente"
-    )
-    .distinct()
-    .order_by(
-        Empresa.razao_social
-    )
-    .all()
-)
 
     baixas_recusadas = (
         BaixaTecnica.query
         .filter(
             BaixaTecnica.tecnico_id == tecnico.id,
-            BaixaTecnica.status.in_(["recusado", "pendente_ajuste"]),
+            BaixaTecnica.status.in_( ["recusado", "pendente_ajuste"] ),
             BaixaTecnica.origem_mobile == True
         )
         .order_by(BaixaTecnica.data_hora.desc())
         .all()
+    )
+
+    # O filtro de novas baixas não pode ocultar o cliente da própria baixa
+    # devolvida, pois ele é necessário para carregar os saldos na correção.
+    clientes_por_id = {cliente.id: cliente for cliente in clientes}
+    for baixa in baixas_recusadas:
+        if baixa.cliente_id and baixa.cliente_id not in clientes_por_id:
+            cliente_correcao = Empresa.query.get(baixa.cliente_id)
+            if cliente_correcao:
+                clientes_por_id[cliente_correcao.id] = cliente_correcao
+    clientes = sorted(
+        clientes_por_id.values(),
+        key=lambda cliente: (cliente.razao_social or "").lower()
     )
 
     saldos_correcao = {}
@@ -291,9 +306,35 @@ def formulario_mobile_dedicado(tecnico_id=None):
 def api_os_por_cliente():
     tecnico_id = request.args.get("tecnico_id", type=int)
     cliente_id = request.args.get("cliente_id", type=int)
+    baixa_id_corrigir = request.args.get("baixa_id_corrigir", type=int)
 
     if not tecnico_id or not cliente_id:
         return jsonify({"ordens": []})
+
+    filtro_baixas = db.session.query(BaixaTecnica.id).filter(
+        BaixaTecnica.ordem_servico_id == OrdemServico.id,
+        BaixaTecnica.status.in_([
+            "pendente",
+            "revisada",
+            "pendente_ajuste",
+            "recusado",
+            "confirmado",
+            "aprovada",
+            "aprovada_parcial"
+        ])
+    )
+
+    if baixa_id_corrigir:
+        baixa_correcao = BaixaTecnica.query.filter(
+            BaixaTecnica.id == baixa_id_corrigir,
+            BaixaTecnica.tecnico_id == tecnico_id,
+            BaixaTecnica.status.in_(["recusado", "pendente_ajuste"]),
+            BaixaTecnica.origem_mobile == True
+        ).first()
+        if baixa_correcao:
+            filtro_baixas = filtro_baixas.filter(
+                BaixaTecnica.id != baixa_correcao.id
+            )
 
     registros = (
         db.session.query(
@@ -302,7 +343,12 @@ def api_os_por_cliente():
             OrdemServico.endereco
         )
         .filter(
-            OrdemServico.cliente_id == cliente_id
+            OrdemServico.cliente_id == cliente_id,
+            or_(
+                OrdemServico.status.is_(None),
+                OrdemServico.status.in_(["aberta", "em_andamento"])
+            ),
+            ~filtro_baixas.exists()
         )
         .order_by(
             OrdemServico.numero_os
@@ -476,6 +522,7 @@ def registrar():
     tipo_servico_id = request.form.get("tipo_servico_id", type=int)
     cliente_id = request.form.get("cliente_id", type=int)
     ordem_servico_id = request.form.get("ordem_servico_id", type=int)
+    baixa_id_corrigir = request.form.get("baixa_id_corrigir", type=int)
 
     endereco = request.form.get("endereco", "").strip()
     observacao = request.form.get("observacao", "").strip() or "N/D"
@@ -509,7 +556,7 @@ def registrar():
 
     cliente = Empresa.query.get(cliente_id) if cliente_id else None
 
-    itens_validos = []
+    itens_por_origem = {}
 
     for item_id, qtd, tipo_est, cliente_est in zip(
         item_ids,
@@ -536,12 +583,20 @@ def registrar():
             tipo_est = "empresa"
 
         if item_id and qtd > 0:
-            itens_validos.append({
-                "item_id": item_id,
-                "quantidade": qtd,
-                "tipo_estoque": tipo_est,
-                "cliente_estoque_id": cliente_est if tipo_est == "cliente" else None
-            })
+            cliente_ref = cliente_est if tipo_est == "cliente" else None
+            chave_item = (item_id, tipo_est, cliente_ref or 0)
+
+            if chave_item not in itens_por_origem:
+                itens_por_origem[chave_item] = {
+                    "item_id": item_id,
+                    "quantidade": 0,
+                    "tipo_estoque": tipo_est,
+                    "cliente_estoque_id": cliente_ref
+                }
+
+            itens_por_origem[chave_item]["quantidade"] += qtd
+
+    itens_validos = list(itens_por_origem.values())
 
     if not itens_validos:
         flash("Informe ao menos um item com quantidade.", "warning")
@@ -551,6 +606,32 @@ def registrar():
                 tecnico_id=tecnico_id
             )
         )
+
+    for dados in itens_validos:
+        saldo_total = quantidade_saldo_tecnico(
+            tecnico_id=tecnico_id,
+            item_id=dados["item_id"],
+            tipo_estoque=dados["tipo_estoque"],
+            cliente_id=dados["cliente_estoque_id"],
+            ordem_servico_id=(
+                ordem_servico_id
+                if dados["tipo_estoque"] == "cliente"
+                else None
+            )
+        )
+
+        if int(dados["quantidade"] or 0) > saldo_total:
+            item = Item.query.get(dados["item_id"])
+            flash(
+                f"Quantidade maior que o saldo disponível para {item.descricao if item else dados['item_id']}.",
+                "danger"
+            )
+            return redirect(
+                url_for(
+                    "baixa_tecnico.formulario_mobile_dedicado",
+                    tecnico_id=tecnico_id
+                )
+            )
 
     try:
         nome_cliente_os = None
@@ -563,18 +644,28 @@ def registrar():
             elif ordem_servico:
                 nome_cliente_os += f" - {ordem_servico}"
 
-        baixa_existente = (
-            BaixaTecnica.query
-            .filter(
-                BaixaTecnica.tecnico_id == tecnico_id,
-                BaixaTecnica.status.in_(["recusado", "pendente_ajuste"]),
-                BaixaTecnica.visualizado_tecnico == False,
-                BaixaTecnica.origem_mobile == True
-            )
-            .order_by(BaixaTecnica.data_hora.desc())
-            .first()
-        )
+        baixa_existente = None
 
+        if baixa_id_corrigir:
+            baixa_existente = (
+                BaixaTecnica.query
+                .filter(
+                    BaixaTecnica.id == baixa_id_corrigir,
+                    BaixaTecnica.tecnico_id == tecnico_id,
+                    BaixaTecnica.status.in_(["recusado", "pendente_ajuste"]),
+                    BaixaTecnica.origem_mobile == True
+                )
+                .first()
+            )
+
+            if not baixa_existente:
+                flash("Baixa devolvida para correção não encontrada.", "danger")
+                return redirect(
+                    url_for(
+                        "baixa_tecnico.formulario_mobile_dedicado",
+                        tecnico_id=tecnico_id
+                    )
+                )
         if baixa_existente:
             baixa = baixa_existente
 
@@ -583,8 +674,11 @@ def registrar():
             baixa.ordem_servico_id = ordem_servico_id
             baixa.os_cliente = nome_cliente_os
             baixa.endereco = endereco
-            baixa.observacao = observacao
-            baixa.status = "pendente"
+            # O formulário mobile pode enviar N/D quando o campo não foi preenchido.
+            # Na correção, preserve o texto registrado em vez de apagá-lo.
+            if observacao.upper() != "N/D":
+                baixa.observacao = observacao
+            baixa.status = "revisada"
             baixa.motivo_recusa = None
             baixa.visualizado_tecnico = False
 
@@ -611,6 +705,11 @@ def registrar():
 
             db.session.add(baixa)
             db.session.flush()
+
+        if ordem_servico_id:
+            ordem = OrdemServico.query.get(ordem_servico_id)
+            if ordem and ordem.status != "finalizada":
+                ordem.status = "em_andamento"
 
         fotos = request.files.getlist("fotos[]")
         legendas = request.form.getlist("legenda_foto[]")
@@ -701,7 +800,7 @@ def registrar():
         db.session.commit()
 
         if baixa_existente:
-            flash("Baixa corrigida e reenviada para aprovação.", "success")
+            flash("Baixa revisada e reenviada para aprovação.", "success")
         else:
             flash("Baixa enviada com sucesso. Aguarde aprovação.", "success")
 
@@ -730,7 +829,9 @@ def pendentes_mobile():
 
     baixas = (
         BaixaTecnica.query
-        .filter_by(status="pendente")
+        .filter(
+            BaixaTecnica.status.in_(["pendente", "revisada"])
+        )
         .order_by(BaixaTecnica.data_hora.desc())
         .all()
     )
@@ -754,9 +855,87 @@ def detalhe_pendente_mobile(baixa_id):
 
     baixa = BaixaTecnica.query.get_or_404(baixa_id)
 
+    saldos_itens = {}
+    proj_cliente_itens = []
+    proj_cliente_total = 0
+    itens_ordenados = sorted(
+        baixa.itens,
+        key=lambda item: (
+            0 if (item.tipo_estoque or "empresa") == "cliente" else 1,
+            item.item.codigo if item.item else "",
+            item.id
+        )
+    )
+
+    for item in itens_ordenados:
+        tipo_item = (item.tipo_estoque or "empresa").strip().lower()
+        cliente_estoque_id = item.cliente_estoque_id if tipo_item == "cliente" else None
+
+        if tipo_item == "cliente" and not cliente_estoque_id:
+            cliente_estoque_id = baixa.cliente_id
+
+        query_saldo = SaldoTecnico.query.filter(
+            SaldoTecnico.tecnico_id == baixa.tecnico_id,
+            SaldoTecnico.item_id == item.item_id,
+            SaldoTecnico.tipo_servico_id == 1,
+            SaldoTecnico.tipo_estoque == tipo_item
+        )
+
+        if tipo_item == "cliente":
+            query_saldo = query_saldo.filter(
+                SaldoTecnico.cliente_id == cliente_estoque_id,
+                SaldoTecnico.ordem_servico_id == baixa.ordem_servico_id
+            )
+        else:
+            query_saldo = query_saldo.filter(
+                SaldoTecnico.cliente_id.is_(None),
+                SaldoTecnico.ordem_servico_id.is_(None)
+            )
+
+        saldo_registro = query_saldo.first()
+        saldo_atual = int(saldo_registro.quantidade or 0) if saldo_registro else 0
+        chave_saldo = f"{item.item_id}|{tipo_item}|{cliente_estoque_id or 0}"
+        saldos_itens[chave_saldo] = saldo_atual
+
+        if tipo_item == "cliente":
+            quantidade_origem = (
+                int(item.quantidade or 0)
+                + int(item.quantidade_aprovada or 0)
+            )
+
+            proj_cliente_itens.append({
+                "codigo": item.item.codigo if item.item else "-",
+                "descricao": item.item.descricao if item.item else "-",
+                "unidade": item.item.unidade if item.item else "-",
+                "quantidade": quantidade_origem,
+                "valor_unitario": float(item.valor_unitario or 0),
+                "valor_total": float(item.valor_total or 0)
+            })
+            proj_cliente_total += float(item.valor_total or 0)
+
+    total_geral = 0.0
+    total_empresa = 0.0
+    total_cliente = 0.0
+
+    for item in itens_ordenados:
+        valor = float(item.valor_total or 0)
+        total_geral += valor
+
+        if item.tipo_estoque == 'cliente':
+            total_cliente += valor
+        else:
+            total_empresa += valor
+
     return render_template(
         "baixas_mobile/detalhe_pendente_mobile.html",
-        baixa=baixa
+        baixa=baixa,
+        itens_ordenados=itens_ordenados,
+        saldos_itens=saldos_itens,
+        proj_cliente_itens=proj_cliente_itens,
+        proj_cliente_total=proj_cliente_total,
+        total_geral=total_geral,
+        total_empresa=total_empresa,
+        total_cliente=total_cliente
     )
 
 
@@ -777,7 +956,7 @@ def aprovar_mobile(baixa_id):
         BaixaTecnicaItem.query
         .filter(
             BaixaTecnicaItem.baixa_tecnica_id == baixa.id,
-            BaixaTecnicaItem.status == "pendente"
+            BaixaTecnicaItem.status.in_(["pendente", "pendente_ajuste"])
         )
         .all()
     )
@@ -854,9 +1033,9 @@ def aprovar_mobile(baixa_id):
 
         pendentes = (
             BaixaTecnicaItem.query
-            .filter_by(
-                baixa_tecnica_id=baixa.id,
-                status="pendente"
+            .filter(
+                BaixaTecnicaItem.baixa_tecnica_id == baixa.id,
+                BaixaTecnicaItem.status.in_(["pendente", "pendente_ajuste"])
             )
             .count()
         )
@@ -867,25 +1046,27 @@ def aprovar_mobile(baixa_id):
         else:
             baixa.status = "pendente"
 
-        if baixa.cliente_id:
-            cliente_os = Empresa.query.get(baixa.cliente_id)
+        if baixa.ordem_servico_id:
+            ordem = OrdemServico.query.get(baixa.ordem_servico_id)
 
-            if cliente_os:
+            if ordem:
                 baixas_abertas = (
-                    BaixaTecnica.query
-                    .filter(
-                        BaixaTecnica.cliente_id == baixa.cliente_id,
-                        BaixaTecnica.tecnico_id == baixa.tecnico_id,
-                        BaixaTecnica.status.in_(["pendente", "pendente_ajuste"])
-                    )
-                    .count()
+                        BaixaTecnica.query
+                        .filter(
+                            BaixaTecnica.ordem_servico_id == baixa.ordem_servico_id,
+                            BaixaTecnica.status.in_(["pendente", "revisada"])
+                        )
+                        .count()
                 )
 
-                cliente_os.status_os = (
-                    "finalizada"
-                    if baixas_abertas == 0
-                    else "em_andamento"
-                )
+                if baixas_abertas == 0:
+                    ordem.status = "finalizada"
+                    transferir_sobras_cliente_para_empresa(
+                        tecnico_id=baixa.tecnico_id,
+                        ordem_servico_id=baixa.ordem_servico_id
+                    )
+                else:
+                    ordem.status = "em_andamento"
 
         db.session.commit()
 
@@ -955,15 +1136,19 @@ def recusar_mobile(baixa_id):
             item_baixa.status = "pendente_ajuste"
             item_baixa.motivo_recusa = motivo
 
-        if baixa.cliente_id:
-            cliente_os = Empresa.query.get(baixa.cliente_id)
+        if baixa.ordem_servico_id:
+            ordem = OrdemServico.query.get(baixa.ordem_servico_id)
 
-            if cliente_os:
-                cliente_os.status_os = "em_andamento"
+            if ordem:
+                ordem.status = "em_andamento"
 
         db.session.commit()
 
-        flash("Baixa devolvida para ajuste do técnico.", "warning")
+        if baixa.origem_mobile:
+            flash("Baixa devolvida para ajuste no portal do técnico.", "warning")
+        else:
+            flash("Baixa devolvida para correção no Baixa Desktop.", "warning")
+        draft_saved()
 
     except Exception as e:
         db.session.rollback()
@@ -1037,5 +1222,4 @@ def login_aprovador_mobile():
         return redirect(url_for("baixa_tecnico.pendentes_mobile"))
 
     return render_template("baixas_mobile/login_aprovador.html")
-
 

@@ -1,0 +1,98 @@
+{% extends 'base.html' %}
+{% block content %}
+<div class="container-fluid py-3">
+  <h2>Editar nota fiscal {{ nota.numero_nf }}</h2>
+  <div class="alert alert-secondary">
+    Destino: {{ nota.cliente.razao_social if nota.tipo_estoque == 'cliente' and nota.cliente else 'Estoque da empresa' }}.
+    A correção de quantidade ajusta o saldo deste destino.
+  </div>
+  {% if bloqueio %}<div class="alert alert-warning">{{ bloqueio }} Os dados da nota continuam disponíveis para correção.</div>{% endif %}
+  <form method="post">
+    <input type="hidden" name="versao" value="{{ versao }}">
+    {% if nota.tipo_estoque == 'cliente' %}
+    <div class="border rounded p-3 mb-3">
+      <label for="novo_cliente_id" class="form-label">Cliente de destino</label>
+      <select id="novo_cliente_id" name="novo_cliente_id" class="form-select" data-atual="{{ nota.cliente_id }}" {% if bloqueio or nota.ordem_servico_id %}disabled{% endif %}>
+        <option value="{{ nota.cliente_id }}">Manter: {{ nota.cliente.razao_social if nota.cliente else 'Cliente atual' }}</option>
+        {% for cliente in clientes if cliente.id != nota.cliente_id %}
+        <option value="{{ cliente.id }}">{{ cliente.razao_social }}</option>
+        {% endfor %}
+      </select>
+      <p class="form-text">Ao trocar o cliente, serão retiradas do cliente anterior e acrescentadas ao novo somente as quantidades desta nota. Mesmo que o saldo seja maior, não é permitido aumentar ou reduzir essas quantidades na troca.</p>
+      {% if nota.ordem_servico_id %}<p class="text-warning">Nota vinculada a uma O.S.: confira o vínculo antes de corrigir o cliente.</p>{% endif %}
+      <div id="conferencia_destino" hidden>
+        <label><input type="checkbox" id="confirmar_destino" name="confirmar_destino" value="1">
+          Conferi o novo cliente e todos os materiais e quantidades da nota abaixo.</label>
+      </div>
+    </div>
+    {% endif %}
+    <div class="row g-3 mb-3">
+      <div class="col-md-4"><label for="data_recebimento" class="form-label">Data de recebimento</label>
+        <input type="date" id="data_recebimento" name="data_recebimento" class="form-control"
+          value="{{ nota.data_recebimento.isoformat() if nota.data_recebimento else '' }}" max="{{ hoje_local().isoformat() }}"></div>
+      <div class="col-md-4"><label for="numero_nf" class="form-label">Número da nota</label>
+        <input id="numero_nf" name="numero_nf" class="form-control" required maxlength="50" value="{{ nota.numero_nf }}"></div>
+      <div class="col-md-8"><label for="fornecedor" class="form-label">Fornecedor</label>
+        <select id="fornecedor" name="fornecedor" class="form-select" required>
+          <option value="{{ nota.fornecedor }}">{{ nota.fornecedor }}</option>
+          {% for fornecedor in fornecedores if fornecedor.razao_social != nota.fornecedor %}
+          <option value="{{ fornecedor.razao_social }}">{{ fornecedor.razao_social }}</option>
+          {% endfor %}
+        </select></div>
+      <div class="col-12"><label for="observacao" class="form-label">Observação</label>
+        <textarea id="observacao" name="observacao" class="form-control" rows="3">{{ nota.observacao or '' }}</textarea></div>
+    </div>
+    <div class="table-responsive"><table class="table table-bordered align-middle">
+      <thead><tr><th>Código</th><th>Material</th><th>Unidade</th><th>Quantidade atual</th><th>Quantidade correta</th><th>Valor unitário</th></tr></thead>
+      <tbody>{% for item in nota.itens %}<tr>
+        <td>{{ item.item.codigo if item.item else '-' }}</td><td>{{ item.item.descricao if item.item else '-' }}</td>
+        <td>{{ item.item.unidade if item.item else '-' }}</td><td>{{ item.quantidade }}</td>
+        <td><input class="form-control" type="number" min="1" max="999999999" step="1" required
+          aria-label="Quantidade correta do item {{ item.item.codigo if item.item else item.id }}"
+          name="quantidade_{{ item.id }}" value="{{ item.quantidade }}" data-original="{{ item.quantidade }}" {% if bloqueio %}disabled{% endif %}></td>
+        <td>{{ item.valor_unitario|brl }}</td>
+      </tr>{% endfor %}</tbody>
+    </table></div>
+    <label for="motivo" class="form-label">Motivo da correção</label>
+    <textarea id="motivo" name="motivo" class="form-control mb-3" required maxlength="2000" rows="2"></textarea>
+    <button type="submit" class="btn btn-primary">Salvar correções</button>
+    <a class="btn btn-outline-secondary" href="{{ url_for('nota_fiscal.historico') }}">Voltar</a>
+  </form>
+  {% if historico %}
+  <h3 class="mt-4">Histórico de correções</h3>
+  {% for edicao in historico %}
+  <details class="card p-3 mb-2">
+    <summary>{{ edicao.data_hora|horario_local('%d/%m/%Y %H:%M') }} — {{ edicao.usuario.nome if edicao.usuario else 'Usuário' }} — {{ edicao.motivo }}</summary>
+    <table class="table mt-2"><thead><tr><th>Campo</th><th>Antes</th><th>Depois</th></tr></thead><tbody>
+      {% for campo, rotulo in [('numero_nf', 'Número da nota'), ('fornecedor', 'Fornecedor'), ('observacao', 'Observação'), ('data_recebimento', 'Data de recebimento'), ('cliente_id', 'Código do cliente'), ('cliente_nome', 'Cliente')] %}
+      {% if edicao.antes[campo] != edicao.depois[campo] %}
+      <tr><td>{{ rotulo }}</td><td>{{ edicao.antes[campo] }}</td><td>{{ edicao.depois[campo] }}</td></tr>
+      {% endif %}{% endfor %}
+      {% for anterior in edicao.antes['itens'] %}{% for novo in edicao.depois['itens'] if novo.id == anterior.id and novo.quantidade != anterior.quantidade %}
+      <tr><td>Quantidade — {% for linha in nota.itens if linha.id == anterior.id %}{{ linha.item.codigo if linha.item else linha.id }}{% endfor %}</td><td>{{ anterior.quantidade }}</td><td>{{ novo.quantidade }}</td></tr>
+      {% endfor %}{% endfor %}
+    </tbody></table>
+  </details>
+  {% endfor %}
+  {% endif %}
+</div>
+<script>
+(() => {
+  const destino = document.getElementById('novo_cliente_id');
+  if (!destino) return;
+  const confirmacao = document.getElementById('confirmar_destino');
+  const atualizar = () => {
+    const trocando = destino.value !== destino.dataset.atual;
+    document.getElementById('conferencia_destino').hidden = !trocando;
+    confirmacao.required = trocando;
+    confirmacao.checked = false;
+    document.querySelectorAll('input[data-original]').forEach(input => {
+      input.readOnly = trocando;
+      if (trocando) input.value = input.dataset.original;
+    });
+  };
+  destino.addEventListener('change', atualizar);
+  atualizar();
+})();
+</script>
+{% endblock %}

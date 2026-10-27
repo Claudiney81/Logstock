@@ -2,6 +2,7 @@
 <!DOCTYPE html>
 <html lang="pt-br">
   <head>
+    {% include '_drafts.html' %}
     <meta charset="UTF-8" />
     <title>Detalhes da Baixa</title>
     <link
@@ -50,7 +51,7 @@
           </tr>
         </thead>
         <tbody>
-          {% for item in baixa.itens %}
+          {% for item in baixa.itens|cliente_primeiro %}
           <tr>
             <td>{{ item.item.codigo }}</td>
             <td>{{ item.item.descricao }}</td>
