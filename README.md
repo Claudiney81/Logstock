@@ -1,5 +1,17 @@
 # Sistema de Controle de Materiais
 
+## Demonstração pública (branch homologacao)
+
+Esta branch permite navegação automática, sem formulário de login, com uma
+identidade de visitante separada dos usuários cadastrados. Use somente dados
+fictícios no banco da homologação antes de divulgar o endereço publicamente.
+O visitante pode consultar módulos e relatórios; gravações, exclusões,
+gerenciamento de contas e acesso a backups ficam bloqueados.
+
+`LOGISTOCK_DEMO_PUBLICO=true` ativa esse modo (padrão desta branch).
+Defina `LOGISTOCK_DEMO_PUBLICO=false` para restaurar o login obrigatório.
+A branch `main` da empresa continua com a autenticação normal.
+
 ## Sobre o Sistema
 
 Este é um sistema web responsivo para controle de materiais desenvolvido em Python com Flask. O sistema permite gerenciar estoque, cadastrar itens, técnicos e empresas/parceiros, além de registrar transferências internas e externas de materiais.

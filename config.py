@@ -1,5 +1,8 @@
 import os
 
+# This default exists only on the training branch; main keeps normal login.
+LOGISTOCK_DEMO_PUBLICO = os.getenv("LOGISTOCK_DEMO_PUBLICO", "true").lower() == "true"
+
 SECRET_KEY = os.getenv("SECRET_KEY", "chave-local-dev")
 SESSION_COOKIE_HTTPONLY = True
 SESSION_COOKIE_SAMESITE = "Lax"

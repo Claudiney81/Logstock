@@ -7,6 +7,8 @@ services:
     startCommand: gunicorn --bind 0.0.0.0:$PORT --workers 1 --threads 4 --timeout 120 run:app
     healthCheckPath: /health
     envVars:
+      - key: LOGISTOCK_DEMO_PUBLICO
+        value: "true"
       - key: SECRET_KEY
         generateValue: true
       - key: DATABASE_URL

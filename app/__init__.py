@@ -183,6 +183,9 @@ def create_app(test_config=None):
         except Exception:
             return None
 
+    from app.demo import init_demo
+    init_demo(app)
+
     @app.before_request
     def bloquear_tecnico_para_admin():
         if not current_user.is_authenticated:
