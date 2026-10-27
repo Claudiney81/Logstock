@@ -1,13 +1,15 @@
 {% extends 'base.html' %}
 
 {% block content %}
+<link rel="stylesheet" href="{{ url_for('static', filename='css/dashboard.css') }}">
 
 <div class="container-fluid mt-4 app-dashboard">
 
   <div class="app-page-header">
     <div>
       <p class="app-page-kicker">Painel operacional</p>
-      <h1>LogiStock</h1>
+      <h1>Visão geral</h1>
+      <p class="dashboard-subtitle">Acompanhe o estoque, as atividades e as pendências da operação.</p>
     </div>
 
     <div class="app-page-actions">
@@ -35,7 +37,7 @@
         <span class="app-kpi-icon app-kpi-blue">
           <i class="bi bi-box-seam"></i>
         </span>
-        <span class="app-kpi-label">Itens</span>
+        <span class="app-kpi-label">Itens cadastrados</span>
         <strong>{{ indicadores.itens }}</strong>
       </a>
     </div>
@@ -51,31 +53,31 @@
     </div>
 
     <div class="col-sm-6 col-xl-2">
-      <a href="{{ url_for('estoque.alerta_estoque_baixo') }}" class="app-kpi-card">
+      <a href="{{ url_for('estoque.alerta_estoque_baixo') }}" class="app-kpi-card{% if indicadores.estoque_baixo %} dashboard-attention{% endif %}">
         <span class="app-kpi-icon app-kpi-yellow">
           <i class="bi bi-exclamation-triangle"></i>
         </span>
-        <span class="app-kpi-label">Estoque baixo</span>
+        <span class="app-kpi-label">Itens abaixo do mínimo</span>
         <strong>{{ indicadores.estoque_baixo }}</strong>
       </a>
     </div>
 
     <div class="col-sm-6 col-xl-2">
-      <a href="{{ url_for('requisicoes_tecnicos.mobile_recebidas') }}" class="app-kpi-card">
+      <a href="{{ url_for('requisicoes_tecnicos.mobile_recebidas') }}" class="app-kpi-card{% if indicadores.requisicoes_pendentes %} dashboard-attention{% endif %}">
         <span class="app-kpi-icon app-kpi-red">
           <i class="bi bi-inbox"></i>
         </span>
-        <span class="app-kpi-label">Requisições pend.</span>
+        <span class="app-kpi-label">Requisições pendentes</span>
         <strong>{{ indicadores.requisicoes_pendentes }}</strong>
       </a>
     </div>
 
     <div class="col-sm-6 col-xl-2">
-      <a href="{{ url_for('baixa_desktop.baixas_pendentes') }}" class="app-kpi-card">
+      <a href="{{ url_for('baixa_desktop.baixas_pendentes') }}" class="app-kpi-card{% if indicadores.baixas_pendentes %} dashboard-attention{% endif %}">
         <span class="app-kpi-icon app-kpi-purple">
           <i class="bi bi-journal-check"></i>
         </span>
-        <span class="app-kpi-label">Baixas pend.</span>
+        <span class="app-kpi-label">Baixas pendentes</span>
         <strong>{{ indicadores.baixas_pendentes }}</strong>
       </a>
     </div>
@@ -85,14 +87,49 @@
         <span class="app-kpi-icon app-kpi-gray">
           <i class="bi bi-file-earmark-text"></i>
         </span>
-        <span class="app-kpi-label">NFs 30 dias</span>
+        <span class="app-kpi-label">Notas nos últimos 30 dias</span>
         <strong>{{ indicadores.notas_30_dias }}</strong>
       </a>
     </div>
   </div>
 
+    <section class="dashboard-shortcuts mb-4" aria-label="Ações rápidas">
+      <div class="app-panel">
+        <div class="app-panel-header">
+          <div>
+            <h2>Ações rápidas</h2>
+            <p>Atalhos para as operações mais usadas.</p>
+          </div>
+        </div>
+
+        <div class="app-shortcut-list">
+          <a href="{{ url_for('estoque.saldo_estoque') }}">
+            <i class="bi bi-graph-up"></i>
+            <span>Saldo de estoque</span>
+          </a>
+          <a href="{{ url_for('saldo_tecnico.exibir_saldo') }}">
+            <i class="bi bi-person-bounding-box"></i>
+            <span>Saldo técnico</span>
+          </a>
+          <a href="{{ url_for('baixa_desktop.nova_baixa') }}">
+            <i class="bi bi-plus-square"></i>
+            <span>Nova baixa</span>
+          </a>
+          <a href="{{ url_for('inventario_estoque.inventario') }}">
+            <i class="bi bi-clipboard-check"></i>
+            <span>Inventário de estoque</span>
+          </a>
+          <a href="{{ url_for('ferramentas_epis.historico') }}">
+            <i class="bi bi-tools"></i>
+            <span>Ferramentas & EPIs</span>
+          </a>
+        </div>
+      </div>
+    </section>
+
+
   <div class="row g-4">
-    <div class="col-xl-8">
+    <div class="col-12">
       <div class="app-panel">
         <div class="app-panel-header">
           <div>
@@ -133,40 +170,6 @@
               {% endfor %}
             </tbody>
           </table>
-        </div>
-      </div>
-    </div>
-
-    <div class="col-xl-4">
-      <div class="app-panel h-100">
-        <div class="app-panel-header">
-          <div>
-            <h2>Ações rápidas</h2>
-            <p>Atalhos para as operações mais usadas.</p>
-          </div>
-        </div>
-
-        <div class="app-shortcut-list">
-          <a href="{{ url_for('estoque.saldo_estoque') }}">
-            <i class="bi bi-graph-up"></i>
-            <span>Saldo de estoque</span>
-          </a>
-          <a href="{{ url_for('saldo_tecnico.exibir_saldo') }}">
-            <i class="bi bi-person-bounding-box"></i>
-            <span>Saldo técnico</span>
-          </a>
-          <a href="{{ url_for('baixa_desktop.nova_baixa') }}">
-            <i class="bi bi-plus-square"></i>
-            <span>Nova baixa</span>
-          </a>
-          <a href="{{ url_for('inventario_estoque.inventario') }}">
-            <i class="bi bi-clipboard-check"></i>
-            <span>Inventário de estoque</span>
-          </a>
-          <a href="{{ url_for('ferramentas_epis.historico') }}">
-            <i class="bi bi-tools"></i>
-            <span>Ferramentas & EPIs</span>
-          </a>
         </div>
       </div>
     </div>
@@ -240,7 +243,7 @@
               <tr>
                 <td>{{ baixa.tecnico.nome if baixa.tecnico else '-' }}</td>
                 <td>
-                  <span class="app-status-pill">
+                  <span class="app-status-pill{% if baixa.status in ['pendente', 'revisada'] %} dashboard-status-pending{% endif %}">
                     {{ baixa.status|replace('_', ' ')|capitalize if baixa.status else '-' }}
                   </span>
                 </td>

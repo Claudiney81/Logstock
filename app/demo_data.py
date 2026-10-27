@@ -6,6 +6,7 @@ from tempfile import mkdtemp
 from app.extensions import db
 from app.models import (BaixaTecnica, BaixaTecnicaItem, Empresa, Estoque, Item,
                         NotaFiscalEntrada, NotaFiscalItem, OrdemServico,
+                        MovimentacaoEstoque, MovimentacaoEstoqueItem,
                         RequisicaoTecnico, SaldoTecnico, Tecnico, TipoServico, Veiculo)
 
 
@@ -92,4 +93,20 @@ def seed_demo_data():
     db.session.add(Veiculo(placa='DEMO-01', marca='Marca Exemplo', modelo='Utilitário Demonstração',
                            ano=2025, quilometragem_atual=12500,
                            responsavel=technicians[0].nome, observacao='Veículo fictício.'))
+    # Material flow: supplier receipt (60 connectors), then 42 distributed.
+    # Current central stock remains 18, matching the low-stock example.
+    for number, technician in enumerate(technicians, 1):
+        movement = MovimentacaoEstoque(
+            origem_tipo='empresa', destino_tipo='tecnico', destino_id=technician.id,
+            tipo_servico_id=service.id, ordem_servico_id=order.id,
+            data_hora=now - timedelta(hours=number * 3),
+            observacao='Distribuição fictícia de conectores para a equipe de campo.')
+        db.session.add(movement)
+        db.session.flush()
+        db.session.add(MovimentacaoEstoqueItem(
+            movimentacao_id=movement.id, item_id=items[1].id,
+            quantidade=14, valor_unitario=items[1].valor, condicao_material='novo'))
+        db.session.add(SaldoTecnico(tecnico_id=technician.id, item_id=items[1].id,
+                                    tipo_servico_id=service.id, quantidade=14,
+                                    valor_unitario=items[1].valor))
     db.session.commit()

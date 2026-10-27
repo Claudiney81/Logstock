@@ -99,7 +99,7 @@ class PublicDemoTests(unittest.TestCase):
 
     def test_demo_ignores_existing_database_and_seeds_only_synthetic_data(self):
         from app import create_app
-        from app.models import Empresa, Item, Tecnico, NotaFiscalEntrada
+        from app.models import Empresa, Item, Tecnico, NotaFiscalEntrada, MovimentacaoEstoque, SaldoTecnico, Estoque
         with TemporaryDirectory() as directory:
             original = Path(directory) / 'company.db'
             with sqlite3.connect(original) as connection:
@@ -116,6 +116,11 @@ class PublicDemoTests(unittest.TestCase):
                 self.assertEqual(Item.query.count(), 6)
                 self.assertEqual(Tecnico.query.count(), 3)
                 self.assertEqual(NotaFiscalEntrada.query.count(), 3)
+                self.assertEqual(MovimentacaoEstoque.query.count(), 3)
+                connector = Item.query.filter_by(codigo='DEMO-002').one()
+                central = sum(row.quantidade for row in Estoque.query.filter_by(item_id=connector.id))
+                field = sum(row.quantidade for row in SaldoTecnico.query.filter_by(item_id=connector.id))
+                self.assertEqual((central, field), (18, 42))
                 self.assertTrue(all('example.invalid' in row.email for row in Empresa.query.all()))
             self.assertEqual(original.read_bytes(), original_bytes)
             self.assertNotIn('PRIVATE SENTINEL', app.test_client().get('/').text)
