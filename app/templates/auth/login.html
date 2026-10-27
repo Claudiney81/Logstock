@@ -130,6 +130,16 @@
 
       </form>
 
+      {% if demo_available %}
+      <div class="border-top mt-4 pt-4 text-center">
+        <p class="text-muted small mb-3">Conheça o sistema com dados fictícios.</p>
+        <form method="POST" action="{{ url_for('demo_enter') }}">
+          <button type="submit" class="btn btn-outline-primary w-100 fw-semibold">Acessar como visitante</button>
+        </form>
+        <p class="text-muted small mt-2 mb-0">Sem cadastro ou senha.</p>
+      </div>
+      {% endif %}
+
       <div class="text-center mt-3">
         <a
           href="{{ url_for('auth.esqueci_senha') }}"

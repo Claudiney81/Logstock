@@ -2,7 +2,8 @@
 
 ## Demonstração pública (branch homologacao)
 
-Esta branch permite navegação automática, sem formulário de login, com uma
+Esta branch apresenta a tela de login com o botão “Acessar como visitante”.
+O botão inicia a demonstração sem exigir cadastro ou senha, com uma
 identidade de visitante separada dos usuários cadastrados. No modo público,
 a aplicação ignora o banco operacional (`DATABASE_URL`), cria um banco SQLite
 novo e isolado a cada inicialização e preenche somente dados fictícios:

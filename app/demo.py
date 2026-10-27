@@ -1,6 +1,6 @@
 """Public, read-only browsing for the training environment."""
-from flask import abort, g, has_request_context, redirect, request, url_for
-from flask_login import current_user, login_user
+from flask import abort, g, has_request_context, redirect, request, session
+from flask_login import current_user, login_user, logout_user
 from sqlalchemy import event
 
 from app.extensions import db
@@ -11,10 +11,31 @@ def init_demo(app):
     if not app.config.get("LOGISTOCK_DEMO_PUBLICO", False):
         return
 
+    @app.post('/demo/entrar')
+    def demo_enter():
+        session.clear()
+        session['demo_entered'] = True
+        return redirect('/')
+
     @app.before_request
     def public_demo():
         if request.endpoint == "static" or request.path == "/health":
             return
+        g.public_demo = True
+        if request.endpoint == 'demo_enter':
+            return
+        if request.path in ('/auth/logout', '/logout'):
+            logout_user()
+            session.clear()
+            return redirect('/auth/login')
+        if request.path == '/auth/login' and request.method in ('GET', 'HEAD'):
+            if session.get('demo_entered'):
+                return redirect('/')
+            return
+        if not session.get('demo_entered'):
+            if request.method not in ('GET', 'HEAD', 'OPTIONS'):
+                abort(403, description='Use o botão Acessar como visitante.')
+            return redirect('/auth/login')
         # A separate, transient identity never becomes a database administrator.
         if not current_user.is_authenticated:
             login_user(Usuario(id=-1, nome="Visitante demonstração",
@@ -25,8 +46,6 @@ def init_demo(app):
         g.public_demo = True
         if request.method not in ("GET", "HEAD", "OPTIONS"):
             abort(403, description="Demonstração: alterações não são permitidas.")
-        if request.path in ("/auth/login", "/auth/logout", "/logout"):
-            return redirect(url_for("home.home"))
         if (request.path.startswith(("/auth/", "/backup", "/_bootstrap_admin",
                                      "/tecnicos/acesso/", "/tecnicos/qrcode/"))
                 or any(word in request.path.lower() for word in
@@ -45,4 +64,4 @@ def init_demo(app):
 
     @app.context_processor
     def demo_context():
-        return {"public_demo": g.get("public_demo", False)}
+        return {"public_demo": g.get("public_demo", False), "demo_available": True}

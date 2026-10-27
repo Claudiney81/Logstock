@@ -46,6 +46,8 @@ class PublicDemoTests(unittest.TestCase):
     def test_automatic_login_persists_without_creating_database_user(self):
         app = self.make_app()
         client = app.test_client()
+        self.assertEqual(client.get('/').status_code, 302)
+        self.assertEqual(client.post('/demo/entrar').status_code, 302)
         for _ in range(2):
             response = client.get('/')
             self.assertEqual(response.status_code, 200)
@@ -56,6 +58,7 @@ class PublicDemoTests(unittest.TestCase):
     def test_demo_blocks_post_legacy_get_write_and_backup(self):
         app = self.make_app()
         client = app.test_client()
+        client.post('/demo/entrar')
         self.assertEqual(client.post('/save').status_code, 403)
         self.assertEqual(client.get('/save').status_code, 403)
         self.assertEqual(client.get('/backup/download').status_code, 403)
@@ -72,6 +75,12 @@ class PublicDemoTests(unittest.TestCase):
                           'SQLALCHEMY_DATABASE_URI': 'sqlite:///:memory:',
                           'LOGISTOCK_DEMO_PUBLICO': True})
         client = app.test_client()
+        response = client.get('/', follow_redirects=True)
+        self.assertEqual(response.status_code, 200)
+        self.assertIn('Acessar como visitante', response.text)
+        self.assertIn('name="senha"', response.text)
+        self.assertNotIn('NF-DEMO-', response.text)
+        client.post('/demo/entrar')
         response = client.get('/')
         self.assertEqual(response.status_code, 200)
         self.assertIn('Demonstração', response.text)
@@ -84,6 +93,9 @@ class PublicDemoTests(unittest.TestCase):
                 self.assertEqual(client.get(str(rule)).status_code, 200, str(rule))
         self.assertEqual(client.get('/auth/login').status_code, 302)
         self.assertEqual(client.get('/backup/download').status_code, 403)
+        client.get('/auth/logout')
+        self.assertEqual(client.get('/').status_code, 302)
+        self.assertIn('Acessar como visitante', client.get('/auth/login').text)
 
     def test_demo_ignores_existing_database_and_seeds_only_synthetic_data(self):
         from app import create_app
