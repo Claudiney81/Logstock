@@ -228,6 +228,26 @@
         gap: .45rem;
       }
 
+      /* Laranja da marca START nos controles da conta e dos temas. */
+      #themeToggleIcon,
+      .logged-user-name > .bi-person-circle {
+        color: #ff8a00;
+        font-size: 1.05rem;
+        line-height: 1;
+      }
+
+      .theme-toggle,
+      .theme-toggle:hover,
+      html[data-theme="night"] .theme-toggle,
+      html[data-theme="night"] .theme-toggle:hover {
+        border-color: #ff8a00;
+      }
+
+      .theme-toggle:focus-visible {
+        outline: 2px solid #ff8a00;
+        outline-offset: 3px;
+      }
+
       .navbar-collapse > .nav-item,
       .navbar-collapse > li {
         list-style: none;
