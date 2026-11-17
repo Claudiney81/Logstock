@@ -6,7 +6,7 @@ from unittest.mock import patch
 
 from browser_fixture import build_app
 from app.extensions import db
-from app.models import Item, NotaFiscalEntrada, NotaFiscalItem, Estoque, SaldoTecnico
+from app.models import Item, NotaFiscalEntrada, NotaFiscalItem, Estoque, SaldoTecnico, BaixaTecnica, BaixaTecnicaItem
 
 
 class NoteRegisteredPriceTests(unittest.TestCase):
@@ -57,6 +57,31 @@ class NoteRegisteredPriceTests(unittest.TestCase):
         item = Item.query.filter_by(codigo='NEW-IMPORT').one()
         self.assertEqual(item.valor, 8.75)
         self.assertEqual(line.valor_unitario, 8.75)
+
+    def test_invoice_preserves_catalog_and_completed_withdrawal(self):
+        for kind, code, item_id in [('empresa', 'TESTE01', 1), ('cliente', 'FERR01', 3)]:
+            with self.subTest(kind=kind):
+                item = db.session.get(Item, item_id)
+                original = (item.descricao, item.categoria, item.eh_equipamento)
+                baixa = BaixaTecnica(tecnico_id=1, tipo_servico_id=1, status='finalizada')
+                db.session.add(baixa)
+                db.session.flush()
+                detail = BaixaTecnicaItem(baixa_tecnica_id=baixa.id, item_id=item.id,
+                                          quantidade=2, quantidade_aprovada=2, status='aprovado')
+                db.session.add(detail)
+                db.session.commit()
+                line = self.save_note(kind=kind, code=code)
+                db.session.expire_all()
+                self.assertEqual((item.descricao, item.categoria, item.eh_equipamento), original)
+                self.assertEqual(detail.item.descricao, original[0])
+                self.assertEqual(detail.item_id, item_id)
+                self.assertEqual(detail.quantidade, 2)
+                self.assertEqual(baixa.status, 'finalizada')
+                self.assertEqual(line.item_id, item_id)
+                html = self.client.get(f'/baixa_desktop/detalhe/{baixa.id}').get_data(as_text=True)
+                self.assertIn(original[0], html)
+                NotaFiscalEntrada.query.filter_by(numero_nf='PRICE-TEST').one().numero_nf = 'PRICE-DONE'
+                db.session.commit()
 
 
 if __name__ == '__main__':

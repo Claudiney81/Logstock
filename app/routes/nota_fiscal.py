@@ -489,19 +489,9 @@ def nova_nota():
                 db.session.add(item)
                 db.session.flush()
 
-            else:
-
-                if descricao_item and descricao_item != item.descricao:
-                    item.descricao = descricao_item
-
-                # Preserve the unit price entered for this invoice.
-
-                item.categoria = categoria_entrada
-
-                item.eh_equipamento = categoria_entrada in [
-                    'FERRAMENTA',
-                    'EPI'
-                ]
+            # Existing item metadata belongs to the catalog. Changing it here
+            # would also change old invoices and completed withdrawals that
+            # reference the same item. Invoice prices remain on NotaFiscalItem.
             nota_item = NotaFiscalItem(
                 nota_fiscal_id=nova_nota.id,
                 item_id=item.id,
