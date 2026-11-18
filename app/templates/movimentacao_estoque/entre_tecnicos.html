@@ -1,0 +1,32 @@
+{% extends 'base.html' %}
+{% block content %}
+<div class="container py-4">
+  <div class="d-flex justify-content-between flex-wrap gap-3 mb-4"><div><h1 class="h3">Transferência entre técnicos</h1><p class="text-muted mb-0">Transfira materiais mantendo o vínculo com a empresa, o cliente e a O.S.</p></div><a class="btn btn-outline-secondary align-self-start" href="{{ url_for('movimentacao_estoque.historico') }}">Histórico</a></div>
+  <form method="get" class="card card-body mb-4"><div class="row g-3 align-items-end"><div class="col-md-8"><label for="origem_id" class="form-label">Técnico de origem</label><select id="origem_id" name="origem_id" class="form-select" required><option value="">Selecione quem entrega</option>{% for t in tecnicos %}<option value="{{ t.id }}" {{ 'selected' if t.id==origem_id }}>{{ t.nome }}</option>{% endfor %}</select></div><div class="col-md-4"><button class="btn btn-primary">Consultar materiais</button></div></div></form>
+  {% if origem_id %}
+  {% if saldos %}
+  <form method="post" class="card card-body" id="transferencia-form">
+    <input type="hidden" name="csrf_token" value="{{ csrf_token }}"><input type="hidden" name="origem_id" value="{{ origem_id }}">
+    <div class="mb-4"><label for="destino_id" class="form-label">Técnico de destino</label><select id="destino_id" name="destino_id" class="form-select" required><option value="">Selecione quem recebe</option>{% for t in tecnicos if t.id!=origem_id %}<option value="{{ t.id }}">{{ t.nome }}</option>{% endfor %}</select></div>
+    <div class="d-flex flex-wrap align-items-center gap-2 mb-3">
+      <button class="btn btn-outline-primary" id="preencher-saldo-total" type="button">Transferir todo o saldo</button>
+      <small class="text-muted">Para transferir por partes, informe as quantidades na tabela.</small>
+    </div>
+    <div class="table-responsive"><table class="table align-middle"><thead><tr><th>Material</th><th>Origem do material / O.S.</th><th>Serviço</th><th>Disponível</th><th style="min-width:130px">Transferir</th></tr></thead><tbody>
+    {% for s in saldos %}<tr><td><strong>{{ s.item.codigo }}</strong><br>{{ s.item.descricao }}</td><td>{{ s.cliente.razao_social if s.tipo_estoque=='cliente' and s.cliente else 'Empresa' }}{% if s.ordem_servico %}<br><small class="text-muted">O.S. {{ s.ordem_servico.numero_os }}</small>{% endif %}</td><td>{{ s.tipo_servico.nome if s.tipo_servico else '—' }}</td><td>{{ s.quantidade }} {{ s.item.unidade }}</td><td><input type="number" class="form-control" name="quantidade_{{ s.id }}" min="0" max="{{ s.quantidade }}" step="1" placeholder="0" aria-label="Quantidade de {{ s.item.codigo }} para transferir"></td></tr>{% endfor %}
+    </tbody></table></div>
+    <div class="my-3"><label for="observacao" class="form-label">Observação (opcional)</label><textarea id="observacao" name="observacao" class="form-control" maxlength="1000" rows="2"></textarea></div>
+    <div class="d-flex justify-content-between align-items-center gap-3 flex-wrap"><small class="text-muted">O saldo sai da origem e entra no destino, sem passar pelo estoque da empresa.</small><button class="btn btn-primary" type="submit">Confirmar transferência</button></div>
+  </form>
+  <script>
+    document.getElementById('preencher-saldo-total').addEventListener('click', () => {
+      const formulario = document.getElementById('transferencia-form');
+      for (const campo of formulario.querySelectorAll('input[name^="quantidade_"]')) {
+        campo.value = campo.max;
+      }
+    });
+  </script>
+  {% else %}<div class="alert alert-info">Este técnico não tem materiais disponíveis para transferência.</div>{% endif %}
+  {% endif %}
+</div>
+{% endblock %}

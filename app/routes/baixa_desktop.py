@@ -1,3 +1,4 @@
+from app.utils.saldo_geral_baixa import descontar_saldo, titular_saldo_baixa
 from flask import (
     Blueprint,
     render_template,
@@ -97,7 +98,7 @@ def buscar_saldo_tecnico(
         tipo_servico_id = 1
 
     query = SaldoTecnico.query.filter(
-        SaldoTecnico.tecnico_id == tecnico_id,
+        SaldoTecnico.tecnico_id == titular_saldo_baixa(tecnico_id, tipo_estoque),
         SaldoTecnico.item_id == item_id,
         SaldoTecnico.tipo_servico_id == tipo_servico_id,
         SaldoTecnico.tipo_estoque == tipo_estoque,
@@ -108,6 +109,12 @@ def buscar_saldo_tecnico(
         query = query.filter(
             SaldoTecnico.cliente_id == cliente_id,
             SaldoTecnico.ordem_servico_id == ordem_servico_id
+        )
+
+    elif tipo_estoque == "empresa":
+        query = query.filter(
+            SaldoTecnico.cliente_id.is_(None),
+            SaldoTecnico.ordem_servico_id.is_(None)
         )
 
     return query.order_by(SaldoTecnico.id.asc()).all()
@@ -189,13 +196,12 @@ def debitar_saldo_tecnico(
         if atual <= 0:
             continue
 
-        if atual >= restante:
-            saldo.quantidade = atual - restante
-            restante = 0
+        desconto = min(atual, restante)
+        if not descontar_saldo(saldo.id, desconto):
+            return False
+        restante -= desconto
+        if restante == 0:
             break
-
-        saldo.quantidade = 0
-        restante -= atual
 
     return restante == 0
 
@@ -280,7 +286,7 @@ def api_itens_saldo():
             func.sum(SaldoTecnico.quantidade).label("quantidade")
         )
         .filter(
-            SaldoTecnico.tecnico_id == tecnico_id,
+            SaldoTecnico.tecnico_id == titular_saldo_baixa(tecnico_id, tipo_estoque),
             SaldoTecnico.tipo_servico_id == tipo_servico_consulta,
             SaldoTecnico.tipo_estoque == tipo_estoque,
             SaldoTecnico.quantidade > 0

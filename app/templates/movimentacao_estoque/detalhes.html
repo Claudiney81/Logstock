@@ -82,7 +82,7 @@
 
         <div class="col-md-3">
           <label class="form-label fw-semibold">Técnico</label>
-          <input class="form-control" readonly value="{% if movimentacao.destino_tipo == 'tecnico' %}{{ tecnicos_dict.get(movimentacao.destino_id|int, '-') }}{% elif movimentacao.origem_tipo == 'tecnico' %}{{ tecnicos_dict.get(movimentacao.origem_id|int, '-') }}{% else %}-{% endif %}">
+          <input class="form-control" readonly value="{% if movimentacao.origem_tipo == 'tecnico' and movimentacao.destino_tipo == 'tecnico' %}{{ tecnicos_dict.get(movimentacao.origem_id|int, '-') }} &rarr; {{ tecnicos_dict.get(movimentacao.destino_id|int, '-') }}{% elif movimentacao.destino_tipo == 'tecnico' %}{{ tecnicos_dict.get(movimentacao.destino_id|int, '-') }}{% elif movimentacao.origem_tipo == 'tecnico' %}{{ tecnicos_dict.get(movimentacao.origem_id|int, '-') }}{% else %}-{% endif %}">
         </div>
 
         <div class="col-md-3">

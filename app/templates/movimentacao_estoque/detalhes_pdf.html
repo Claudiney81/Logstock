@@ -212,7 +212,9 @@
     <tr>
       <td class="label">Técnico:</td>
       <td class="valor">
-        {% if movimentacao.destino_tipo == 'tecnico' %}
+        {% if movimentacao.origem_tipo == 'tecnico' and movimentacao.destino_tipo == 'tecnico' %}
+          {{ tecnicos_dict.get(movimentacao.origem_id|int, '-') }} &rarr; {{ tecnicos_dict.get(movimentacao.destino_id|int, '-') }}
+        {% elif movimentacao.destino_tipo == 'tecnico' %}
           {{ tecnicos_dict.get(movimentacao.destino_id|int, '-') }}
         {% elif movimentacao.origem_tipo == 'tecnico' %}
           {{ tecnicos_dict.get(movimentacao.origem_id|int, '-') }}

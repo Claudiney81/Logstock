@@ -383,6 +383,8 @@ def create_app(test_config=None):
 
     app.register_blueprint(bp_tecnico_mobile)
     app.register_blueprint(bp_movimentacao)
+    from app.routes.transferencia_tecnicos import bp as transferencia_tecnicos_bp
+    app.register_blueprint(transferencia_tecnicos_bp)
     app.register_blueprint(bp_backup)
     
 

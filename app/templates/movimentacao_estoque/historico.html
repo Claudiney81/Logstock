@@ -6,7 +6,7 @@
   {% set resumo.total = resumo.total + 1 %}
   {% if m.assinatura %}{% set resumo.assinadas = resumo.assinadas + 1 %}{% endif %}
   {% if m.email_enviado %}{% set resumo.emails = resumo.emails + 1 %}{% endif %}
-  {% if m.destino_tipo == 'tecnico' %}{% set resumo.tecnico = resumo.tecnico + 1 %}{% endif %}
+  {% if m.destino_tipo == 'tecnico' and m.origem_tipo != 'tecnico' %}{% set resumo.tecnico = resumo.tecnico + 1 %}{% endif %}
   {% if m.origem_tipo == 'tecnico' and m.destino_tipo in ['empresa', 'cliente'] %}{% set resumo.devolucao = resumo.devolucao + 1 %}{% endif %}
 {% endfor %}
 
@@ -104,7 +104,9 @@
             </td>
 
             <td>
-              {% if m.tipo_movimentacao == 'retorno_sobra_os' %}
+              {% if m.tipo_movimentacao == 'transferencia' and m.origem_tipo == 'tecnico' and m.destino_tipo == 'tecnico' %}
+                <span class="app-status-pill">Entre técnicos</span>
+              {% elif m.tipo_movimentacao == 'retorno_sobra_os' %}
                 <span class="app-status-pill">Saldo geral do técnico</span>
               {% elif m.destino_tipo == 'empresa' %}
                 <span class="app-status-pill">Empresa</span>
@@ -118,7 +120,9 @@
             </td>
 
             <td>
-              {% if m.destino_tipo == 'tecnico' %}
+              {% if m.origem_tipo == 'tecnico' and m.destino_tipo == 'tecnico' %}
+                {{ tecnicos_dict.get(m.origem_id|int, '-') }} &rarr; {{ tecnicos_dict.get(m.destino_id|int, '-') }}
+              {% elif m.destino_tipo == 'tecnico' %}
                 {{ tecnicos_dict.get(m.destino_id|int, '-') }}
               {% elif m.origem_tipo == 'tecnico' %}
                 {{ tecnicos_dict.get(m.origem_id|int, '-') }}

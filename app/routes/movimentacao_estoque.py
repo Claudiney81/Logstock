@@ -1374,7 +1374,9 @@ def exportar_historico_excel():
     for mov in movimentacoes:
         tecnico = '-'
 
-        if mov.destino_tipo == 'tecnico':
+        if mov.origem_tipo == 'tecnico' and mov.destino_tipo == 'tecnico':
+            tecnico = f"{tecnicos_dict.get(int(mov.origem_id or 0), '-')} → {tecnicos_dict.get(int(mov.destino_id or 0), '-')}"
+        elif mov.destino_tipo == 'tecnico':
             tecnico = tecnicos_dict.get(int(mov.destino_id or 0), '-')
 
         elif mov.origem_tipo == 'tecnico':

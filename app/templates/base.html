@@ -13,7 +13,7 @@
 
     <!-- Bootstrap 5 e ícones -->
     <link
-      href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css"
+      href="{{ url_for('static', filename='vendor/bootstrap-5.3.0.min.css') if request.blueprint == 'transferencia_tecnicos' else 'https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css' }}"
       rel="stylesheet"
     />
     <link
@@ -504,6 +504,9 @@
                     Movimentar Materiais
                   </a>
                 </li>
+                {% if current_user.perfil in ['admin', 'estoque', 'gerente'] %}
+                <li><a class="dropdown-item" href="{{ url_for('transferencia_tecnicos.nova') }}"><i class="bi bi-arrow-left-right me-2"></i>Entre técnicos</a></li>
+                {% endif %}
 
                 <li>
                   <a
@@ -1045,7 +1048,7 @@
     </footer>
 
     <!-- Bootstrap JS -->
-    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+    <script src="{{ url_for('static', filename='vendor/bootstrap-5.3.0.bundle.min.js') if request.blueprint == 'transferencia_tecnicos' else 'https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js' }}"></script>
     <script>
     (function () {
       const storageKey = "logistock-theme";

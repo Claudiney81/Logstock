@@ -1,3 +1,4 @@
+from app.utils.saldo_geral_baixa import descontar_saldo, titular_saldo_baixa
 from flask import (
     Blueprint,
     render_template,
@@ -93,7 +94,7 @@ def valor_saldo_tecnico(
     ordem_servico_id=None
 ):
     query = SaldoTecnico.query.filter(
-        SaldoTecnico.tecnico_id == tecnico_id,
+        SaldoTecnico.tecnico_id == titular_saldo_baixa(tecnico_id, tipo_estoque),
         SaldoTecnico.item_id == item_id,
         SaldoTecnico.tipo_servico_id == 1,
         SaldoTecnico.tipo_estoque == tipo_estoque,
@@ -128,7 +129,7 @@ def quantidade_saldo_tecnico(
     ordem_servico_id=None
 ):
     query = SaldoTecnico.query.filter(
-        SaldoTecnico.tecnico_id == tecnico_id,
+        SaldoTecnico.tecnico_id == titular_saldo_baixa(tecnico_id, tipo_estoque),
         SaldoTecnico.item_id == item_id,
         SaldoTecnico.tipo_servico_id == 1,
         SaldoTecnico.tipo_estoque == tipo_estoque,
@@ -455,7 +456,7 @@ def api_itens():
         SaldoTecnico.tipo_estoque,
         func.sum(SaldoTecnico.quantidade).label("saldo")
     ).filter(
-        SaldoTecnico.tecnico_id == tecnico_id,
+        SaldoTecnico.tecnico_id == titular_saldo_baixa(tecnico_id, tipo_estoque),
         SaldoTecnico.tipo_servico_id == tipo_servico_saldo_id,
         SaldoTecnico.tipo_estoque == tipo_estoque,
         SaldoTecnico.quantidade > 0
@@ -875,7 +876,7 @@ def detalhe_pendente_mobile(baixa_id):
             cliente_estoque_id = baixa.cliente_id
 
         query_saldo = SaldoTecnico.query.filter(
-            SaldoTecnico.tecnico_id == baixa.tecnico_id,
+            SaldoTecnico.tecnico_id == titular_saldo_baixa(baixa.tecnico_id, tipo_item),
             SaldoTecnico.item_id == item.item_id,
             SaldoTecnico.tipo_servico_id == 1,
             SaldoTecnico.tipo_estoque == tipo_item
@@ -982,7 +983,7 @@ def aprovar_mobile(baixa_id):
             tipo_item = (item_baixa.tipo_estoque or "empresa").strip().lower()
 
             query_saldo = SaldoTecnico.query.filter(
-                SaldoTecnico.tecnico_id == baixa.tecnico_id,
+                SaldoTecnico.tecnico_id == titular_saldo_baixa(baixa.tecnico_id, tipo_item),
                 SaldoTecnico.item_id == item_baixa.item_id,
                 SaldoTecnico.tipo_servico_id == 1,
                 SaldoTecnico.tipo_estoque == tipo_item
@@ -1011,7 +1012,8 @@ def aprovar_mobile(baixa_id):
                     )
                 )
 
-            if int(saldo.quantidade or 0) < qtd_aprovar:
+            if not descontar_saldo(saldo.id, qtd_aprovar):
+                db.session.rollback()
                 codigo = getattr(item_baixa.item, "codigo", item_baixa.item_id)
                 flash(f"Saldo insuficiente para o item {codigo}.", "danger")
                 return redirect(
@@ -1020,8 +1022,6 @@ def aprovar_mobile(baixa_id):
                         baixa_id=baixa.id
                     )
                 )
-
-            saldo.quantidade -= qtd_aprovar
 
             item_baixa.quantidade_aprovada = (
                 int(item_baixa.quantidade_aprovada or 0)
