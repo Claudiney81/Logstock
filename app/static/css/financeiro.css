@@ -16,6 +16,8 @@
   .fin-workspace > p.fin-muted { margin-bottom: 22px; font-size: .92rem; }
   .fin-metrics { gap: 14px; margin: 20px 0 28px; }
   .fin-metric { position: relative; border-radius: 14px; padding: 20px; box-shadow: 0 4px 18px #16324f04; }
+  .fin-dashboard .fin-panel, .fin-dashboard .fin-metric { border-radius: 8px; }
+  .fin-dashboard .btn { border-radius: var(--bs-btn-border-radius); }
   .fin-metric::before { content: ''; display: block; width: 25px; height: 3px; border-radius: 9px; background: #b3c5d8; margin-bottom: 14px; }
   .fin-metric:nth-child(3)::before { background: #21a675; }
   .fin-metric:nth-child(5)::before { background: #e67366; }
