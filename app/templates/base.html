@@ -383,22 +383,6 @@
 
     <div class="collapse navbar-collapse" id="navbarNav">
       <ul class="navbar-nav me-auto" id="menuModulos">
-          {% if financeiro_permitido('consultar') %}
-          <li class="nav-item dropdown">
-            <a class="nav-link dropdown-toggle" href="#" id="menuFinanceiro" role="button" data-bs-toggle="dropdown" aria-expanded="false">
-              <i class="bi bi-cash-stack me-1"></i> Financeiro
-            </a>
-            <ul class="dropdown-menu" aria-labelledby="menuFinanceiro">
-              {% set icones = {'index':'grid','cadastros':'people','contratos':'file-text','lancamentos':'arrow-left-right','consultas':'search','relatorios':'bar-chart'} %}
-              {% for endpoint,nome,permissao in [('index','Painel','consultar'),('cadastros','Cadastros','consultar'),('contratos','Negociações','consultar'),('lancamentos','Lançamentos','consultar'),('consultas','Consultas','consultar'),('relatorios','Relatórios','relatorios')] %}
-              {% set secao = 'cadastros' if request.endpoint in ['financeiro.clientes','financeiro.cliente','financeiro.novo_cliente','financeiro.editar_cliente','financeiro.cadastro_auxiliar','financeiro.editar_cadastro_auxiliar'] else ('lancamentos' if request.endpoint=='financeiro.lancamento' else ('contratos' if request.endpoint in ['financeiro.contrato','financeiro.novo','financeiro.novo_registro'] else (request.endpoint or '').split('.')[-1])) %}
-              {% if financeiro_permitido(permissao) %}
-              <li><a class="dropdown-item{% if request.blueprint == 'financeiro' and secao == endpoint %} active{% endif %}" href="{{ url_for('financeiro.'+endpoint) }}"{% if request.blueprint == 'financeiro' and secao == endpoint %} aria-current="page"{% endif %}><i class="bi bi-{{ icones[endpoint] }} me-2" aria-hidden="true"></i>{{ nome }}</a></li>
-              {% endif %}
-              {% endfor %}
-            </ul>
-          </li>
-          {% endif %}
           {% if current_user.perfil != 'financeiro' %}
 
             <!-- Gestão de Estoque -->
@@ -984,6 +968,28 @@
   </ul>
 </li>
 {% endif %}
+          {% if financeiro_permitido('consultar') %}
+          <li class="nav-item dropdown">
+            <a class="nav-link dropdown-toggle" href="#" id="menuFinanceiro" role="button" data-bs-toggle="dropdown" aria-expanded="false">
+              <i class="bi bi-cash-stack me-1"></i> Financeiro
+            </a>
+            <ul class="dropdown-menu dropdown-menu-end" aria-labelledby="menuFinanceiro">
+              {% set icones = {'index':'grid','cadastros':'people','contratos':'file-text','lancamentos':'arrow-left-right','consultas':'search','relatorios':'bar-chart'} %}
+              {% for endpoint,nome,permissao in [('index','Painel','consultar'),('cadastros','Cadastros','consultar'),('contratos','Negociações','consultar'),('lancamentos','Lançamentos','consultar'),('consultas','Consultas','consultar'),('relatorios','Relatórios','relatorios')] %}
+              {% set secao = 'cadastros' if request.endpoint in ['financeiro.clientes','financeiro.cliente','financeiro.novo_cliente','financeiro.editar_cliente','financeiro.cadastro_auxiliar','financeiro.editar_cadastro_auxiliar'] else ('lancamentos' if request.endpoint=='financeiro.lancamento' else ('contratos' if request.endpoint in ['financeiro.contrato','financeiro.novo','financeiro.novo_registro'] else (request.endpoint or '').split('.')[-1])) %}
+              {% if financeiro_permitido(permissao) %}
+              <li><a class="dropdown-item{% if request.blueprint == 'financeiro' and secao == endpoint %} active{% endif %}" href="{{ url_for('financeiro.'+endpoint) }}"{% if request.blueprint == 'financeiro' and secao == endpoint %} aria-current="page"{% endif %}><i class="bi bi-{{ icones[endpoint] }} me-2" aria-hidden="true"></i>{{ nome }}</a></li>
+              {% endif %}
+              {% endfor %}
+            </ul>
+          </li>
+          {% elif current_user.is_authenticated and config.FINANCEIRO_HABILITADO %}
+          <li class="nav-item">
+            <span class="nav-link opacity-50" aria-disabled="true" title="Seu perfil nao tem acesso ao Financeiro">
+              <i class="bi bi-lock-fill me-1" aria-hidden="true"></i> Financeiro
+            </span>
+          </li>
+          {% endif %}
           </ul>
 
 <!-- Usuário logado -->
