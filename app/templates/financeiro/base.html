@@ -1,0 +1,42 @@
+{% extends 'base.html' %}
+{% from 'financeiro/_icons.html' import icon %}
+{% block content %}
+<link rel="stylesheet" href="{{ url_for('static', filename='css/financeiro.css', v='5') }}">
+<script defer src="{{ url_for('static', filename='js/financeiro.js', v='1') }}"></script>
+<style>
+.fin-head{display:flex;justify-content:space-between;align-items:center;gap:16px;flex-wrap:wrap;margin-bottom:24px}.fin-kicker{font-size:.75rem;letter-spacing:.14em;text-transform:uppercase;color:#64748b;margin:0 0 6px}.fin-head h1{font-size:1.8rem;margin:0}.fin-nav{display:flex;gap:8px;flex-wrap:wrap}.fin-metrics{display:grid;grid-template-columns:repeat(auto-fit,minmax(165px,1fr));gap:12px;margin:20px 0}.fin-metric{padding:18px;border:1px solid var(--ls-border);border-radius:12px;background:var(--ls-surface)}.fin-metric span{display:block;color:var(--ls-muted);font-size:.82rem}.fin-metric strong{display:block;font-size:1.35rem;margin-top:8px}.fin-table th{font-size:.77rem;text-transform:uppercase;letter-spacing:.03em;color:var(--ls-muted);white-space:nowrap}.fin-table td{vertical-align:middle;padding:13px 10px}.fin-panel{background:var(--ls-surface);border:1px solid var(--ls-border);border-radius:14px;padding:22px;margin-bottom:20px}.fin-muted{color:var(--ls-muted)}.fin-actions input{min-width:100px}.fin-actions{min-width:230px}.fin-status{border-radius:20px;padding:5px 10px;background:#eaf0f8;font-size:.8rem;white-space:nowrap}.fin-status.Pago{background:#dcfce7;color:#166534}.fin-status.Atrasado{background:#fee2e2;color:#991b1b}@media print{.navbar,footer,.fin-nav,.no-print,.fin-actions,.fin-flashes{display:none!important}body{padding:0;background:white}#main-content{padding:0}.fin-panel{border:0}.fin-metrics{grid-template-columns:repeat(3,1fr)}.table-responsive{overflow:visible}}
+</style>
+<style>
+.fin-paid { background: #dcfce7; color: #166534; }
+.fin-overdue { background: #fee2e2; color: #991b1b; font-weight: 600; }
+.fin-today { background: #fef3c7; color: #92400e; font-weight: 600; }
+.fin-upcoming { background: #e0efff; color: #174b85; }
+@media print {
+  @page { size: A4 landscape; margin: 12mm; }
+  html, body { display: block !important; height: auto !important; min-height: 0 !important; overflow: visible !important; }
+  body { padding: 0 !important; }
+  #main-content, .container-fluid, .table-responsive { height: auto !important; max-height: none !important; overflow: visible !important; }
+  .row { display: block !important; }
+  .row > [class*="col-"] { width: 100% !important; }
+  .fin-panel { break-inside: auto; padding: 0; }
+  .fin-head, .fin-metrics { break-inside: avoid; }
+  .fin-table { width: 100%; font-size: 9pt; }
+  .fin-table td { padding: 5px; }
+  .fin-table th { white-space: normal; }
+  thead { display: table-header-group; }
+  tr { break-inside: avoid; }
+  .toast-container { display: none !important; }
+}
+</style>
+<div class="container-fluid py-3 fin-workspace">
+<div class="fin-head"><div><h1>{% block fin_title %}Financeiro{% endblock %}</h1></div>
+{% if financeiro_permitido('contratos') %}<a class="btn btn-primary no-print" href="{{ url_for('financeiro.novo_registro') }}">+ Novo contrato</a>{% endif %}</div>
+<nav class="fin-nav fin-panel no-print p-2 mb-3" aria-label="Seções do financeiro">
+{% for endpoint,nome,permissao in [('index','Painel','consultar'),('cadastros','Cadastros','consultar'),('contratos','Negociações','consultar'),('lancamentos','Lançamentos','consultar'),('consultas','Consultas','consultar'),('relatorios','Relatórios','relatorios')] %}
+{% set secao = 'cadastros' if request.endpoint in ['financeiro.clientes','financeiro.cliente','financeiro.novo_cliente','financeiro.editar_cliente','financeiro.cadastro_auxiliar','financeiro.editar_cadastro_auxiliar'] else ('lancamentos' if request.endpoint=='financeiro.lancamento' else ('contratos' if request.endpoint in ['financeiro.contrato','financeiro.novo','financeiro.novo_registro'] else request.endpoint.split('.')[-1])) %}
+{% if financeiro_permitido(permissao) %}<a class="btn {{ 'btn-primary' if secao==endpoint else 'btn-outline-primary border-0' }}" href="{{ url_for('financeiro.'+endpoint) }}" {% if secao==endpoint %}aria-current="page"{% endif %}>{{ icon(endpoint) }}{{ nome }}</a>{% endif %}{% endfor %}
+</nav>
+{% if config.FINANCEIRO_DEMONSTRACAO %}<div class="alert alert-warning">Ambiente de simulação · Banco separado · Lançamentos sem efeito na produção.</div>{% endif %}
+{% block fin_content %}{% endblock %}
+</div>
+{% endblock %}

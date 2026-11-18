@@ -22,6 +22,7 @@ if SQLALCHEMY_DATABASE_URI.startswith("postgres://"):
     )
 
 SQLALCHEMY_TRACK_MODIFICATIONS = False
+FINANCEIRO_HABILITADO = os.getenv("FINANCEIRO_HABILITADO", "1" if os.getenv("RENDER") else "0") == "1"
 TECNICO_SALDO_GERAL_ID = int(os.getenv("TECNICO_SALDO_GERAL_ID") or 0) or None
 
 

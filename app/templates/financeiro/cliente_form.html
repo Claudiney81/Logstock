@@ -1,0 +1,9 @@
+{% extends 'financeiro/base.html' %}
+{% block fin_title %}{{ 'Editar cliente' if cliente.id else 'Cadastrar cliente' }}{% endblock %}
+{% block fin_content %}
+<div class="alert alert-info">Comece pelo nome do cliente, como na planilha. CPF/CNPJ e contatos são opcionais. Depois, cadastre o contrato com modelo de negócio, fornecedor, forma de pagamento, valores e vencimentos.</div>
+<form method="post" class="fin-panel"><input type="hidden" name="csrf_token" value="{{ financeiro_token() }}"><div class="row g-3">
+{% for campo,nome,limite in [('nome','Nome / razão social',160),('documento','CPF / CNPJ (opcional)',18),('telefone','Telefone',40),('email','E-mail',160),('endereco','Endereço',240)] %}<div class="col-md-6"><label class="form-label" for="{{ campo }}">{{ nome }}</label><input class="form-control" id="{{ campo }}" name="{{ campo }}" maxlength="{{ limite }}" type="{{ 'email' if campo=='email' else 'text' }}" value="{{ request.form.get(campo,cliente[campo] or '') }}" {{ 'required' if campo=='nome' }}></div>{% endfor %}
+<div class="col-12"><label class="form-label" for="observacao">Observações</label><textarea class="form-control" id="observacao" name="observacao">{{ request.form.get('observacao',cliente.observacao or '') }}</textarea></div>
+<div class="col-12"><label><input type="checkbox" name="ativo" value="1" {{ 'checked' if (request.form.get('ativo')=='1' if request.method=='POST' else cliente.ativo) }}> Cliente ativo para novos contratos</label><p class="fin-muted small mt-2">Inativar preserva os contratos, cobranças e recebimentos já registrados.</p></div></div>{% if not cliente.id and financeiro_permitido('contratos') %}<button class="btn btn-primary mt-3" name="proximo" value="contrato">Salvar e criar contrato</button>{% endif %} <button class="btn btn-outline-primary mt-3">Salvar somente cadastro</button> <a class="btn btn-outline-secondary mt-3" href="{{ url_for('financeiro.clientes') }}">Voltar</a></form>
+{% endblock %}

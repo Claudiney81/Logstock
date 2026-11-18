@@ -1,0 +1,62 @@
+/* Interface do Financeiro; a impressão mantém o layout próprio do relatório. */
+.fin-help { display: inline-flex; align-items: center; justify-content: center; width: 18px; height: 18px; margin-left: 8px; padding: 0; border: 1px solid #9bacc0; border-radius: 50%; background: transparent; color: #64748b; font: 600 11px Georgia, serif; vertical-align: middle; cursor: help; }
+.fin-help:hover, .fin-help:focus-visible { color: #193c60; border-color: #193c60; outline: 2px solid #b9d4ef; outline-offset: 2px; }
+.fin-help-tooltip .tooltip-inner { max-width: 310px; padding: 12px 15px; text-align: left; font-size: .82rem; line-height: 1.55; background: #193c60; border-radius: 9px; }
+@media print { .fin-help, .fin-help-tooltip { display: none !important; } }
+@media screen {
+  .fin-workspace { max-width: 1500px; margin: 0 auto; padding: 30px 32px 50px !important; }
+  .fin-head { margin-bottom: 24px; align-items: center; }
+  .fin-head h1 { font-size: clamp(1.6rem, 2.4vw, 2rem); font-weight: 750; letter-spacing: -.045em; color: var(--ls-text); }
+  .fin-head .btn-primary { background: #193c60; border-color: #193c60; box-shadow: 0 4px 10px #16324f14; }
+  .fin-workspace .btn { border-radius: 9px; padding: 9px 15px; font-weight: 550; font-size: .86rem; }
+  .fin-workspace .btn-sm { padding: 6px 11px; font-size: .8rem; }
+  .fin-nav { gap: 5px; padding: 6px !important; margin-bottom: 28px !important; background: var(--ls-surface); border: 1px solid var(--ls-border); border-radius: 13px; box-shadow: 0 3px 14px #16324f05; }
+  .fin-nav .btn { display: inline-flex; align-items: center; gap: 8px; border: 0; background: transparent; color: var(--ls-muted); padding: 10px 17px; }
+  .fin-nav .btn:hover { color: var(--ls-text); background: var(--ls-surface-soft); }
+  .fin-nav .btn[aria-current="page"] { background: #193c60; color: #fff; box-shadow: 0 3px 8px #16324f22; }
+  .fin-nav-icon { width: 17px; height: 17px; flex-shrink: 0; }
+  .fin-panel { border-radius: 16px; padding: 24px; box-shadow: 0 4px 18px #16324f04; }
+  .fin-panel h2 { font-weight: 650; letter-spacing: -.02em; }
+  .fin-muted { line-height: 1.65; }
+  .fin-workspace > p.fin-muted { margin-bottom: 22px; font-size: .92rem; }
+  .fin-metrics { gap: 14px; margin: 20px 0 28px; }
+  .fin-metric { position: relative; border-radius: 14px; padding: 20px; box-shadow: 0 4px 18px #16324f04; }
+  .fin-metric::before { content: ''; display: block; width: 25px; height: 3px; border-radius: 9px; background: #b3c5d8; margin-bottom: 14px; }
+  .fin-metric:nth-child(3)::before { background: #21a675; }
+  .fin-metric:nth-child(5)::before { background: #e67366; }
+  .fin-metric:last-child::before { background: #e8aa48; }
+  .fin-metric span { font-size: .78rem; }
+  .fin-metric strong { font-size: clamp(1.2rem, 1.6vw, 1.55rem); letter-spacing: -.04em; margin-top: 9px; font-variant-numeric: tabular-nums; }
+  .fin-table { margin-bottom: 0; font-size: .88rem; }
+  .fin-table th { border-bottom: 1px solid var(--ls-border); padding: 12px 14px; font-size: .68rem; letter-spacing: .07em; background: var(--ls-surface-soft); }
+  .fin-table td { padding: 16px 14px; border-color: var(--ls-border); }
+  .fin-table tbody tr:hover { background: var(--ls-surface-soft); }
+  .fin-workspace .form-control, .fin-workspace .form-select { min-height: 42px; border-radius: 9px; background-color: var(--ls-surface); }
+  .fin-workspace .form-label { color: var(--ls-muted); font-size: .82rem; font-weight: 600; margin-bottom: 7px; }
+  .fin-workspace details > summary { cursor: pointer; }
+  .fin-directory-intro { display: flex; align-items: center; gap: 20px; margin: 5px 0 26px; }
+  .fin-directory-intro p { margin: 0; max-width: 540px; }
+  .fin-directory-label { font-size: .7rem; letter-spacing: .12em; text-transform: uppercase; font-weight: 650; color: var(--ls-muted); margin-bottom: 7px; }
+  .fin-directory-card { display: flex; flex-direction: column; align-items: flex-start; min-height: 270px; padding: 28px; transition: transform .18s, box-shadow .18s; }
+  .fin-directory-card:hover { transform: translateY(-3px); box-shadow: 0 12px 30px #16324f0e; }
+  .fin-directory-icon { display: grid; place-items: center; width: 48px; height: 48px; border-radius: 14px; background: #edf3fa; color: #254d76; margin-bottom: 22px; }
+  .fin-directory-icon svg { width: 24px; height: 24px; }
+  .fin-directory-card[data-tone="amber"] .fin-directory-icon { background: #fff5e5; color: #ad7315; }
+  .fin-directory-card[data-tone="green"] .fin-directory-icon { background: #e9f7f1; color: #267e60; }
+  .fin-directory-card h2 { margin-bottom: 10px; font-size: 1.1rem; }
+  .fin-directory-card p { font-size: .88rem; line-height: 1.65; max-width: 320px; margin-bottom: 25px; }
+  .fin-directory-link { margin-top: auto; width: 100%; min-height: 42px; padding: 8px 12px; border: 1px solid var(--ls-border); border-radius: 9px; background: var(--ls-surface-soft); color: #285685; font-size: .86rem; font-weight: 650; text-decoration: none; display: flex; gap: 12px; align-items: center; justify-content: space-between; box-shadow: none; transition: background .18s, border-color .18s; }
+  .fin-directory-link:hover { color: #193b5e; background: #edf3fa; border-color: #a9bfd7; }
+  .fin-directory-link:focus-visible { outline: 3px solid #79b5f5; outline-offset: 3px; }
+  .fin-directory-link::after { content: ''; flex: 0 0 24px; width: 24px; height: 24px; border-radius: 6px; background-color: #2856850a; background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='18' height='18' viewBox='0 0 24 24' fill='none' stroke='%23285685' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='m9 6 6 6-6 6'/%3E%3C/svg%3E"); background-repeat: no-repeat; background-position: center; }
+  @media (prefers-reduced-motion: reduce) { .fin-directory-link { transition: none; } .fin-directory-link:hover { transform: none; } }
+  @media (max-width: 767px) {
+    .fin-workspace { padding: 20px 14px 35px !important; }
+    .fin-nav { flex-wrap: nowrap; overflow-x: auto; }
+    .fin-nav .btn { flex-shrink: 0; padding: 10px 12px; }
+    .fin-panel { padding: 18px; }
+    .fin-directory-card { min-height: 235px; }
+    .fin-head { gap: 14px; }
+  }
+  @media (prefers-reduced-motion: reduce) { .fin-directory-card { transition: none; } }
+}

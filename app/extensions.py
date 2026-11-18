@@ -1,6 +1,7 @@
 from flask_sqlalchemy import SQLAlchemy
 from flask_login import LoginManager
 from flask_mail import Mail
+from app.utils import busca  # Registra a normalização nas conexões SQLite.
 
 # Banco de dados
 db = SQLAlchemy()

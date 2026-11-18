@@ -315,6 +315,8 @@ def registro():
 
         perfil = request.form.get('perfil', '').strip()
         mapa_perfis = {
+            'Financeiro': 'financeiro',
+            'financeiro': 'financeiro',
             'Administrador': 'admin',
             'Estoque': 'estoque',
             'Área Técnica': 'tecnica',

@@ -1,0 +1,16 @@
+{% macro aviso(parcela) -%}
+{% set status = situacao_financeira(parcela) %}
+{% set dias = (parcela.vencimento - hoje_local()).days %}
+{% if parcela.recebimentos %}
+<span class="fin-status fin-paid">Pago</span>
+{% else %}
+{% if parcela.valor_real is none %}<div class="small fin-muted mb-1">Aguardando apuração</div>{% endif %}
+{% if dias < 0 %}
+<span class="fin-status fin-overdue">{{ 'Vencimento há' if parcela.valor_real is none else 'Atrasada há' }} {{ -dias }} {{ 'dia' if dias == -1 else 'dias' }}</span>
+{% elif dias == 0 %}
+<span class="fin-status fin-today">Vence hoje</span>
+{% else %}
+<span class="fin-status fin-upcoming">Vence em {{ dias }} {{ 'dia' if dias == 1 else 'dias' }}</span>
+{% endif %}
+{% endif %}
+{%- endmacro %}

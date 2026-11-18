@@ -74,6 +74,7 @@ python create_db.py
 Configure no painel do Render antes de publicar:
 
 - `SECRET_KEY`: chave secreta fixa da aplicação.
+- `FINANCEIRO_HABILITADO`: ativo por padr?o no Render. Use `0` para ocultar e bloquear o m?dulo.
 - `TECNICO_SALDO_GERAL_ID`: ID do t?cnico que guarda o saldo geral da empresa no banco deste ambiente (Fernando). Configure para compartilhar esse saldo nas baixas de todos os t?cnicos.
 - `DATABASE_URL`: opcional se usar PostgreSQL; sem ela o sistema usa `/var/data/logistock.db`.
 - `MAIL_USERNAME`, `MAIL_PASSWORD` e `MAIL_DEFAULT_SENDER`: envio SMTP.

@@ -1,0 +1,69 @@
+{% extends 'financeiro/base.html' %}
+{% block fin_title %}Relatórios financeiros{% endblock %}
+{% block fin_content %}
+<style>
+.report-brand { display: none; }
+.report-installment { white-space: nowrap; }
+@media print {
+  @page { margin: 13mm 12mm; }
+  body { color: #172b4d !important; background: white !important; font: 9pt Arial, sans-serif; }
+  .fin-head, .fin-user-context { display: none !important; }
+  body footer.footer { display: none !important; }
+  .report-brand { display: flex; align-items: center; justify-content: space-between; border-bottom: 3px solid #f59e0b; padding-bottom: 12px; margin-bottom: 16px; }
+  .report-brand-logo { display: flex; align-items: center; gap: 14px; }
+  .report-brand img { width: 58px; height: 58px; object-fit: contain; }
+  .report-brand-name { font-size: 22pt; font-weight: bold; color: #18375b; }
+  .report-brand-name span { color: #e58b13; }
+  .report-brand h1 { font-size: 14pt; margin: 3px 0; }
+  .report-brand-meta { text-align: right; font-size: 8pt; line-height: 1.7; }
+  .fin-metrics { grid-template-columns: repeat(6, 1fr) !important; gap: 8px; margin: 12px 0 18px; }
+  .fin-metric { padding: 10px; border: 1px solid #d5deea; border-top: 3px solid #25496f; background: #f6f8fb !important; border-radius: 4px; }
+  .fin-metric strong { font-size: 12pt; }
+  .fin-metric span { font-size: 8pt; }
+  .fin-panel { margin-bottom: 18px; }
+  .fin-panel h2 { font-size: 11pt; font-weight: bold; margin: 12px 0 8px; }
+  .fin-table { font-size: 8pt; color: #172b4d !important; }
+  .fin-table th { background: #eaf0f7 !important; color: #18375b !important; font-size: 7.5pt; padding: 7px 5px; border-bottom: 2px solid #25496f; }
+  .fin-table td { padding: 5px; border-bottom: 1px solid #dce3ec; }
+  .fin-table tbody tr:nth-child(even) td { background: #f5f7fa !important; }
+  .fin-muted { color: #52627a !important; }
+  * { print-color-adjust: exact; -webkit-print-color-adjust: exact; }
+}
+</style>
+<header class="report-brand">
+  <div class="report-brand-logo">
+    <img src="{{ url_for('static', filename='img/start_logo.png') }}" alt="START">
+    <div><div class="report-brand-name">START</div><h1>Relatório financeiro</h1></div>
+  </div>
+  <div class="report-brand-meta">Emitido em {{ hoje_local().strftime('%d/%m/%Y') }}<br>Por {{ current_user.nome }}<br>{{ parcelas|length }} parcelas na seleção</div>
+</header>
+
+{% if financeiro_permitido('exportar') %}<details class="fin-panel no-print"><summary>Baixar cadastros de clientes e contratos</summary><form method="get" action="{{ url_for('financeiro.exportar_cadastros') }}" class="mt-3"><h2 class="h5">Clientes e contratos</h2><label class="form-label" for="conjunto">Conteúdo</label><select class="form-select mb-3" id="conjunto" name="conjunto"><option value="clientes">Cadastro de clientes</option><option value="contratos">Contratos e condições das negociações</option></select><label class="form-label" for="cliente_cadastro">Cliente</label><select class="form-select mb-3" id="cliente_cadastro" name="cliente_id"><option value="">Todos</option>{% for c in clientes %}<option value="{{ c.id }}">{{ c.nome }}</option>{% endfor %}</select><label class="form-label" for="formato_cadastro">Formato</label><select class="form-select mb-3" id="formato_cadastro" name="formato"><option value="xlsx">Excel (.xlsx)</option><option value="csv">CSV</option></select><button class="btn btn-primary">Baixar arquivo</button></form></details>{% endif %}
+<form method="get" class="fin-panel no-print"><div class="row g-3"><div class="col-md-3"><label class="form-label" for="cliente_id">Cliente</label><select class="form-select" name="cliente_id" id="cliente_id"><option value="">Todos os clientes</option>{% for c in clientes %}<option value="{{ c.id }}" {{ 'selected' if request.args.get('cliente_id')==c.id|string }}>{{ c.nome }}</option>{% endfor %}</select></div>
+<div class="col-md-3"><label class="form-label" for="tipo">Relatório / data de referência</label><select class="form-select" id="tipo" name="tipo"><option value="a_receber" {{ 'selected' if request.args.get('tipo')=='a_receber' }}>Valores reais a receber</option><option value="cobrancas" {{ 'selected' if request.args.get('tipo','cobrancas')=='cobrancas' }}>Cobranças por vencimento</option><option value="recebimentos" {{ 'selected' if request.args.get('tipo')=='recebimentos' }}>Recebimentos por data de pagamento</option></select></div>
+<div class="col-md-3"><label class="form-label" for="contrato">Contrato</label><select class="form-select" id="contrato" name="contrato"><option value="">Todos</option>{% for c in contratos %}<option value="{{ c.id }}" {{ 'selected' if request.args.get('contrato')==c.id|string }}>{{ c.nome_cliente }} · {{ c.codigo }}</option>{% endfor %}</select></div>
+<div class="col-md-3"><label class="form-label" for="modalidade">Modalidade</label><select class="form-select" id="modalidade" name="modalidade"><option value="">Todas</option>{% for valor,nome in modalidades_financeiras.items() %}<option value="{{ valor }}" {{ 'selected' if request.args.get('modalidade')==valor }}>{{ nome }}</option>{% endfor %}</select></div>
+<div class="col-md-3"><label class="form-label" for="situacao">Situação</label><select class="form-select" id="situacao" name="situacao"><option value="">Todas</option>{% for nome in ['Aguardando apuração','A vencer','Vence hoje','Atrasado','Pago'] %}<option {{ 'selected' if request.args.get('situacao')==nome }}>{{ nome }}</option>{% endfor %}</select></div>
+{% for campo,nome in [('inicio','De'),('fim','Até')] %}<div class="col-md-3"><label class="form-label" for="{{ campo }}">{{ nome }}</label><input class="form-control" type="date" id="{{ campo }}" name="{{ campo }}" value="{{ request.args.get(campo,'') }}"></div>{% endfor %}
+<div class="col-md-6 d-flex align-items-end gap-2 flex-wrap"><button class="btn btn-primary">Aplicar filtros</button>{% if financeiro_permitido('exportar') %}{% set filtros_exportacao = request.args.to_dict() %}{% set _ = filtros_exportacao.pop('formato', none) %}<a class="btn btn-outline-primary" href="{{ url_for('financeiro.exportar', formato='xlsx', **filtros_exportacao) }}">Baixar Excel</a><a class="btn btn-outline-primary" href="{{ url_for('financeiro.exportar', formato='csv', **filtros_exportacao) }}">Baixar CSV</a>{% endif %}<button class="btn btn-outline-secondary" type="button" onclick="window.print()">Imprimir / PDF</button></div></div></form>
+<p class="fin-muted">{{ 'Recebimentos' if request.args.get('tipo')=='recebimentos' else ('Valores a receber' if request.args.get('tipo')=='a_receber' else 'Cobranças') }} &middot; {{ parcelas|length }} parcelas{% if request.args.get('inicio') and request.args.get('fim') %} &middot; {{ request.args.get('inicio') }} a {{ request.args.get('fim') }}{% elif request.args.get('inicio') %} &middot; Desde {{ request.args.get('inicio') }}{% elif request.args.get('fim') %} &middot; Até {{ request.args.get('fim') }}{% endif %}{% if request.args.get('situacao') %} &middot; {{ request.args.get('situacao') }}{% endif %}</p>
+{% if request.args.get('tipo')=='a_receber' %}<div class="alert alert-info">Valores a receber incluem somente parcelas com valor real informado e ainda não pagas. As previsões sem apuração podem ser consultadas em Cobranças por vencimento, situação Aguardando apuração.</div>{% endif %}
+{% set rotulos_metricas = {'previsao':'Total estimado das parcelas selecionadas', 'apurado':'Total real apurado', 'recebido':'Total recebido', 'aberto':'Apurado a receber', 'atrasado':'Apurado em atraso'} %}
+{% include 'financeiro/_metricas.html' %}
+<p class="small fin-muted"><strong>Estimativa:</strong> o total previsto soma as {{ parcelas|length }} parcelas selecionadas, incluindo as já pagas. Nos comodatos, o valor para pagamento é definido após a leitura de consumo. Valores aguardando apuração não compõem o saldo apurado a receber.</p>
+{% for grupo in parcelas|groupby('contrato_id') %}
+{% set contrato = grupo.list[0].contrato %}
+<div class="fin-panel table-responsive report-parcelas">
+<h2 class="h5">{{ contrato.nome_cliente }}</h2>
+<p class="small fin-muted">Contrato {{ contrato.codigo }} &middot; {{ modalidades_financeiras[contrato.modalidade] }}</p>
+<table class="table fin-table"><thead><tr><th>M&ecirc;s</th><th>Parcela</th><th>Valor previsto</th><th>Em aberto</th><th>Recebido</th></tr></thead><tbody>
+{% for p in grupo.list|sort(attribute='numero') %}<tr>
+<td>{{ p.vencimento.strftime('%m/%Y') }}</td>
+<td class="report-installment"><strong>{{ "%02d"|format(p.numero) }} de {{ contrato.quantidade_parcelas }}</strong></td>
+<td>{{ p.previsao|brl }}</td>
+<td>{{ (p.valor_real if p.valor_real is not none and not p.recebimentos else 0)|brl }}</td>
+<td>{{ (p.recebimentos|sum(attribute='valor'))|brl }}</td>
+</tr>{% endfor %}
+</tbody></table></div>
+{% else %}<p class="fin-muted">Nenhuma parcela para os filtros selecionados.</p>{% endfor %}
+{% endblock %}

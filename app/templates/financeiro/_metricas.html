@@ -1,0 +1,6 @@
+<div class="fin-metrics">
+{% for chave,nome in [('previsao','Valor previsto'),('apurado','Valor real apurado'),('recebido','Recebido'),('aberto','Em aberto'),('atrasado','Em atraso')] %}
+<div class="fin-metric"><span>{{ (rotulos_metricas|default({})).get(chave,nome) }}</span><strong>{{ totais[chave]|brl }}</strong></div>
+{% endfor %}
+<div class="fin-metric"><span>Aguardando apuração</span><strong>{{ totais.aguardando }} parcela(s)</strong></div>
+</div>

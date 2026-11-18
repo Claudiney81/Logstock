@@ -1,0 +1,10 @@
+{% extends 'financeiro/base.html' %}
+{% block fin_title %}Negociações e contratos{% endblock %}
+{% block fin_content %}
+<p class="fin-muted" data-fin-help>Acompanhe os contratos, preserve a previsão e registre o valor efetivo de cada parcela.</p>
+{% include 'financeiro/_metricas.html' %}<form method="get" class="d-flex gap-2 mb-3"><input class="form-control" name="busca" placeholder="Buscar cliente ou código do contrato" aria-label="Buscar contrato" value="{{ request.args.get('busca','') }}"><button class="btn btn-outline-primary">Buscar</button></form>
+<div class="fin-panel"><h2 class="h5 mb-3">Contratos</h2><div class="table-responsive"><table class="table fin-table"><thead><tr><th>Contrato / cliente</th><th>Modalidade</th><th>Parcelas</th><th>Base mensal / parcela</th><th>Total contratado</th><th></th></tr></thead><tbody>
+{% for c in contratos %}<tr><td><strong>{{ c.nome_cliente }}</strong><br><small class="fin-muted">{{ c.codigo }}{% if c.demonstracao %} · Demonstração{% endif %}</small></td><td>{{ modalidades_financeiras[c.modalidade] }}</td><td>{{ c.quantidade_parcelas }}</td><td>{{ c.base_mensal|brl }}</td><td>{{ c.valor_total|brl if c.valor_total is not none else 'Não informado' }}</td><td><a class="btn btn-sm btn-outline-primary" href="{{ url_for('financeiro.contrato', contrato_id=c.id) }}">Abrir contrato</a></td></tr>
+{% else %}<tr><td colspan="6" class="py-5 text-center fin-muted">Nenhum contrato cadastrado. Comece criando um contrato.</td></tr>{% endfor %}
+</tbody></table></div></div>
+{% endblock %}

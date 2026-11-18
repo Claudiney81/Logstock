@@ -1,0 +1,19 @@
+{% extends 'financeiro/base.html' %}
+{% from 'financeiro/_situacao.html' import aviso with context %}
+{% block fin_title %}Lançamentos por cliente{% endblock %}
+{% block fin_content %}
+<p class="fin-muted" data-fin-help>Selecione o cliente e abra a parcela para informar o valor mensal ou registrar seu recebimento.</p>
+<form method="get" class="fin-panel"><div class="row g-3"><div class="col-md-4"><label class="form-label" for="cliente_id">Cliente</label><select class="form-select" name="cliente_id" id="cliente_id"><option value="">Todos os clientes</option>{% for c in clientes %}<option value="{{ c.id }}" {{ 'selected' if request.args.get('cliente_id')==c.id|string }}>{{ c.nome }}</option>{% endfor %}</select></div><div class="col-md-4"><label class="form-label" for="situacao">Situação</label><select class="form-select" name="situacao" id="situacao"><option value="">Todas</option>{% for nome in ['Aguardando apuração','A vencer','Vence hoje','Atrasado','Pago'] %}<option {{ 'selected' if request.args.get('situacao')==nome }}>{{ nome }}</option>{% endfor %}</select></div><div class="col-md-4 d-flex align-items-end"><button class="btn btn-primary">Consultar lançamentos</button></div></div></form>
+{% include 'financeiro/_metricas.html' %}
+{% for grupo in parcelas|groupby('contrato_id') %}
+{% set contrato = grupo.list[0].contrato %}
+<section class="fin-panel">
+<div class="fin-contract-heading d-flex justify-content-between align-items-start gap-3 flex-wrap mb-4">
+<div><h2 class="h5 mb-2">{{ contrato.nome_cliente }}</h2><div class="small fin-muted">{{ contrato.codigo }} &middot; {{ modalidades_financeiras[contrato.modalidade] }} &middot; {{ contrato.quantidade_parcelas }} parcelas</div></div>
+<a class="btn btn-sm btn-outline-primary" href="{{ url_for('financeiro.contrato',contrato_id=contrato.id) }}">Ver contrato</a>
+</div>
+<div class="table-responsive"><table class="table fin-table"><thead><tr><th>Parcela</th><th>Vencimento</th><th>Valor previsto</th><th>Valor real</th><th>Situa&ccedil;&atilde;o</th><th><span class="visually-hidden">A&ccedil;&otilde;es</span></th></tr></thead><tbody>
+{% for p in grupo.list|sort(attribute='numero') %}<tr><td class="text-nowrap"><strong>{{ "%02d"|format(p.numero) }} de {{ contrato.quantidade_parcelas }}</strong></td><td>{{ p.vencimento.strftime('%d/%m/%Y') }}</td><td>{{ p.previsao|brl }}</td><td>{{ p.valor_real|brl if p.valor_real is not none else 'A apurar' }}</td><td>{{ aviso(p) }}</td><td class="text-end"><a class="btn btn-sm btn-outline-primary text-nowrap" href="{{ url_for('financeiro.lancamento',parcela_id=p.id) }}">{{ 'Ver recebimento' if p.recebimentos else 'Lançar / receber' }}</a></td></tr>{% endfor %}
+</tbody></table></div></section>
+{% else %}<div class="fin-panel"><p class="fin-muted mb-0" data-fin-help>Nenhuma parcela para a sele&#231;&#227;o.</p></div>{% endfor %}
+{% endblock %}

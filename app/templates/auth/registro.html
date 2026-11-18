@@ -131,6 +131,9 @@
             <option value="Administrador">
               Administrador
             </option>
+            {% if config.FINANCEIRO_HABILITADO %}
+            <option value="Financeiro">Financeiro</option>
+            {% endif %}
 
             <option value="Estoque">
               Estoque

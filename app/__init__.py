@@ -70,6 +70,9 @@ def _ensure_runtime_schema_columns():
     inspector = inspect(db.engine)
 
     required_columns = {
+        "financeiro_contratos": {
+            "cliente_id": "INTEGER REFERENCES financeiro_clientes(id)",
+        },
         "notas_fiscais_entrada": {
             "data_recebimento": "DATE",
         },
@@ -163,6 +166,7 @@ def create_app(test_config=None):
     mail.init_app(app)
 
     from app import models  # noqa: F401
+    from app import financeiro_models  # noqa: F401
 
     with app.app_context():
         db.create_all()
@@ -175,6 +179,22 @@ def create_app(test_config=None):
     login_manager.login_view = "auth.login"
     login_manager.login_message = None
     login_manager.login_message_category = "info"
+
+    from app.routes.financeiro import bp as financeiro_bp
+    app.register_blueprint(financeiro_bp)
+
+    @app.before_request
+    def restringir_perfil_financeiro():
+        if current_user.is_authenticated and current_user.perfil == 'financeiro':
+            endpoint = request.endpoint or ''
+            if app.config.get('FINANCEIRO_DEMONSTRACAO') and endpoint == 'entrar_demonstracao':
+                return None
+            if endpoint.startswith(('financeiro.', 'static')) or endpoint in ('auth.logout', 'auth.login'):
+                return None
+            if request.path == '/' or endpoint in ('home.home', 'raiz'):
+                return redirect(url_for('financeiro.index'))
+            from flask import abort
+            abort(403)
 
     @login_manager.user_loader
     def load_user(user_id):

@@ -1,0 +1,31 @@
+{% extends 'financeiro/base.html' %}
+{% block fin_title %}Novo contrato{% endblock %}
+{% block fin_content %}
+<p class="fin-muted" data-fin-help>Preencha os dados comerciais da planilha. O contrato gera as parcelas; depois, os valores reais e pagamentos são lançados a cada mês.</p>
+<form method="post" class="fin-panel"><input type="hidden" name="csrf_token" value="{{ financeiro_token() }}">
+<div class="row g-3"><div class="col-12"><label class="form-label" for="cliente_id">Cliente cadastrado</label><select class="form-select" id="cliente_id" name="cliente_id" required><option value="">Selecione o cliente</option>{% for c in clientes %}<option value="{{ c.id }}" {{ 'selected' if request.form.get('cliente_id',request.args.get('cliente_id'))==c.id|string }}>{{ c.nome }}{{ ' · ' + c.documento if c.documento else '' }}</option>{% endfor %}</select>{% if financeiro_permitido('cadastros') %}<a class="small" href="{{ url_for('financeiro.novo_cliente') }}">Cadastrar um novo cliente</a>{% endif %}</div>
+{% for campo,nome in [('codigo','Código do contrato (opcional)'),('fornecedor','Fornecedor do kit'),('forma_pagamento','Forma de pagamento'),('nota_kit','Nº NF (opcional)')] %}
+<div class="col-md-6"><label class="form-label" for="{{ campo }}">{{ nome }}</label><input class="form-control" id="{{ campo }}" name="{{ campo }}" type="text" value="{{ request.form.get(campo,'') }}" maxlength="{{ 160 if campo=='fornecedor' else 80 }}" {% if campo in ['fornecedor','forma_pagamento'] %}list="lista-{{ campo }}"{% endif %}>{% if campo=='codigo' %}<small class="fin-muted" data-fin-help>Se ficar vazio, o sistema gera o código.</small>{% elif campo=='nota_kit' %}<small class="fin-muted" data-fin-help>Nota inicial das parcelas; pode ser ajustada em cada mês.</small>{% elif campo=='fornecedor' %}<small class="fin-muted" data-fin-help>Selecione uma sugestão ou digite um novo fornecedor.</small>{% endif %}</div>{% endfor %}
+<datalist id="lista-fornecedor">{% for nome in fornecedores %}<option value="{{ nome }}">{% endfor %}</datalist><datalist id="lista-forma_pagamento">{% for nome in formas_pagamento %}<option value="{{ nome }}">{% endfor %}</datalist>
+<div class="col-md-6"><label class="form-label" for="modalidade">Modelo de negócio</label><select class="form-select" id="modalidade" name="modalidade" required>{% for valor,nome in modalidades_financeiras.items() %}<option value="{{ valor }}" {{ 'selected' if request.form.get('modalidade') == valor }}>{{ nome }}</option>{% endfor %}</select></div>
+<div class="col-md-3"><label class="form-label" for="quantidade_parcelas">Quantidade de parcelas do contrato</label><input class="form-control" id="quantidade_parcelas" name="quantidade_parcelas" type="number" min="1" max="600" required value="{{ request.form.get('quantidade_parcelas','') }}"></div>
+<div class="col-md-3"><label class="form-label" for="primeiro_vencimento">Primeiro vencimento</label><input class="form-control" id="primeiro_vencimento" name="primeiro_vencimento" type="date" required value="{{ request.form.get('primeiro_vencimento','') }}"></div>
+<div class="col-md-6"><label class="form-label" id="rotulo-base" for="base_mensal">Valor mensal bruto do contrato (R$)</label><input class="form-control" id="base_mensal" name="base_mensal" inputmode="decimal" placeholder="1.800,00" required value="{{ request.form.get('base_mensal','') }}"><small class="fin-muted" id="ajuda-base" data-fin-help>No variável: base para a previsão de 70% / 50%. Nas demais modalidades: valor mensal da parcela.</small></div>
+<div class="col-md-6"><label class="form-label" for="valor_total">Valor total do contrato/serviço (opcional)</label><input class="form-control" id="valor_total" name="valor_total" inputmode="decimal" value="{{ request.form.get('valor_total','') }}"><small class="fin-muted" data-fin-help>Informativo. Não altera nem redistribui as parcelas.</small></div>
+<div class="col-12"><label class="form-label" for="observacao">Observações</label><textarea class="form-control" id="observacao" name="observacao">{{ request.form.get('observacao','') }}</textarea></div>
+</div><div class="alert alert-info mt-4" id="regra-contrato">As parcelas serão geradas mensalmente conforme o prazo do contrato.</div>
+<button class="btn btn-primary" type="submit">Criar contrato e gerar parcelas</button>
+</form>
+<script>
+(() => {
+ const modalidade = document.getElementById('modalidade');
+ function atualizar() {
+  const variavel = modalidade.value === 'comodato_variavel';
+  document.getElementById('rotulo-base').textContent = modalidade.value.startsWith('comodato_') ? 'Valor mensal bruto do contrato (R$)' : 'Valor da parcela (R$)';
+  document.getElementById('ajuda-base').textContent = variavel ? 'Base da estimativa. O valor final de cada mês será informado após a apuração.' : 'Valor usado para gerar cada parcela do contrato.';
+  document.getElementById('regra-contrato').textContent = variavel ? 'Valor previsto: 70% até a parcela 36 e 50% da parcela 37 até a última, sobre a mesma base original. O valor real mensal fica aguardando apuração após a leitura de consumo.' : 'Parcelas geradas com o valor informado, sem aplicar a regra de 70% / 50% do comodato.';
+ }
+ modalidade.addEventListener('change',atualizar); atualizar();
+})();
+</script>
+{% endblock %}

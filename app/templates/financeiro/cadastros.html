@@ -1,0 +1,11 @@
+{% extends 'financeiro/base.html' %}
+{% from 'financeiro/_icons.html' import icon %}
+{% block fin_title %}Cadastros{% endblock %}
+{% block fin_content %}
+<div class="fin-directory-intro"><div><div class="fin-directory-label">Seus cadastros</div><p class="fin-muted" data-fin-help>Tudo pronto para a pr&#243;xima negocia&#231;&#227;o.<br>Gerencie clientes e mantenha os dados comerciais em dia.</p></div></div>
+<div class="row g-4">
+<div class="col-lg-4"><div class="fin-panel fin-directory-card h-100"><span class="fin-directory-icon">{{ icon('clientes') }}</span><h2>Clientes</h2><p class="fin-muted" data-fin-help>Contatos, contratos e hist&#243;rico financeiro reunidos na ficha de cada cliente.</p><a class="fin-directory-link" href="{{ url_for('financeiro.clientes') }}">Gerenciar clientes</a></div></div>
+{% if financeiro_permitido('cadastros') %}{% for tipo,titulo in tipos.items() %}
+<div class="col-lg-4"><div class="fin-panel fin-directory-card h-100" data-tone="{{ 'amber' if tipo=='fornecedores' else 'green' }}"><span class="fin-directory-icon">{{ icon(tipo) }}</span><h2>{{ 'Fornecedores' if tipo=='fornecedores' else titulo }}</h2><p class="fin-muted" data-fin-help>{% if tipo=='fornecedores' %}Organize as empresas que fornecem os equipamentos das suas negocia&#231;&#245;es.{% else %}Defina as condi&#231;&#245;es utilizadas nos novos contratos e atendimentos.{% endif %}</p><a class="fin-directory-link" href="{{ url_for('financeiro.cadastro_auxiliar',tipo=tipo) }}">{{ 'Gerenciar fornecedores' if tipo=='fornecedores' else 'Gerenciar formas de pagamento' }}</a></div></div>
+{% endfor %}{% endif %}</div>
+{% endblock %}
