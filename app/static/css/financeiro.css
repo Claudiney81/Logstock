@@ -10,11 +10,6 @@
   .fin-head .btn-primary { background: #193c60; border-color: #193c60; box-shadow: 0 4px 10px #16324f14; }
   .fin-workspace .btn { border-radius: 9px; padding: 9px 15px; font-weight: 550; font-size: .86rem; }
   .fin-workspace .btn-sm { padding: 6px 11px; font-size: .8rem; }
-  .fin-nav { gap: 5px; padding: 6px !important; margin-bottom: 28px !important; background: var(--ls-surface); border: 1px solid var(--ls-border); border-radius: 13px; box-shadow: 0 3px 14px #16324f05; }
-  .fin-nav .btn { display: inline-flex; align-items: center; gap: 8px; border: 0; background: transparent; color: var(--ls-muted); padding: 10px 17px; }
-  .fin-nav .btn:hover { color: var(--ls-text); background: var(--ls-surface-soft); }
-  .fin-nav .btn[aria-current="page"] { background: #193c60; color: #fff; box-shadow: 0 3px 8px #16324f22; }
-  .fin-nav-icon { width: 17px; height: 17px; flex-shrink: 0; }
   .fin-panel { border-radius: 16px; padding: 24px; box-shadow: 0 4px 18px #16324f04; }
   .fin-panel h2 { font-weight: 650; letter-spacing: -.02em; }
   .fin-muted { line-height: 1.65; }
@@ -52,8 +47,6 @@
   @media (prefers-reduced-motion: reduce) { .fin-directory-link { transition: none; } .fin-directory-link:hover { transform: none; } }
   @media (max-width: 767px) {
     .fin-workspace { padding: 20px 14px 35px !important; }
-    .fin-nav { flex-wrap: nowrap; overflow-x: auto; }
-    .fin-nav .btn { flex-shrink: 0; padding: 10px 12px; }
     .fin-panel { padding: 18px; }
     .fin-directory-card { min-height: 235px; }
     .fin-head { gap: 14px; }
