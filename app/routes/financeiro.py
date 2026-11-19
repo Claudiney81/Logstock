@@ -7,11 +7,13 @@ from functools import wraps
 
 from flask import Blueprint, abort, current_app, flash, redirect, render_template, request, session, url_for, Response, send_file
 from flask_login import current_user, login_required
+from itsdangerous import BadSignature, URLSafeTimedSerializer
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm.exc import StaleDataError
 from sqlalchemy import func, or_
 
 from app.extensions import db
+from app.financeiro_importacao import LIMITE_ARQUIVO, chave_cliente, ler_clientes
 from app.financeiro_models import CadastroFinanceiro, ClienteFinanceiro, ContratoFinanceiro, ParcelaFinanceira, RecebimentoFinanceiro, EventoFinanceiro
 from app.models import Usuario
 from app.financeiro_service import MODALIDADES, FORMAS_PAGAMENTO, FORNECEDORES, dinheiro, data_valida, gerar_parcelas, resumo, situacao
@@ -328,6 +330,62 @@ def clientes():
     if busca:
         query = query.filter(or_(contem_busca(ClienteFinanceiro.nome,busca), contem_busca(ClienteFinanceiro.documento,busca)))
     return render_template('financeiro/clientes.html',clientes=query.order_by(ClienteFinanceiro.nome).all())
+
+
+@bp.before_request
+def limitar_upload_clientes():
+    if request.endpoint == 'financeiro.importar_clientes':
+        request.max_content_length = LIMITE_ARQUIVO + 1024 * 1024
+
+
+@bp.route('/clientes/importar', methods=['GET', 'POST'])
+@acesso('cadastros')
+def importar_clientes():
+    if request.method == 'GET':
+        return render_template('financeiro/importar_clientes.html')
+
+    assinatura = URLSafeTimedSerializer(current_app.secret_key, salt='financeiro-importar-clientes')
+    token = request.form.get('previa')
+    existentes = {chave_cliente(nome) for nome, in db.session.query(ClienteFinanceiro.nome)}
+
+    if token:
+        try:
+            dados = assinatura.loads(token, max_age=1800)
+            if dados['usuario'] != current_user.id:
+                raise BadSignature('Usuário diferente')
+        except BadSignature:
+            flash('A prévia expirou. Selecione a planilha novamente.', 'danger')
+            return redirect(url_for('financeiro.importar_clientes'))
+
+        nomes = dados['nomes']
+        novos = [nome for nome in nomes if chave_cliente(nome) not in existentes]
+        db.session.add_all(
+            ClienteFinanceiro(nome=nome, ativo=True, criado_por=current_user.id)
+            for nome in novos
+        )
+        db.session.commit()
+        flash(f'Importação concluída. Novos cadastros: {len(novos)}. Já existentes: {len(nomes) - len(novos)}.', 'success')
+        return redirect(url_for('financeiro.clientes'))
+
+    planilha = request.files.get('planilha')
+    if not planilha or not planilha.filename.lower().endswith('.xlsx'):
+        flash('Selecione um arquivo Excel .xlsx.', 'danger')
+        return render_template('financeiro/importar_clientes.html'), 400
+    try:
+        nomes, repetidos, invalidos = ler_clientes(planilha.stream)
+    except ValueError as erro:
+        flash(str(erro), 'danger')
+        return render_template('financeiro/importar_clientes.html'), 400
+
+    novos, cadastrados = [], []
+    for linha, nome in nomes:
+        grupo = cadastrados if chave_cliente(nome) in existentes else novos
+        grupo.append((linha, nome))
+    previa = assinatura.dumps({'usuario': current_user.id, 'nomes': [nome for _, nome in novos]})
+    return render_template(
+        'financeiro/importar_clientes.html', previa=previa, novos=novos,
+        cadastrados=cadastrados, repetidos=repetidos, invalidos=invalidos,
+    )
 
 
 def salvar_cliente(item):

@@ -1,0 +1,41 @@
+{% extends 'financeiro/base.html' %}
+{% block fin_title %}Importar clientes{% endblock %}
+{% block fin_content %}
+{% if previa is not defined %}
+<form method="post" enctype="multipart/form-data" class="fin-panel">
+  <input type="hidden" name="csrf_token" value="{{ financeiro_token() }}">
+  <label for="planilha" class="form-label">Planilha de controle de pagamentos</label>
+  <input type="file" class="form-control" id="planilha" name="planilha" accept=".xlsx" aria-describedby="planilha-ajuda" required>
+  <div id="planilha-ajuda" class="form-text">Selecione o Excel original de até 25 MiB. A prévia usa a coluna Clientes da aba Cadastro.</div>
+  <div class="d-flex flex-wrap gap-2 mt-3">
+    <button class="btn btn-primary">Conferir planilha</button>
+    <a class="btn btn-outline-secondary" href="{{ url_for('financeiro.clientes') }}">Voltar</a>
+  </div>
+</form>
+{% else %}
+<div class="fin-panel">
+  <h2 class="h5">Prévia da importação</h2>
+  {% for titulo, registros in [('Novos clientes', novos), ('Já cadastrados', cadastrados), ('Nomes repetidos na planilha', repetidos)] %}
+  <details class="mb-2">
+    <summary>{{ titulo }} ({{ registros|length }})</summary>
+    <ul class="mb-2">
+      {% for linha, nome in registros %}<li>Linha {{ linha }} · {{ nome }}</li>{% else %}<li>Nenhum</li>{% endfor %}
+    </ul>
+  </details>
+  {% endfor %}
+  {% if invalidos %}
+  <p class="mt-2">Linhas com nome inválido ({{ invalidos|length }}) · {{ invalidos|join(', ') }}</p>
+  {% endif %}
+  {% if repetidos %}
+  <p>Se houver duas pessoas com o mesmo nome, cadastre a segunda ficha com o CPF/CNPJ para diferenciá-la.</p>
+  {% endif %}
+  <form method="post" class="d-flex flex-wrap gap-2 mt-3">
+    <input type="hidden" name="csrf_token" value="{{ financeiro_token() }}">
+    <input type="hidden" name="previa" value="{{ previa }}">
+    {% if novos %}<button class="btn btn-primary">Confirmar importação de {{ novos|length }} clientes</button>{% endif %}
+    <a class="btn btn-outline-secondary" href="{{ url_for('financeiro.importar_clientes') }}">Selecionar outra planilha</a>
+    <a class="btn btn-outline-secondary" href="{{ url_for('financeiro.clientes') }}">Voltar</a>
+  </form>
+</div>
+{% endif %}
+{% endblock %}
